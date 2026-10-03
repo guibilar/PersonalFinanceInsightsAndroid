@@ -1,0 +1,50 @@
+{
+    "items": [
+        {
+            "name": "SHOPPERS",
+            "count": 5,
+            "spending": 157.29
+        },
+        {
+            "name": "ANTHROPIC",
+            "count": 2,
+            "spending": 147.07
+        },
+        {
+            "name": "EYECARE",
+            "count": 1,
+            "spending": 120.0
+        },
+        {
+            "name": "TELUS",
+            "count": 2,
+            "spending": 117.4
+        },
+        {
+            "name": "BUS B",
+            "count": 1,
+            "spending": 92
+        },
+        {
+            "name": "BUS A",
+            "count": 1,
+            "spending": 88
+        },
+        {
+            "name": "MINAS BRAZILIAN",
+            "count": 1,
+            "spending": 73.66
+        },
+        {
+            "name": "MINISO",
+            "count": 2,
+            "spending": 71.07
+        }
+    ],
+    "page": 2,
+    "pageSize": 8,
+    "totalCount": 44,
+    "totalPages": 6,
+    "hasPreviousPage": true,
+    "hasNextPage": true
+}

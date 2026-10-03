@@ -1,0 +1,52 @@
+{
+    "items": [
+        {
+            "id": "01a0eb71-be0a-77a4-941e-56591133b8a1",
+            "name": "Eating out",
+            "description": "Restaurants",
+            "status": "Active",
+            "period": "Monthly",
+            "startDate": null,
+            "endDate": null,
+            "merchant": null,
+            "categories": [
+                {
+                    "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b01",
+                    "name": "Dining",
+                    "color": "#1F76B5"
+                }
+            ],
+            "totalAmount": 100,
+            "totalRemaining": 93.55,
+            "totalSpent": 6.45,
+            "percentageUsed": 6.45
+        },
+        {
+            "id": "01a0ff22-6875-7776-ac54-351f8a551d7e",
+            "name": "Groceries",
+            "description": "Food at home",
+            "status": "Active",
+            "period": "Monthly",
+            "startDate": null,
+            "endDate": null,
+            "merchant": null,
+            "categories": [
+                {
+                    "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b03",
+                    "name": "Groceries",
+                    "color": "#2CA12D"
+                }
+            ],
+            "totalAmount": 150,
+            "totalRemaining": 23.71,
+            "totalSpent": 126.29,
+            "percentageUsed": 84.19333333333333
+        }
+    ],
+    "page": 1,
+    "pageSize": 1000,
+    "totalCount": 2,
+    "totalPages": 1,
+    "hasPreviousPage": false,
+    "hasNextPage": false
+}

@@ -1,0 +1,112 @@
+{
+    "categories": [
+        {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b01",
+            "name": "Dining",
+            "color": "#1F76B5"
+        },
+        {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b02",
+            "name": "Entertainment",
+            "color": "#FF7E0F"
+        },
+        {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b03",
+            "name": "Groceries",
+            "color": "#2CA12D"
+        },
+        {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b04",
+            "name": "Health",
+            "color": "#D72628"
+        },
+        {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b05",
+            "name": "Other",
+            "color": "#9466BC"
+        },
+        {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b06",
+            "name": "Pet",
+            "color": "#8C564B"
+        },
+        {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b08",
+            "name": "Shopping",
+            "color": "#7F7E7E"
+        },
+        {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b09",
+            "name": "Subscriptions",
+            "color": "#BDBD23"
+        },
+        {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b0a",
+            "name": "Transportation",
+            "color": "#16BFCF"
+        },
+        {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b0b",
+            "name": "Utilities",
+            "color": "#800080"
+        }
+    ],
+    "monthlyData": [
+        {
+            "month": "Jun 2026",
+            "categoryValues": {
+                "Groceries": 103.1
+            },
+            "total": 103.1
+        },
+        {
+            "month": "Jul 2026",
+            "categoryValues": {
+                "Pet": 60,
+                "Groceries": 371.3,
+                "Dining": 140,
+                "Transportation": 88
+            },
+            "total": 659.3
+        },
+        {
+            "month": "Aug 2026",
+            "categoryValues": {
+                "Groceries": 565.98,
+                "Health": 342.33,
+                "Transportation": 2217.52,
+                "Dining": 348.5,
+                "Shopping": 676.92,
+                "Pet": 241.06,
+                "Other": 15.35,
+                "Utilities": 176.67,
+                "Entertainment": 16.0,
+                "Subscriptions": 147.07
+            },
+            "total": 4747.4
+        },
+        {
+            "month": "Sep 2026",
+            "categoryValues": {
+                "Other": 25.0,
+                "Dining": 23.65,
+                "Groceries": 161.85,
+                "Pet": 210,
+                "Transportation": 30
+            },
+            "total": 450.5
+        },
+        {
+            "month": "Oct 2026",
+            "categoryValues": {
+                "Groceries": 126.29,
+                "Shopping": 18.75,
+                "Transportation": 35.4,
+                "Dining": 6.45
+            },
+            "total": 186.89
+        }
+    ],
+    "averageMonthlyTotal": 1490.075,
+    "previousMonthToDateTotal": null
+}
