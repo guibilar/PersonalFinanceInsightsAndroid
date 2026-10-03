@@ -46,6 +46,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -248,8 +249,18 @@ fun TransactionsScreen(
                             // The old rows while the new ones load: dimmed, and not opened (they may not match any more).
                             val stale = list.loading && !state.refreshing
                             items(list.items, key = { it.id }) { transaction ->
-                                Column(Modifier.alpha(if (stale) 0.5f else 1f)) {
-                                    TransactionRow(transaction, onClick = { if (!stale) opened = transaction })
+                                Column(Modifier.alpha(if (stale) 0.5f else 1f).animateItem()) {
+                                    SwipeRow(
+                                        transaction = transaction,
+                                        deletedList = state.showDeleted,
+                                        enabled = !stale,
+                                        onDelete = { model.delete(transaction) },
+                                        onRestore = { model.restore(transaction) },
+                                        onCategorise = { opened = transaction },
+                                    ) {
+                                        // Opaque, so the swipe's colour shows only beside it.
+                                        Surface { TransactionRow(transaction, onClick = { if (!stale) opened = transaction }) }
+                                    }
                                     HorizontalDivider(Modifier.padding(start = 64.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                                 }
                             }
