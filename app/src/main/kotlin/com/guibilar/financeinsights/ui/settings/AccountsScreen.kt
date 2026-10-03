@@ -213,7 +213,7 @@ private fun AccountSheet(
             if (account != null) {
                 if (account.transactionCount > 0) {
                     Text(
-                        "It has ${account.transactionCount} transactions (deleted ones included), so it can't be deleted.",
+                        "It has ${account.transactionCount} ${if (account.transactionCount == 1) "transaction" else "transactions"} (deleted ones included), so it can't be deleted.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

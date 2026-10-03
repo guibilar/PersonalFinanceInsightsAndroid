@@ -110,7 +110,9 @@ class FakeFinanceApi : FinanceApi {
     }
 
     override suspend fun budgets(filter: BudgetFilter): Page<Budget> = check("budgets").let { fixture("budgets") }
-    override suspend fun categories(): List<Category> = check("categories").let { fixture("categories") }
+    /** Categories added to the recorded ones, for cases the recording doesn't have. */
+    val extraCategories = mutableListOf<Category>()
+    override suspend fun categories(): List<Category> = check("categories").let { fixture<List<Category>>("categories") + extraCategories }
     override suspend fun accounts(): List<Account> = check("accounts").let { fixture("accounts") }
 
     override suspend fun addTransaction(input: TransactionInput) = write("addTransaction", input) {

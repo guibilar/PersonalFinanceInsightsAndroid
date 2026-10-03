@@ -73,6 +73,8 @@ private val LightScheme = lightColorScheme(
     onPrimary = Color.White,
     primaryContainer = Color(0xFFD9E7FA),
     onPrimaryContainer = Color(0xFF0B2E57),
+    // The page behind everything (Scaffold) is the same as surfaces: left out, it was Material's pinkish default.
+    background = Color(0xFFF6F7FA),
     surface = Color(0xFFF6F7FA),
     surfaceContainerLow = Color(0xFFFFFFFF),
     surfaceContainer = Color(0xFFF0F2F6),
@@ -84,6 +86,7 @@ private val DarkScheme = darkColorScheme(
     onPrimary = Color(0xFF062A52),
     primaryContainer = Color(0xFF1D4F8C),
     onPrimaryContainer = Color(0xFFD9E7FA),
+    background = Color(0xFF10131A),
     surface = Color(0xFF10131A),
     surfaceContainerLow = Color(0xFF171B24),
     surfaceContainer = Color(0xFF1C212C),

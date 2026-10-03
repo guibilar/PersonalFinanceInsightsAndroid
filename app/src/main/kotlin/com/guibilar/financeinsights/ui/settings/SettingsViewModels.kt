@@ -92,8 +92,12 @@ class RulesViewModel(private val api: FinanceApi) : SettingsViewModel() {
         visible.getOrNull(visible.indexOfFirst { it.id == rule.id } + offset)?.position
 
     fun move(visible: List<CategoryRule>, rule: CategoryRule, offset: Int) {
-        val position = movePosition(visible, rule, offset) ?: return
-        if (_state.value.moving) return
+        moveTo(rule, movePosition(visible, rule, offset) ?: return)
+    }
+
+    /** Moves [rule] to [position] (dragged there); the others shift to make room. */
+    fun moveTo(rule: CategoryRule, position: Int) {
+        if (position == rule.position || _state.value.moving) return
         _state.update { it.copy(moving = true) }
         viewModelScope.launch {
             val result = apiCall { api.moveCategoryRule(rule.id, CategoryRuleMove(position)) }
