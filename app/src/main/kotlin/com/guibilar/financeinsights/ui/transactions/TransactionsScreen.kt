@@ -194,7 +194,7 @@ fun TransactionsScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.padding(top = 8.dp),
                 ) {
-                    items(chips, key = { it.label }) { chip ->
+                    items(chips, key = { it.key }) { chip ->
                         InputChip(
                             selected = true,
                             onClick = chip.remove,
@@ -340,24 +340,24 @@ private fun MoreMenu(onImport: () -> Unit, onApplyRules: () -> Unit, onShowDelet
     }
 }
 
-/** A criterion that is set, as a removable chip. */
-private data class FilterChipModel(val label: String, val remove: () -> Unit)
+/** A criterion that is set, as a removable chip. [key] is the criterion, as two labels can match ("Savings"). */
+private data class FilterChipModel(val key: String, val label: String, val remove: () -> Unit)
 
 private fun filterChips(state: TransactionsState, model: TransactionsViewModel): List<FilterChipModel> {
     val criteria = state.criteria
     return buildList {
-        criteria.description?.let { add(FilterChipModel("“$it”", model::clearSearch)) }
+        criteria.description?.let { add(FilterChipModel("search", "“$it”", model::clearSearch)) }
         criteria.categoryId?.let { id ->
-            add(FilterChipModel(state.categories.firstOrNull { it.id == id }?.name ?: "Category") { model.setCategory(null) })
+            add(FilterChipModel("category", state.categories.firstOrNull { it.id == id }?.name ?: "Category") { model.setCategory(null) })
         }
         criteria.accountId?.let { id ->
-            add(FilterChipModel(state.accounts.firstOrNull { it.id == id }?.name ?: "Account") { model.setAccount(null) })
+            add(FilterChipModel("account", state.accounts.firstOrNull { it.id == id }?.name ?: "Account") { model.setAccount(null) })
         }
-        criteria.flow?.let { add(FilterChipModel(it.label) { model.setFlow(null) }) }
+        criteria.flow?.let { add(FilterChipModel("flow", it.label) { model.setFlow(null) }) }
         when (val choice = matchDatePreset(criteria, state.today)) {
             DateChoice.All -> {}
-            is DateChoice.Preset -> add(FilterChipModel("${choice.preset.label} · ${describeRange(criteria.dateRange())}") { model.setDates(DateRange()) })
-            DateChoice.Custom -> add(FilterChipModel(describeRange(criteria.dateRange())) { model.setDates(DateRange()) })
+            is DateChoice.Preset -> add(FilterChipModel("dates", "${choice.preset.label} · ${describeRange(criteria.dateRange())}") { model.setDates(DateRange()) })
+            DateChoice.Custom -> add(FilterChipModel("dates", describeRange(criteria.dateRange())) { model.setDates(DateRange()) })
         }
     }
 }
