@@ -51,7 +51,7 @@ class DashboardViewModel(private val api: FinanceApi, private val today: () -> L
         // Back from another tab or the background: transactions and budgets may have changed there. The figures
         // stay on screen while they reload.
         _state.update { it.copy(today = today()) }
-        load()
+        load(quiet = true)
     }
     private var shown = false
 
@@ -66,20 +66,26 @@ class DashboardViewModel(private val api: FinanceApi, private val today: () -> L
     fun retryBudgets() = retry({ copy(budgets = it) }) { loadBudgets() }
     fun retryRecent() = retry({ copy(recent = it) }) { loadRecent() }
 
-    private fun load() {
+    /**
+     * Loads the five reports. [quiet] (coming back to the screen) keeps a report that was showing when its reload
+     * fails, offline say, instead of turning it into an error card.
+     */
+    private fun load(quiet: Boolean = false) {
         viewModelScope.launch {
             val year = async { load("Could not load monthly spending.") { api.yearReport() } }
             val month = async { load("Could not load this month's spending.") { api.monthReport() } }
             val cashFlow = async { load("Could not load income and spending.") { api.cashFlow() } }
             val budgets = async { loadBudgets() }
             val recent = async { loadRecent() }
+            fun <T> next(old: LoadState<T>, new: LoadState<T>) =
+                if (quiet && new is LoadState.Failed && old is LoadState.Loaded) old else new
             _state.update {
                 it.copy(
-                    year = year.await(),
-                    month = month.await(),
-                    cashFlow = cashFlow.await(),
-                    budgets = budgets.await(),
-                    recent = recent.await(),
+                    year = next(it.year, year.await()),
+                    month = next(it.month, month.await()),
+                    cashFlow = next(it.cashFlow, cashFlow.await()),
+                    budgets = next(it.budgets, budgets.await()),
+                    recent = next(it.recent, recent.await()),
                     refreshing = false,
                 )
             }
