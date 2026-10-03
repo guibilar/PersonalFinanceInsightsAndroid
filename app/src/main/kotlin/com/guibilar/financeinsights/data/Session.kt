@@ -70,6 +70,17 @@ class Session(
         if (_state.value is AuthState.Unreachable) _state.value = AuthState.SignedOut()
     }
 
+    /**
+     * The API for work in the background (budget alerts, the widget): the signed-in client, or one on the stored
+     * session when the app isn't open. Null when signed out. A 401 here doesn't sign out: the app finds out on open.
+     */
+    fun backgroundApi(): FinanceApi? {
+        (_state.value as? AuthState.SignedIn)?.let { return it.api }
+        val server = store.server ?: return null
+        if (jar.isEmpty) return null
+        return createApi(server, jar) {}
+    }
+
     /** Signs in; the failure's message says why (wrong password, too many attempts, unreachable). */
     suspend fun signIn(serverInput: String, username: String, password: String): Result<Unit> {
         val server = ServerAddress.normalize(serverInput)

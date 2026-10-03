@@ -102,6 +102,8 @@ fun TransactionsScreen(
     contentPadding: PaddingValues,
     sharedFile: PickedFile? = null,
     onSharedFileTaken: () -> Unit = {},
+    addRequested: Boolean = false,
+    onAddTaken: () -> Unit = {},
 ) {
     val state by model.state.collectAsState()
     // Back from the background on a new day: today moves on.
@@ -127,6 +129,14 @@ fun TransactionsScreen(
         }
     }
     ShowMessages(model.messages, snackbar)
+    // "Add transaction" from the launcher shortcut or the widget.
+    LaunchedEffect(addRequested) {
+        if (addRequested) {
+            if (state.showDeleted) model.toggleDeleted()
+            adding = true
+            onAddTaken()
+        }
+    }
     val listState = rememberLazyListState()
     val chips = filterChips(state, model)
 

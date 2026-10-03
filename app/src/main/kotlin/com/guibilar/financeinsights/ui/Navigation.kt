@@ -17,9 +17,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -28,29 +33,35 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import com.guibilar.financeinsights.BuildConfig
+import com.guibilar.financeinsights.QuickAction
 import com.guibilar.financeinsights.core.api.FinanceApi
 import com.guibilar.financeinsights.core.model.BreakdownInterval
 import com.guibilar.financeinsights.core.model.TransactionCriteria
+import com.guibilar.financeinsights.data.AppPreferences
 import com.guibilar.financeinsights.data.AuthState
 import com.guibilar.financeinsights.data.Session
+import com.guibilar.financeinsights.security.AppLock
+import com.guibilar.financeinsights.security.authenticate
 import com.guibilar.financeinsights.ui.budgets.BudgetsScreen
 import com.guibilar.financeinsights.ui.budgets.BudgetsViewModel
 import com.guibilar.financeinsights.ui.dashboard.DashboardScreen
 import com.guibilar.financeinsights.ui.dashboard.DashboardViewModel
-import com.guibilar.financeinsights.BuildConfig
 import com.guibilar.financeinsights.ui.settings.AccountSettingsScreen
 import com.guibilar.financeinsights.ui.settings.AccountSettingsViewModel
 import com.guibilar.financeinsights.ui.settings.AccountsScreen
 import com.guibilar.financeinsights.ui.settings.AccountsViewModel
+import com.guibilar.financeinsights.ui.settings.AppSettingsScreen
 import com.guibilar.financeinsights.ui.settings.CategoriesScreen
 import com.guibilar.financeinsights.ui.settings.CategoriesViewModel
 import com.guibilar.financeinsights.ui.settings.MoreScreen
 import com.guibilar.financeinsights.ui.settings.RulesScreen
 import com.guibilar.financeinsights.ui.settings.RulesViewModel
+import com.guibilar.financeinsights.ui.signin.LockScreen
 import com.guibilar.financeinsights.ui.signin.SignInScreen
 import com.guibilar.financeinsights.ui.signin.UnreachableScreen
-import com.guibilar.financeinsights.ui.transactions.TransactionsScreen
 import com.guibilar.financeinsights.ui.transactions.PickedFile
+import com.guibilar.financeinsights.ui.transactions.TransactionsScreen
 import com.guibilar.financeinsights.ui.transactions.TransactionsViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.serialization.Serializable
@@ -76,6 +87,9 @@ data object AccountsRoute
 @Serializable
 data object AccountSettingsRoute
 
+@Serializable
+data object AppSettingsRoute
+
 /** The transactions list, optionally opened on criteria (the dashboard's links) with its "Over time" chart. */
 @Serializable
 data class TransactionsRoute(
@@ -90,8 +104,16 @@ data class TransactionsRoute(
 
 /** Signed in or not decides what shows; signing out (or the session ending) brings back the sign-in screen. */
 @Composable
-fun FinanceRoot(session: Session, sharedStatement: MutableStateFlow<PickedFile?> = MutableStateFlow(null)) {
+fun FinanceRoot(
+    session: Session,
+    sharedStatement: MutableStateFlow<PickedFile?> = MutableStateFlow(null),
+    quickAction: MutableStateFlow<QuickAction?> = MutableStateFlow(null),
+    lock: AppLock? = null,
+    preferences: AppPreferences? = null,
+) {
     val state by session.state.collectAsState()
+    val locked = lock?.locked?.collectAsState()?.value == true
+    val activity = LocalContext.current as? FragmentActivity
     when (val current = state) {
         AuthState.Checking -> {
             LaunchedEffect(Unit) { session.resume() }
@@ -109,12 +131,22 @@ fun FinanceRoot(session: Session, sharedStatement: MutableStateFlow<PickedFile?>
             initialMessage = current.reason,
             signIn = session::signIn,
         )
-        is AuthState.SignedIn -> MainScreen(
-            api = current.api,
-            account = AccountInfo(current.username, session.server.orEmpty()),
-            onSignOut = { session.signOut() },
-            sharedStatement = sharedStatement,
-        )
+        // Locked, nothing of the account shows; signed out or unreachable shows none anyway.
+        is AuthState.SignedIn -> if (locked && lock != null && activity != null) {
+            LockScreen(onUnlock = {
+                authenticate(activity, "Unlock Finance Insights") { ok -> if (ok) lock.unlocked() }
+            })
+        } else {
+            MainScreen(
+                api = current.api,
+                account = AccountInfo(current.username, session.server.orEmpty()),
+                onSignOut = { session.signOut() },
+                sharedStatement = sharedStatement,
+                quickAction = quickAction,
+                preferences = preferences,
+                lock = lock,
+            )
+        }
     }
 }
 
@@ -129,7 +161,7 @@ private val tabs = listOf(
     Tab("Budgets", Icons.Outlined.AccountBalanceWallet, BudgetsRoute) { it.hasRoute<BudgetsRoute>() },
     Tab("More", Icons.Outlined.Menu, MoreRoute) {
         it.hasRoute<MoreRoute>() || it.hasRoute<RulesRoute>() || it.hasRoute<CategoriesRoute>() ||
-            it.hasRoute<AccountsRoute>() || it.hasRoute<AccountSettingsRoute>()
+            it.hasRoute<AccountsRoute>() || it.hasRoute<AccountSettingsRoute>() || it.hasRoute<AppSettingsRoute>()
     },
 )
 
@@ -139,6 +171,9 @@ fun MainScreen(
     account: AccountInfo,
     onSignOut: suspend () -> Unit,
     sharedStatement: MutableStateFlow<PickedFile?> = MutableStateFlow(null),
+    quickAction: MutableStateFlow<QuickAction?> = MutableStateFlow(null),
+    preferences: AppPreferences? = null,
+    lock: AppLock? = null,
 ) {
     val nav = rememberNavController()
     val entry by nav.currentBackStackEntryAsState()
@@ -148,6 +183,24 @@ fun MainScreen(
         if (statement != null && entry?.destination?.hasRoute<TransactionsRoute>() != true) {
             nav.navigate(TransactionsRoute()) { popUpTo<DashboardRoute>() }
         }
+    }
+    // The launcher shortcut and widget's Add, and a budget alert's tap.
+    val action by quickAction.collectAsState()
+    var addRequested by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(action) {
+        when (action) {
+            QuickAction.AddTransaction -> {
+                if (entry?.destination?.hasRoute<TransactionsRoute>() != true) nav.navigate(TransactionsRoute()) { popUpTo<DashboardRoute>() }
+                addRequested = true
+            }
+            QuickAction.Budgets -> nav.navigate(BudgetsRoute) {
+                popUpTo(nav.graph.findStartDestination().id) { saveState = true }
+                launchSingleTop = true
+                restoreState = true
+            }
+            null -> {}
+        }
+        quickAction.value = null
     }
     Scaffold(
         bottomBar = {
@@ -205,7 +258,11 @@ fun MainScreen(
                     openCategories = { nav.navigate(CategoriesRoute) },
                     openAccounts = { nav.navigate(AccountsRoute) },
                     openAccount = { nav.navigate(AccountSettingsRoute) },
+                    openSettings = { nav.navigate(AppSettingsRoute) },
                 )
+            }
+            composable<AppSettingsRoute> {
+                if (preferences != null) AppSettingsScreen(preferences, lock, padding, onBack = { nav.popBackStack() })
             }
             composable<RulesRoute> {
                 RulesScreen(viewModel { RulesViewModel(api) }, padding, onBack = { nav.popBackStack() })
@@ -233,6 +290,8 @@ fun MainScreen(
                     contentPadding = padding,
                     sharedFile = statement,
                     onSharedFileTaken = { sharedStatement.value = null },
+                    addRequested = addRequested,
+                    onAddTaken = { addRequested = false },
                 )
             }
         }
