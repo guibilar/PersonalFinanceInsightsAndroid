@@ -6,10 +6,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -44,13 +44,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import com.guibilar.financeinsights.core.logic.BudgetHealth
 import com.guibilar.financeinsights.core.logic.Money
 import com.guibilar.financeinsights.core.logic.averageCaption
+import com.guibilar.financeinsights.core.logic.budgetHealth
 import com.guibilar.financeinsights.core.logic.budgetsOverLimit
 import com.guibilar.financeinsights.core.logic.categoryAverages
 import com.guibilar.financeinsights.core.logic.categoryShares
@@ -58,8 +60,8 @@ import com.guibilar.financeinsights.core.logic.monthOf
 import com.guibilar.financeinsights.core.logic.monthlyAverage
 import com.guibilar.financeinsights.core.logic.spentHint
 import com.guibilar.financeinsights.core.logic.spentThisMonth
-import com.guibilar.financeinsights.core.model.Budget
 import com.guibilar.financeinsights.core.model.BreakdownInterval
+import com.guibilar.financeinsights.core.model.Budget
 import com.guibilar.financeinsights.core.model.CashFlowReport
 import com.guibilar.financeinsights.core.model.CategorizedReport
 import com.guibilar.financeinsights.core.model.Transaction
@@ -69,14 +71,17 @@ import com.guibilar.financeinsights.ui.charts.ChartSeries
 import com.guibilar.financeinsights.ui.charts.GroupedBarChart
 import com.guibilar.financeinsights.ui.charts.StackedBarChart
 import com.guibilar.financeinsights.ui.common.AccountMenuButton
+import com.guibilar.financeinsights.ui.common.BUDGET_WARNING
 import com.guibilar.financeinsights.ui.common.ColorDot
 import com.guibilar.financeinsights.ui.common.EmptyState
 import com.guibilar.financeinsights.ui.common.ErrorState
+import com.guibilar.financeinsights.ui.common.FitText
 import com.guibilar.financeinsights.ui.common.LoadState
 import com.guibilar.financeinsights.ui.common.PillBar
 import com.guibilar.financeinsights.ui.common.SectionCard
 import com.guibilar.financeinsights.ui.common.Skeleton
 import com.guibilar.financeinsights.ui.common.StatTile
+import com.guibilar.financeinsights.ui.common.isLargeText
 import com.guibilar.financeinsights.ui.theme.LocalChartColors
 import com.guibilar.financeinsights.ui.theme.parseHexColor
 import com.guibilar.financeinsights.ui.transactions.TransactionRow
@@ -105,6 +110,11 @@ fun DashboardScreen(
     openBudgets: () -> Unit = {},
 ) {
     val state by model.state.collectAsState()
+    // Back from the background on a new day: today moves on.
+    LifecycleResumeEffect(model) {
+        model.resumed()
+        onPauseOrDispose {}
+    }
     val monthName = state.today.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.US))
     Column(Modifier.fillMaxSize().padding(bottom = contentPadding.calculateBottomPadding())) {
         TopAppBar(
@@ -274,7 +284,7 @@ private fun HeadlineTiles(state: DashboardState) {
     )
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         // Two a row, as tall as the taller one; one a row when the text is large, so amounts aren't cut off.
-        val perRow = if (LocalDensity.current.fontScale > LARGE_TEXT) 1 else 2
+        val perRow = if (isLargeText) 1 else 2
         tiles.chunked(perRow).forEach { row ->
             Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 row.forEach { tile -> tile(Modifier.weight(1f).fillMaxHeight()) }
@@ -282,9 +292,6 @@ private fun HeadlineTiles(state: DashboardState) {
         }
     }
 }
-
-/** From this text size on, the headline tiles take a row each. */
-private const val LARGE_TEXT = 1.3f
 
 private fun placeholder(state: LoadState<*>) = if (state is LoadState.Failed) "—" else "…"
 
@@ -428,9 +435,14 @@ private fun CategoryAverages(report: CategorizedReport, today: LocalDate) {
                 Text("${Money.format(row.average)}/mo", fontWeight = FontWeight.Medium)
                 if (change != null) {
                     Text(
-                        "${if (change >= 0) "+" else "−"}${Money.percent(kotlin.math.abs(change))}",
+                        // No sign on what rounds to 0%: "−0%" read like a drop.
+                        "${if (kotlin.math.round(change) == 0.0) "" else if (change > 0) "+" else "−"}${Money.percent(kotlin.math.abs(change))}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (change > 0) colors.negative else colors.positive,
+                        color = when {
+                            kotlin.math.round(change) == 0.0 -> MaterialTheme.colorScheme.onSurfaceVariant
+                            change > 0 -> colors.negative
+                            else -> colors.positive
+                        },
                     )
                 }
             }
@@ -493,7 +505,7 @@ private fun CashFlow(report: CashFlowReport) {
                     selected = table == (index == 1),
                     onClick = { table = index == 1 },
                     shape = SegmentedButtonDefaults.itemShape(index, 2),
-                ) { Text(label) }
+                ) { FitText(label) }
             }
         }
         if (!table) {
@@ -550,19 +562,21 @@ private fun CashFlowTable(report: CashFlowReport) {
 private fun BudgetOverview(budgets: List<Budget>) {
     val colors = LocalChartColors.current
     budgets.sortedByDescending { it.percentageUsed }.forEach { budget ->
-        val color = when {
-            budget.percentageUsed >= 100 -> colors.negative
-            budget.percentageUsed >= 80 -> Color(0xFFE0A100)
-            else -> colors.aqua
+        // The same colours and thresholds as on the Budgets screen.
+        val health = budgetHealth(budget.percentageUsed)
+        val color = when (health) {
+            BudgetHealth.Over -> colors.negative
+            BudgetHealth.Warning -> BUDGET_WARNING
+            BudgetHealth.Ok -> colors.blue
         }
         Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(budget.name, Modifier.weight(1f), fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
-                    "${Money.percent(budget.percentageUsed)} used",
+                    "${Money.percentUsed(budget.percentageUsed)} used",
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (budget.percentageUsed >= 100) colors.negative else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (health == BudgetHealth.Over) colors.negative else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             Spacer(Modifier.height(6.dp))

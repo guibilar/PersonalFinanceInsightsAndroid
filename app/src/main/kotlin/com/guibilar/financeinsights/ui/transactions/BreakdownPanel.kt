@@ -19,9 +19,6 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -45,9 +42,11 @@ import com.guibilar.financeinsights.core.logic.Money
 import com.guibilar.financeinsights.core.model.Breakdown
 import com.guibilar.financeinsights.core.model.BreakdownInterval
 import com.guibilar.financeinsights.ui.charts.PeriodCharts
+import com.guibilar.financeinsights.ui.common.ChoiceRow
 import com.guibilar.financeinsights.ui.common.ErrorState
 import com.guibilar.financeinsights.ui.common.LoadState
 import com.guibilar.financeinsights.ui.common.PillBar
+import com.guibilar.financeinsights.ui.common.isLargeText
 import com.guibilar.financeinsights.ui.theme.LocalChartColors
 import com.guibilar.financeinsights.ui.theme.parseHexColor
 
@@ -57,52 +56,22 @@ private fun Breakdown.isIncome() = spending == 0.0 && income > 0
 /** The totals of what the criteria pick, and on request how they spread over time and where the money went. */
 @Composable
 fun BreakdownPanel(state: TransactionsState, model: TransactionsViewModel) {
-    val colors = LocalChartColors.current
-    val breakdown = state.breakdown.valueOrNull
     Card(
         Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
-        Row(Modifier.padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f).semantics { liveRegion = LiveRegionMode.Polite }) {
-                when {
-                    breakdown != null -> {
-                        Text(
-                            buildAnnotatedString {
-                                withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) { append(breakdown.count.toString()) }
-                                append(if (breakdown.count == 1) " transaction" else " transactions")
-                                if (breakdown.spending != 0.0 || breakdown.income == 0.0) {
-                                    append(" · ")
-                                    withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) { append(Money.format(breakdown.spending)) }
-                                    append(" spent")
-                                }
-                            },
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                        val extra = buildAnnotatedString {
-                            if (breakdown.refunds > 0) append("${Money.format(breakdown.refunds)} refunded")
-                            if (breakdown.income > 0) {
-                                if (length > 0) append(" · ")
-                                withStyle(SpanStyle(color = colors.positive, fontWeight = FontWeight.SemiBold)) { append(Money.format(breakdown.income)) }
-                                append(" received")
-                            }
-                        }
-                        if (extra.isNotEmpty()) {
-                            Text(extra, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                    state.breakdown is LoadState.Failed -> Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Could not total these.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        TextButton(onClick = model::retryBreakdown) { Text("Retry") }
-                    }
-                    else -> Text("Totalling…", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+        // At large text sizes the totals take the full width, the button below: side by side they broke mid-number.
+        val padding = Modifier.padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp)
+        if (isLargeText) {
+            Column(padding) {
+                TotalsSummary(state, model, Modifier.fillMaxWidth())
+                OverTimeButton(state, model)
             }
-            OutlinedButton(onClick = model::toggleBreakdown) {
-                Icon(Icons.AutoMirrored.Outlined.TrendingUp, null, Modifier.size(16.dp))
-                Spacer(Modifier.width(6.dp))
-                Text(if (state.breakdownOpen) "Hide" else "Over time")
+        } else {
+            Row(padding, verticalAlignment = Alignment.CenterVertically) {
+                TotalsSummary(state, model, Modifier.weight(1f))
+                OverTimeButton(state, model)
             }
         }
         AnimatedVisibility(state.breakdownOpen) {
@@ -110,6 +79,56 @@ fun BreakdownPanel(state: TransactionsState, model: TransactionsViewModel) {
                 OverTime(state, model)
             }
         }
+    }
+}
+
+/** How many transactions, spent and received, for the totals strip. */
+@Composable
+private fun TotalsSummary(state: TransactionsState, model: TransactionsViewModel, modifier: Modifier) {
+    val colors = LocalChartColors.current
+    val breakdown = state.breakdown.valueOrNull
+    Column(modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
+        when {
+            breakdown != null -> {
+                Text(
+                    buildAnnotatedString {
+                        withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) { append(breakdown.count.toString()) }
+                        append(if (breakdown.count == 1) " transaction" else " transactions")
+                        if (breakdown.spending != 0.0 || breakdown.income == 0.0) {
+                            append(" · ")
+                            withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) { append(Money.format(breakdown.spending)) }
+                            append(" spent")
+                        }
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                val extra = buildAnnotatedString {
+                    if (breakdown.refunds > 0) append("${Money.format(breakdown.refunds)} refunded")
+                    if (breakdown.income > 0) {
+                        if (length > 0) append(" · ")
+                        withStyle(SpanStyle(color = colors.positive, fontWeight = FontWeight.SemiBold)) { append(Money.format(breakdown.income)) }
+                        append(" received")
+                    }
+                }
+                if (extra.isNotEmpty()) {
+                    Text(extra, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            state.breakdown is LoadState.Failed -> Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Could not total these.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                TextButton(onClick = model::retryBreakdown) { Text("Retry") }
+            }
+            else -> Text("Totalling…", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
+private fun OverTimeButton(state: TransactionsState, model: TransactionsViewModel) {
+    OutlinedButton(onClick = model::toggleBreakdown) {
+        Icon(Icons.AutoMirrored.Outlined.TrendingUp, null, Modifier.size(16.dp))
+        Spacer(Modifier.width(6.dp))
+        Text(if (state.breakdownOpen) "Hide" else "Over time")
     }
 }
 
@@ -123,15 +142,7 @@ private fun OverTime(state: TransactionsState, model: TransactionsViewModel) {
     }
     // The interval the API used: years of weeks come back as months.
     val interval = loaded?.interval ?: state.interval
-    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-        BreakdownInterval.entries.forEachIndexed { index, option ->
-            SegmentedButton(
-                selected = option == interval,
-                onClick = { model.setInterval(option) },
-                shape = SegmentedButtonDefaults.itemShape(index, BreakdownInterval.entries.size),
-            ) { Text(option.name) }
-        }
-    }
+    ChoiceRow(BreakdownInterval.entries, interval, { it.name }, model::setInterval)
     if (loaded == null) {
         Row(Modifier.fillMaxWidth().padding(24.dp), horizontalArrangement = Arrangement.Center) { CircularProgressIndicator() }
         return

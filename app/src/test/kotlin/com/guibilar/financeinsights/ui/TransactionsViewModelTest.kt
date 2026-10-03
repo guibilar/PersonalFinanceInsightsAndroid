@@ -36,7 +36,7 @@ class TransactionsViewModelTest {
     @After
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun model(route: TransactionsRoute = TransactionsRoute()) = TransactionsViewModel(api, route, today)
+    private fun model(route: TransactionsRoute = TransactionsRoute()) = TransactionsViewModel(api, route) { today }
 
     @Test
     fun `opens on a link's criteria, with its chart`() = runTest(dispatcher) {
@@ -170,5 +170,36 @@ class TransactionsViewModelTest {
         model.toggleDeleted()
         assertTrue(model.state.value.list.items.isEmpty())
         assertTrue(model.state.value.list.loading)
+    }
+
+    @Test
+    fun `back on a new day, today moves on and the list reloads`() = runTest(dispatcher) {
+        var day = today
+        val model = TransactionsViewModel(api, TransactionsRoute()) { day }
+        advanceUntilIdle()
+        model.resumed()
+        advanceUntilIdle()
+        assertEquals(1, api.transactionFilters.size)
+
+        day = today.plusDays(1)
+        model.resumed()
+        advanceUntilIdle()
+        assertEquals(today.plusDays(1), model.state.value.today)
+        assertEquals(2, api.transactionFilters.size)
+    }
+
+    @Test
+    fun `back on screen, the pickers reload, and a failed reload keeps what they had`() = runTest(dispatcher) {
+        val model = model()
+        advanceUntilIdle()
+        model.resumed()
+        val categories = model.state.value.categories
+        assertTrue(categories.isNotEmpty())
+
+        api.failing += "categories"
+        model.resumed()
+        advanceUntilIdle()
+        assertEquals(categories, model.state.value.categories)
+        assertEquals(1, api.transactionFilters.size)
     }
 }

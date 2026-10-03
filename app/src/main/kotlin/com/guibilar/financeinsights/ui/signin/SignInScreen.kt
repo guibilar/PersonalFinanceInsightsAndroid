@@ -50,6 +50,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.guibilar.financeinsights.ui.common.Placeholder
 import kotlinx.coroutines.launch
 
 /**
@@ -104,7 +105,7 @@ fun SignInScreen(
                     value = server,
                     onValueChange = { server = it },
                     label = { Text("Server address") },
-                    placeholder = { Text("https://finance.example.ts.net") },
+                    placeholder = { Placeholder("https://finance.example.ts.net") },
                     supportingText = { Text("Where you open the web app. Tailscale must be on.") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Next, autoCorrectEnabled = false),

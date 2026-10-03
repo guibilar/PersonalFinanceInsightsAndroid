@@ -54,6 +54,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -64,6 +65,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.guibilar.financeinsights.core.logic.BudgetHealth
 import com.guibilar.financeinsights.core.logic.Money
 import com.guibilar.financeinsights.core.logic.budgetHealth
@@ -73,26 +76,35 @@ import com.guibilar.financeinsights.core.model.Budget
 import com.guibilar.financeinsights.core.model.Status
 import com.guibilar.financeinsights.ui.AccountInfo
 import com.guibilar.financeinsights.ui.common.AccountMenuButton
+import com.guibilar.financeinsights.ui.common.BUDGET_WARNING
 import com.guibilar.financeinsights.ui.common.ColorDot
 import com.guibilar.financeinsights.ui.common.EmptyState
 import com.guibilar.financeinsights.ui.common.ErrorState
+import com.guibilar.financeinsights.ui.common.FitText
 import com.guibilar.financeinsights.ui.common.PillBar
+import com.guibilar.financeinsights.ui.common.Placeholder
 import com.guibilar.financeinsights.ui.common.ShowMessages
 import com.guibilar.financeinsights.ui.common.Skeleton
+import com.guibilar.financeinsights.ui.common.rememberOpenItem
 import com.guibilar.financeinsights.ui.theme.LocalChartColors
 import com.guibilar.financeinsights.ui.theme.parseHexColor
 import kotlin.math.abs
 
 /** Warning amber: nearly at the limit. */
-private val WARNING = androidx.compose.ui.graphics.Color(0xFFE0A100)
+private val WARNING = BUDGET_WARNING
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BudgetsScreen(model: BudgetsViewModel, account: AccountInfo, onSignOut: suspend () -> Unit, contentPadding: PaddingValues) {
     val state by model.state.collectAsState()
-    var editing by remember { mutableStateOf<Budget?>(null) }
-    var adding by remember { mutableStateOf(false) }
-    var deleting by remember { mutableStateOf<Budget?>(null) }
+    LifecycleResumeEffect(model) {
+        model.resumed()
+        onPauseOrDispose {}
+    }
+    // Saved, so a sheet stays open (with what was typed) when the phone rotates.
+    var editing by rememberOpenItem(state.items) { it.id }
+    var adding by rememberSaveable { mutableStateOf(false) }
+    var deleting by rememberOpenItem(state.items) { it.id }
     val snackbar = remember { SnackbarHostState() }
     val listState = rememberLazyListState()
     ShowMessages(model.messages, snackbar)
@@ -108,13 +120,13 @@ fun BudgetsScreen(model: BudgetsViewModel, account: AccountInfo, onSignOut: susp
     Box(Modifier.fillMaxSize().padding(bottom = contentPadding.calculateBottomPadding())) {
         Column(Modifier.fillMaxSize()) {
             TopAppBar(
-                title = { Text("Budgets", fontWeight = FontWeight.SemiBold) },
+                title = { FitText("Budgets", fontWeight = FontWeight.SemiBold, minFontSize = 14.sp) },
                 actions = { AccountMenuButton(account, onSignOut) },
             )
             OutlinedTextField(
                 value = state.search,
                 onValueChange = model::search,
-                placeholder = { Text("Search budgets") },
+                placeholder = { Placeholder("Search budgets") },
                 leadingIcon = { Icon(Icons.Outlined.Search, null) },
                 trailingIcon = { if (state.search.isNotEmpty()) IconButton(onClick = { model.search("") }) { Icon(Icons.Outlined.Close, "Clear search") } },
                 singleLine = true,
@@ -258,7 +270,7 @@ private fun BudgetCard(budget: Budget, onEdit: () -> Unit, onDelete: () -> Unit)
                 PillBar(
                     (budget.percentageUsed / 100).toFloat(),
                     barColor,
-                    Modifier.semantics { contentDescription = "${Money.percent(budget.percentageUsed)} used" },
+                    Modifier.semantics { contentDescription = "${Money.percentUsed(budget.percentageUsed)} used" },
                 )
                 Row {
                     Text(
@@ -269,7 +281,7 @@ private fun BudgetCard(budget: Budget, onEdit: () -> Unit, onDelete: () -> Unit)
                         fontWeight = if (budget.totalRemaining < 0) FontWeight.Medium else null,
                     )
                     Text(
-                        Money.percent(budget.percentageUsed),
+                        Money.percentUsed(budget.percentageUsed),
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Medium,
                         color = when (health) {

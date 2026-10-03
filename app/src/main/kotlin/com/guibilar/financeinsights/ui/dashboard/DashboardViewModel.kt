@@ -33,13 +33,27 @@ data class DashboardState(
 )
 
 /** The dashboard's five reports, each loading (and failing) on its own, as on the web. */
-class DashboardViewModel(private val api: FinanceApi, today: () -> LocalDate = LocalDate::now) : ViewModel() {
+class DashboardViewModel(private val api: FinanceApi, private val today: () -> LocalDate = LocalDate::now) : ViewModel() {
     private val _state = MutableStateFlow(DashboardState(today()))
     val state: StateFlow<DashboardState> = _state.asStateFlow()
 
     init {
         load()
     }
+
+    /** Shown again: on a new day (the app left overnight) "this month" moves on, and the figures reload. */
+    fun resumed() {
+        // The first time is the screen opening, just after init loaded it all.
+        if (!shown) {
+            shown = true
+            return
+        }
+        // Back from another tab or the background: transactions and budgets may have changed there. The figures
+        // stay on screen while they reload.
+        _state.update { it.copy(today = today()) }
+        load()
+    }
+    private var shown = false
 
     fun refresh() {
         _state.update { it.copy(refreshing = true) }

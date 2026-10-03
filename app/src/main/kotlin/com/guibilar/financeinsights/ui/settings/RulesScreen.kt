@@ -75,8 +75,11 @@ import com.guibilar.financeinsights.ui.common.ColorDot
 import com.guibilar.financeinsights.ui.common.DropdownPicker
 import com.guibilar.financeinsights.ui.common.EmptyState
 import com.guibilar.financeinsights.ui.common.ErrorState
+import com.guibilar.financeinsights.ui.common.FitText
 import com.guibilar.financeinsights.ui.common.LoadState
+import com.guibilar.financeinsights.ui.common.Placeholder
 import com.guibilar.financeinsights.ui.common.Skeleton
+import com.guibilar.financeinsights.ui.common.rememberOpenItem
 import com.guibilar.financeinsights.ui.theme.parseHexColor
 import kotlinx.coroutines.launch
 
@@ -89,11 +92,12 @@ private const val APPLY_CONFIRMATION =
 fun RulesScreen(model: RulesViewModel, contentPadding: PaddingValues, onBack: () -> Unit) {
     val state by model.state.collectAsState()
     var tab by rememberSaveable { mutableStateOf(0) }
-    var editingRule by remember { mutableStateOf<CategoryRule?>(null) }
-    var addingRule by remember { mutableStateOf(false) }
-    var editingFlow by remember { mutableStateOf<FlowRule?>(null) }
-    var addingFlow by remember { mutableStateOf(false) }
-    var confirmApply by remember { mutableStateOf(false) }
+    // Saved, so a sheet stays open (with what was typed) when the phone rotates.
+    var editingRule by rememberOpenItem(state.rules.valueOrNull.orEmpty()) { it.id }
+    var addingRule by rememberSaveable { mutableStateOf(false) }
+    var editingFlow by rememberOpenItem(state.flowRules.valueOrNull.orEmpty()) { it.id }
+    var addingFlow by rememberSaveable { mutableStateOf(false) }
+    var confirmApply by rememberSaveable { mutableStateOf(false) }
 
     SettingsScaffold(
         title = "Rules",
@@ -155,7 +159,7 @@ private fun CategoryRules(state: RulesState, model: RulesViewModel, onEdit: (Cat
         OutlinedTextField(
             value = search,
             onValueChange = { search = it },
-            placeholder = { Text("Search by keyword or category") },
+            placeholder = { Placeholder("Search by keyword or category") },
             leadingIcon = { Icon(Icons.Outlined.Search, null) },
             trailingIcon = { if (search.isNotEmpty()) IconButton(onClick = { search = "" }) { Icon(Icons.Outlined.Close, "Clear search") } },
             singleLine = true,
@@ -269,9 +273,10 @@ private fun CategoryRuleSheet(
     onDismiss: () -> Unit,
 ) {
     var keyword by rememberSaveable { mutableStateOf(rule?.keyword ?: "") }
-    var category by remember { mutableStateOf(rule?.category) }
+    var categoryId by rememberSaveable { mutableStateOf(rule?.category?.id) }
     var first by rememberSaveable { mutableStateOf(true) }
     val options = if (rule != null && categories.none { it.id == rule.category.id }) listOf(rule.category) + categories else categories
+    val category = options.firstOrNull { it.id == categoryId }
     RuleSheet(
         title = if (rule == null) "New rule" else "Edit rule",
         error = keywordError(keyword, TextLimits.CATEGORY_RULE_KEYWORD) ?: if (category == null) "Choose a category." else null,
@@ -290,12 +295,12 @@ private fun CategoryRuleSheet(
             selected = category,
             text = { it?.name ?: "Choose a category" },
             dot = { it?.let { c -> parseHexColor(c.color) } },
-            onPick = { category = it },
+            onPick = { categoryId = it.id },
         )
         if (rule == null) {
             SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                 listOf(true to "Check it first", false to "Check it last").forEachIndexed { index, (value, label) ->
-                    SegmentedButton(first == value, onClick = { first = value }, shape = SegmentedButtonDefaults.itemShape(index, 2)) { Text(label) }
+                    SegmentedButton(first == value, onClick = { first = value }, shape = SegmentedButtonDefaults.itemShape(index, 2)) { FitText(label) }
                 }
             }
             Text(
@@ -336,7 +341,7 @@ private fun KeywordField(value: String, onChange: (String) -> Unit, label: Strin
         value = value,
         onValueChange = onChange,
         label = { Text(label) },
-        placeholder = { Text(placeholder) },
+        placeholder = { Placeholder(placeholder) },
         singleLine = true,
         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters, autoCorrectEnabled = false),
         modifier = Modifier.fillMaxWidth(),

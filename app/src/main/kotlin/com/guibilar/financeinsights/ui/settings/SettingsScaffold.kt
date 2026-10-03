@@ -26,6 +26,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.guibilar.financeinsights.ui.common.FitText
 import com.guibilar.financeinsights.ui.common.ShowMessages
 import com.guibilar.financeinsights.ui.common.UiMessage
 import kotlinx.coroutines.flow.Flow
@@ -48,7 +50,7 @@ fun SettingsScaffold(
     Box(Modifier.fillMaxSize().padding(bottom = contentPadding.calculateBottomPadding())) {
         Column(Modifier.fillMaxSize()) {
             TopAppBar(
-                title = { Text(title, fontWeight = FontWeight.SemiBold) },
+                title = { FitText(title, fontWeight = FontWeight.SemiBold, minFontSize = 14.sp) },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back") } },
                 actions = actions,
             )

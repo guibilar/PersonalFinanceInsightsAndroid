@@ -43,7 +43,7 @@ class TransactionActionsTest {
     fun tearDown() = Dispatchers.resetMain()
 
     private fun kotlinx.coroutines.test.TestScope.model(): Pair<TransactionsViewModel, MutableList<UiMessage>> {
-        val model = TransactionsViewModel(api, TransactionsRoute(), today)
+        val model = TransactionsViewModel(api, TransactionsRoute()) { today }
         val messages = mutableListOf<UiMessage>()
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.messages.collect { messages += it } }
         return model to messages

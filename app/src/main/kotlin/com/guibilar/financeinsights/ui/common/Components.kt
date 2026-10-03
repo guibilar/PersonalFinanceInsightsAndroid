@@ -2,18 +2,18 @@ package com.guibilar.financeinsights.ui.common
 
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.text.BasicText
-import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,14 +23,22 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -45,6 +53,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -52,6 +61,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.guibilar.financeinsights.ui.theme.LocalChartColors
@@ -214,3 +224,58 @@ fun PillBar(fraction: Float, color: Color, modifier: Modifier = Modifier) {
         drawStopIndicator = {},
     )
 }
+
+/** Above this text scale (Settings › Display size and text), side-by-side layouts stack. */
+const val LARGE_TEXT_SCALE = 1.3f
+
+val isLargeText: Boolean
+    @Composable get() = LocalDensity.current.fontScale > LARGE_TEXT_SCALE
+
+/**
+ * One line that shrinks to fit rather than breaking a word ("Transacti / ons") at large text sizes: top bar titles
+ * and segmented button labels.
+ */
+@Composable
+fun FitText(text: String, modifier: Modifier = Modifier, fontWeight: FontWeight? = null, minFontSize: TextUnit = 10.sp) {
+    val size = LocalTextStyle.current.fontSize
+    Text(
+        text,
+        modifier = modifier,
+        fontWeight = fontWeight,
+        maxLines = 1,
+        autoSize = TextAutoSize.StepBased(minFontSize = minFontSize, maxFontSize = size),
+    )
+}
+
+/** A text field's placeholder: one line, cut short, like the text typed in it. */
+@Composable
+fun Placeholder(text: String) = Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+
+/**
+ * One of a few options: a segmented row, or at large text sizes chips that wrap, as four labels side by side can't
+ * fit ("Mont", "Custo").
+ */
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+fun <T> ChoiceRow(options: List<T>, selected: T, label: (T) -> String, onSelect: (T) -> Unit, modifier: Modifier = Modifier) {
+    if (isLargeText) {
+        FlowRow(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            options.forEach { option ->
+                FilterChip(selected = option == selected, onClick = { onSelect(option) }, label = { Text(label(option)) })
+            }
+        }
+    } else {
+        SingleChoiceSegmentedButtonRow(modifier.fillMaxWidth()) {
+            options.forEachIndexed { index, option ->
+                SegmentedButton(
+                    selected = option == selected,
+                    onClick = { onSelect(option) },
+                    shape = SegmentedButtonDefaults.itemShape(index, options.size),
+                ) { FitText(label(option)) }
+            }
+        }
+    }
+}
+
+/** A budget nearly used up (80% and more), on the dashboard and the Budgets screen alike. */
+val BUDGET_WARNING = Color(0xFFE0A100)

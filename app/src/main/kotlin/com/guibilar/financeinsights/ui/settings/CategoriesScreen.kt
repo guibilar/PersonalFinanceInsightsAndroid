@@ -73,6 +73,7 @@ import com.guibilar.financeinsights.ui.common.EmptyState
 import com.guibilar.financeinsights.ui.common.ErrorState
 import com.guibilar.financeinsights.ui.common.LoadState
 import com.guibilar.financeinsights.ui.common.Skeleton
+import com.guibilar.financeinsights.ui.common.rememberOpenItem
 import com.guibilar.financeinsights.ui.theme.parseHexColor
 import kotlinx.coroutines.launch
 
@@ -83,10 +84,11 @@ private fun usage(category: Category) =
 @Composable
 fun CategoriesScreen(model: CategoriesViewModel, contentPadding: PaddingValues, onBack: () -> Unit) {
     val state by model.state.collectAsState()
-    var editing by remember { mutableStateOf<Category?>(null) }
-    var adding by remember { mutableStateOf(false) }
-    var deleting by remember { mutableStateOf<Category?>(null) }
     val categories = state.valueOrNull.orEmpty()
+    // Saved, so a sheet stays open (with what was typed) when the phone rotates.
+    var editing by rememberOpenItem(categories) { it.id }
+    var adding by rememberSaveable { mutableStateOf(false) }
+    var deleting by rememberOpenItem(categories) { it.id }
 
     SettingsScaffold("Categories", onBack, contentPadding, model.messages, addLabel = "New category", onAdd = { adding = true }) {
         Text(

@@ -66,6 +66,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.guibilar.financeinsights.core.logic.DateChoice
 import com.guibilar.financeinsights.core.logic.DateRange
 import com.guibilar.financeinsights.core.logic.dateRange
@@ -78,8 +80,11 @@ import com.guibilar.financeinsights.ui.AccountInfo
 import com.guibilar.financeinsights.ui.common.AccountMenuButton
 import com.guibilar.financeinsights.ui.common.EmptyState
 import com.guibilar.financeinsights.ui.common.ErrorState
+import com.guibilar.financeinsights.ui.common.FitText
+import com.guibilar.financeinsights.ui.common.Placeholder
 import com.guibilar.financeinsights.ui.common.ShowMessages
 import com.guibilar.financeinsights.ui.common.Skeleton
+import com.guibilar.financeinsights.ui.common.rememberOpenItem
 
 private val SORT_LABELS = mapOf(
     TransactionSortField.Date to "Date",
@@ -99,12 +104,18 @@ fun TransactionsScreen(
     onSharedFileTaken: () -> Unit = {},
 ) {
     val state by model.state.collectAsState()
-    var filtersOpen by remember { mutableStateOf(false) }
-    var opened by remember { mutableStateOf<Transaction?>(null) }
-    var adding by remember { mutableStateOf(false) }
+    // Back from the background on a new day: today moves on.
+    LifecycleResumeEffect(model) {
+        model.resumed()
+        onPauseOrDispose {}
+    }
+    // Saved, so a sheet stays open (with what was typed) when the phone rotates.
+    var filtersOpen by rememberSaveable { mutableStateOf(false) }
+    var opened by rememberOpenItem(state.list.items) { it.id }
+    var adding by rememberSaveable { mutableStateOf(false) }
     var importing by remember { mutableStateOf<PickedFile?>(null) }
-    var importOpen by remember { mutableStateOf(false) }
-    var confirmRules by remember { mutableStateOf(false) }
+    var importOpen by rememberSaveable { mutableStateOf(false) }
+    var confirmRules by rememberSaveable { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
 
     // A statement shared to the app opens the import, ready to go.
@@ -141,7 +152,7 @@ fun TransactionsScreen(
     Box(Modifier.fillMaxSize().padding(bottom = contentPadding.calculateBottomPadding())) {
         Column(Modifier.fillMaxSize()) {
             TopAppBar(
-                title = { Text(if (state.showDeleted) "Deleted transactions" else "Transactions", fontWeight = FontWeight.SemiBold) },
+                title = { FitText(if (state.showDeleted) "Deleted transactions" else "Transactions", fontWeight = FontWeight.SemiBold, minFontSize = 14.sp) },
                 navigationIcon = {
                     if (state.showDeleted) IconButton(onClick = model::toggleDeleted) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back to transactions") }
                 },
@@ -168,7 +179,7 @@ fun TransactionsScreen(
             OutlinedTextField(
                 value = state.search,
                 onValueChange = model::search,
-                placeholder = { Text("Search descriptions") },
+                placeholder = { Placeholder("Search descriptions") },
                 leadingIcon = { Icon(Icons.Outlined.Search, null) },
                 trailingIcon = {
                     if (state.search.isNotEmpty()) IconButton(onClick = model::clearSearch) { Icon(Icons.Outlined.Close, "Clear search") }
@@ -281,7 +292,7 @@ fun TransactionsScreen(
         }
     }
     if (adding) AddTransactionSheet(state, model, onDismiss = { adding = false })
-    if (importOpen) ImportSheet(state.accounts, model, onDismiss = { importOpen = false }, initialFile = importing)
+    if (importOpen) ImportSheet(state.accounts, model, onDismiss = { importOpen = false }, initialFile = importing, accountsLoaded = state.accountsLoaded)
     if (confirmRules) {
         AlertDialog(
             onDismissRequest = { confirmRules = false },

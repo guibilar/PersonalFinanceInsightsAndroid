@@ -67,11 +67,28 @@ class BudgetsViewModel(private val api: FinanceApi) : ViewModel() {
             }
             .launchIn(viewModelScope)
         reload()
+        loadCategories()
+    }
+
+    private fun loadCategories() {
         viewModelScope.launch {
-            val categories = apiCall { api.categories() }.getOrNull().orEmpty().map { it.reference }
-            _state.update { it.copy(categories = categories) }
+            apiCall { api.categories() }.getOrNull()?.let { categories -> _state.update { it.copy(categories = categories.map { c -> c.reference }) } }
         }
     }
+
+    /**
+     * The screen is back (from another tab): what is spent changes as transactions are added, edited or linked
+     * elsewhere, and categories under More. The first time is the screen opening, just after init loaded it all.
+     */
+    fun resumed() {
+        if (!shown) {
+            shown = true
+            return
+        }
+        reload()
+        loadCategories()
+    }
+    private var shown = false
 
     fun search(text: String) {
         _state.update { it.copy(search = text) }
