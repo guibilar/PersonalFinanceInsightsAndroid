@@ -54,11 +54,15 @@ data class ValueScale(val min: Double, val max: Double, val ticks: List<Double>)
 
 /** The left axis's width, shared by charts drawn one above the other so their plots line up. */
 val AxisWidth = 44.dp
-private val LabelHeight = 20.dp
 
-/** Where the bars go, inside the axis labels. */
-fun DrawScope.plotArea(withXLabels: Boolean = true): Rect =
-    Rect(AxisWidth.toPx(), 6.dp.toPx(), size.width, size.height - if (withXLabels) LabelHeight.toPx() else 4.dp.toPx())
+/**
+ * Where the bars go, inside the axis labels. The labels' row is as tall as their text measures, so a large text
+ * size doesn't push them into what follows the chart.
+ */
+fun DrawScope.plotArea(measurer: TextMeasurer, colors: ChartColors, withXLabels: Boolean = true): Rect {
+    val labels = if (withXLabels) measurer.measure("Ag", axisTextStyle(colors)).size.height + 6.dp.toPx() else 4.dp.toPx()
+    return Rect(AxisWidth.toPx(), 6.dp.toPx(), size.width, size.height - labels)
+}
 
 fun axisTextStyle(colors: ChartColors) = TextStyle(color = colors.muted, fontSize = 11.sp)
 

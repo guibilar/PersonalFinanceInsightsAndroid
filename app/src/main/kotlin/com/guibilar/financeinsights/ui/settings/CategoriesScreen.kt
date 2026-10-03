@@ -163,6 +163,7 @@ private fun CategorySheet(
         else -> null
     }
     val colorError = if (Regex("^#[0-9A-Fa-f]{6}$").matches(color)) null else "A colour looks like #1F76B5."
+    val showColorError = colorError != null && (tried || color.length >= 7)
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheet) {
         Column(
@@ -199,11 +200,16 @@ private fun CategorySheet(
             }
             OutlinedTextField(
                 value = color,
-                onValueChange = { color = it.trim().uppercase().take(7) },
+                // "1f76b5" pasted or typed without the "#" is the same colour.
+                onValueChange = { typed ->
+                    val text = typed.trim().uppercase()
+                    color = (if (text.isEmpty() || text.startsWith("#")) text else "#$text").take(7)
+                },
                 label = { Text("Or any colour") },
                 leadingIcon = { ColorDot(if (colorError == null) parseHexColor(color) else Color.Transparent, size = 16.dp) },
-                isError = colorError != null,
-                supportingText = colorError?.let { { Text(it) } },
+                // Not while it is still being typed: only once it is complete, or on Save.
+                isError = showColorError,
+                supportingText = colorError?.takeIf { showColorError }?.let { { Text(it) } },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )

@@ -27,6 +27,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -66,6 +67,8 @@ fun ImportSheet(accounts: List<Account>, model: TransactionsViewModel, onDismiss
     // Accounts without statement files have nothing to import into.
     val importable = accounts.filter { it.format != StatementFormat.Manual }
     var account by remember { mutableStateOf(importable.singleOrNull()) }
+    // Opened from a shared statement right at launch, the accounts may arrive after the sheet.
+    LaunchedEffect(importable) { if (account == null) account = importable.singleOrNull() }
     var file by remember { mutableStateOf(initialFile) }
     var error by remember { mutableStateOf<String?>(null) }
     var mismatch by remember { mutableStateOf<String?>(null) }

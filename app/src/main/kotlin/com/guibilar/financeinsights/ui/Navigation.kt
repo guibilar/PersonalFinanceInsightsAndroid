@@ -48,6 +48,7 @@ import com.guibilar.financeinsights.ui.settings.MoreScreen
 import com.guibilar.financeinsights.ui.settings.RulesScreen
 import com.guibilar.financeinsights.ui.settings.RulesViewModel
 import com.guibilar.financeinsights.ui.signin.SignInScreen
+import com.guibilar.financeinsights.ui.signin.UnreachableScreen
 import com.guibilar.financeinsights.ui.transactions.TransactionsScreen
 import com.guibilar.financeinsights.ui.transactions.PickedFile
 import com.guibilar.financeinsights.ui.transactions.TransactionsViewModel
@@ -96,6 +97,12 @@ fun FinanceRoot(session: Session, sharedStatement: MutableStateFlow<PickedFile?>
             LaunchedEffect(Unit) { session.resume() }
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
         }
+        is AuthState.Unreachable -> UnreachableScreen(
+            server = session.server.orEmpty(),
+            message = current.message,
+            onRetry = { session.resume() },
+            onSignInInstead = session::signInInstead,
+        )
         is AuthState.SignedOut -> SignInScreen(
             initialServer = session.server,
             initialUsername = session.lastUsername,
@@ -156,6 +163,9 @@ fun MainScreen(
                                     launchSingleTop = true
                                     restoreState = true
                                 }
+                            } else if (entry?.destination?.hasRoute(tab.route::class) == false) {
+                                // The tab again, from a page inside it (Rules under More): back to the tab's first page.
+                                nav.popBackStack(tab.route, inclusive = false)
                             }
                         },
                         icon = { Icon(tab.icon, null) },

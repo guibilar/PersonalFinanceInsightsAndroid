@@ -156,4 +156,19 @@ class TransactionsViewModelTest {
         assertTrue(list.moreFailed)
         assertFalse(list.loadingMore)
     }
+
+    @Test
+    fun `the deleted view drops the other rows at once, while new filters keep them until the new ones arrive`() = runTest(dispatcher) {
+        val model = model()
+        advanceUntilIdle()
+
+        model.setFlow(Flow.Spending)
+        assertEquals(25, model.state.value.list.items.size)
+        assertTrue(model.state.value.list.loading)
+        advanceUntilIdle()
+
+        model.toggleDeleted()
+        assertTrue(model.state.value.list.items.isEmpty())
+        assertTrue(model.state.value.list.loading)
+    }
 }

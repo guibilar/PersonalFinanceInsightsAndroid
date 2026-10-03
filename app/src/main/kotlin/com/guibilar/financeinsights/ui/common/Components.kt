@@ -1,11 +1,15 @@
 package com.guibilar.financeinsights.ui.common
 
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,6 +33,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -44,6 +53,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.guibilar.financeinsights.ui.theme.LocalChartColors
 
 /** A card with a title, an optional subtitle and action, and its content: the web app's card-wrapper. */
@@ -110,12 +120,12 @@ fun StatTile(
                     Icon(icon, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
                 }
             }
-            Text(
+            // Shrinks to fit rather than cutting an amount off ("$1,49…").
+            BasicText(
                 value,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface),
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+                autoSize = TextAutoSize.StepBased(minFontSize = 12.sp, maxFontSize = MaterialTheme.typography.titleLarge.fontSize),
             )
             if (hint != null) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -186,8 +196,16 @@ fun ColorDot(color: Color, modifier: Modifier = Modifier, size: Dp = 10.dp) {
 /** A slim rounded bar: share of a total, or how much of a budget is used. */
 @Composable
 fun PillBar(fraction: Float, color: Color, modifier: Modifier = Modifier) {
+    // Fills from empty as it appears, and slides when the value changes.
+    var shown by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { shown = true }
+    val animated by animateFloatAsState(
+        if (shown) fraction.coerceIn(0f, 1f) else 0f,
+        animationSpec = tween(650, easing = FastOutSlowInEasing),
+        label = "pill",
+    )
     LinearProgressIndicator(
-        progress = { fraction.coerceIn(0f, 1f) },
+        progress = { animated },
         modifier = modifier.fillMaxWidth().height(6.dp),
         color = color,
         trackColor = LocalChartColors.current.grid,
