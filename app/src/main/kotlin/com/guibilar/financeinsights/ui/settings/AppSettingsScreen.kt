@@ -56,6 +56,7 @@ fun AppSettingsScreen(preferences: AppPreferences, lock: AppLock?, contentPaddin
     val dynamicColor by preferences.dynamicColor.collectAsState()
     val locking by preferences.lock.collectAsState()
     val alerts by preferences.budgetAlerts.collectAsState()
+    val hideWidget by preferences.hideWidgetAmounts.collectAsState()
     // Checked again on coming back, a screen lock just set up in the phone's settings.
     var lockAvailable by remember { mutableStateOf(canAuthenticate(context)) }
     LifecycleResumeEffect(Unit) {
@@ -122,6 +123,11 @@ fun AppSettingsScreen(preferences: AppPreferences, lock: AppLock?, contentPaddin
                     }
                 }
             }
+            SwitchRow(
+                "Hide amounts on the widget",
+                "The home-screen widget shows no spending or budgets, as anyone can see the home screen.",
+                hideWidget,
+            ) { preferences.setHideWidgetAmounts(it) }
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
 
             Heading("Notifications")

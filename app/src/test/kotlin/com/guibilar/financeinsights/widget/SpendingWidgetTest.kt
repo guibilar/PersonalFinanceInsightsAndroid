@@ -1,6 +1,8 @@
 package com.guibilar.financeinsights.widget
 
 import androidx.glance.appwidget.testing.unit.runGlanceAppWidgetUnitTest
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import androidx.glance.testing.unit.hasText
 import com.guibilar.financeinsights.core.model.Budget
@@ -17,6 +19,7 @@ class SpendingWidgetTest {
             Budget(id = "1", name = "Groceries", totalAmount = 150.0, totalSpent = 126.29, percentageUsed = 84.2),
             Budget(id = "2", name = "Eating out", totalAmount = 100.0, totalSpent = 6.45, percentageUsed = 6.45),
         )
+        setAppWidgetSize(DpSize(250.dp, 200.dp))
         provideComposable { Content(WidgetData.Loaded("October", 186.89, budgets)) }
         onNode(hasText("Spent in October")).assertExists()
         onNode(hasText("$186.89")).assertExists()
@@ -33,9 +36,26 @@ class SpendingWidgetTest {
     }
 
     @Test
-    fun `with the app lock on, no amounts show`() = runGlanceAppWidgetUnitTest {
+    fun `with amounts hidden, none show`() = runGlanceAppWidgetUnitTest {
         setContext(ApplicationProvider.getApplicationContext())
-        provideComposable { Content(WidgetData.Locked) }
-        onNode(hasText("Locked. Tap to open.")).assertExists()
+        provideComposable { Content(WidgetData.Hidden) }
+        onNode(hasText("Amounts hidden. Tap to open.")).assertExists()
+    }
+
+    @Test
+    fun `a short widget shows the budgets that fit, not half of one`() = runGlanceAppWidgetUnitTest {
+        setContext(ApplicationProvider.getApplicationContext())
+        setAppWidgetSize(DpSize(250.dp, 130.dp))
+        val budgets = (1..3).map { Budget(id = "$it", name = "Budget $it", totalAmount = 100.0, percentageUsed = 50.0 + it) }
+        provideComposable { Content(WidgetData.Loaded("October", 186.89, budgets)) }
+        onNode(hasText("Budget 1")).assertExists()
+        onNode(hasText("Budget 2")).assertDoesNotExist()
+    }
+
+    @Test
+    fun `figures it couldn't refresh say when they are from`() = runGlanceAppWidgetUnitTest {
+        setContext(ApplicationProvider.getApplicationContext())
+        provideComposable { Content(WidgetData.Loaded("October", 186.89, emptyList(), asOf = "14:05")) }
+        onNode(hasText("Spent in October · as of 14:05")).assertExists()
     }
 }

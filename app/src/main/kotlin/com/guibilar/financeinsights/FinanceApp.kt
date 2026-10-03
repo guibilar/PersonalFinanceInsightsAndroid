@@ -50,11 +50,14 @@ class FinanceApp : Application() {
         preferences = AppPreferences(this)
         lock = AppLock(preferences)
         BudgetAlerts.createChannel(this)
-        // The widget follows signing in and out, and the app lock (which hides its amounts).
+        // The widget follows signing in and out, and hiding its amounts.
         scope.launch {
-            combine(session.state.map { it is AuthState.SignedIn }.distinctUntilChanged(), preferences.lock) { _, _ -> }
+            combine(session.state.map { it is AuthState.SignedIn }.distinctUntilChanged(), preferences.hideWidgetAmounts) { _, _ -> }
                 .drop(1)
-                .collect { SpendingWidget.refresh(this@FinanceApp) }
+                .collect {
+                    if (session.state.value !is AuthState.SignedIn) SpendingWidget.forget(this@FinanceApp)
+                    SpendingWidget.refresh(this@FinanceApp)
+                }
         }
         // Long-pressing the app's icon offers "Add transaction".
         ShortcutManagerCompat.setDynamicShortcuts(
