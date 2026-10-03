@@ -20,12 +20,14 @@ object Money {
 
     /** "$5K", "$1.2K", "$950": for axis ticks, which carry the values that aren't labelled. */
     fun compact(amount: Double): String {
-        val sign = if (amount < 0) "-" else ""
+        // No sign on what rounds to nothing: "-$0" read oddly.
+        val sign = if (amount < 0 && round(amount) != 0.0) "-" else ""
         val value = abs(amount)
         fun oneDecimal(v: Double) = (round(v * 10) / 10).let { if (it % 1.0 == 0.0) it.toLong().toString() else it.toString() }
+        // The unit is picked after rounding: 999,960 is "$1M", not "$1000K"; 999.6 is "$1K", not "$1000".
         return sign + when {
-            value >= 1_000_000 -> "$${oneDecimal(value / 1_000_000)}M"
-            value >= 1_000 -> "$${oneDecimal(value / 1_000)}K"
+            round(value / 100) >= 10_000 -> "$${oneDecimal(value / 1_000_000)}M"
+            round(value) >= 1_000 -> "$${oneDecimal(value / 1_000)}K"
             else -> "$${round(value).toLong()}"
         }
     }

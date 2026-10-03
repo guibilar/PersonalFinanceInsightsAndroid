@@ -93,6 +93,7 @@ fun EditTransactionSheet(
     var alsoSimilar by rememberSaveable { mutableStateOf(false) }
     var keyword by rememberSaveable { mutableStateOf(suggestRuleKeyword(transaction.description)) }
     var preview by remember { mutableStateOf<CategoryRulePreview?>(null) }
+    var previewFailed by remember { mutableStateOf(false) }
     var saving by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var confirmDelete by remember { mutableStateOf(false) }
@@ -112,9 +113,12 @@ fun EditTransactionSheet(
     // What the rule would change, asked once typing pauses.
     LaunchedEffect(rule?.keyword, rule?.categoryId) {
         preview = null
+        previewFailed = false
         if (rule == null) return@LaunchedEffect
         delay(PREVIEW_DEBOUNCE_MS)
         preview = model.previewRule(rule.keyword, rule.categoryId, transaction.id)
+        // Unanswered, it said "Checking…" for good.
+        previewFailed = preview == null
     }
 
     fun close() = scope.launch { sheet.hide() }.invokeOnCompletion { onDismiss() }
@@ -187,7 +191,7 @@ fun EditTransactionSheet(
                                 keywordError ?: preview?.let { p ->
                                     if (p.count == 0) "No other transaction would change."
                                     else "${p.count} other ${if (p.count == 1) "transaction" else "transactions"} would change, like ${p.examples.take(2).joinToString(", ")}"
-                                } ?: "Checking what it would change…",
+                                } ?: if (previewFailed) "Couldn't check what it would change." else "Checking what it would change…",
                             )
                         },
                         singleLine = true,
@@ -309,7 +313,9 @@ private fun BudgetLink(transaction: Transaction, budgets: List<Budget>, model: T
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DeletedTransactionSheet(transaction: Transaction, model: TransactionsViewModel, onDismiss: () -> Unit) {
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    val scope = rememberCoroutineScope()
+    val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheet) {
         Column(Modifier.padding(horizontal = 20.dp).navigationBarsPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(transaction.description, style = MaterialTheme.typography.titleMedium)
             Text(
@@ -323,7 +329,8 @@ fun DeletedTransactionSheet(transaction: Transaction, model: TransactionsViewMod
             )
             Button(onClick = {
                 model.restore(transaction)
-                onDismiss()
+                // Slides away like the other sheets, instead of vanishing.
+                scope.launch { sheet.hide() }.invokeOnCompletion { onDismiss() }
             }, modifier = Modifier.fillMaxWidth().height(48.dp)) { Text("Restore") }
             Spacer(Modifier.height(16.dp))
         }

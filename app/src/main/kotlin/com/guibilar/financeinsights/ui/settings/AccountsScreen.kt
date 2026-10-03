@@ -97,17 +97,14 @@ fun AccountsScreen(model: AccountsViewModel, contentPadding: PaddingValues, onBa
                             Spacer(Modifier.width(16.dp))
                             Column(Modifier.weight(1f)) {
                                 Text(account.name, fontWeight = FontWeight.Medium)
+                                // The count shares the second line: as a column of its own it squeezed the name ("Chequin / g").
                                 Text(
-                                    "${accountTypeLabel(account.type)} · ${formatLabel(account.format)}",
+                                    "${accountTypeLabel(account.type)} · ${formatLabel(account.format)} · " +
+                                        "${account.transactionCount} ${if (account.transactionCount == 1) "transaction" else "transactions"}",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
-                            Text(
-                                "${account.transactionCount} ${if (account.transactionCount == 1) "transaction" else "transactions"}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
                         }
                         HorizontalDivider(Modifier.padding(start = 56.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                     }

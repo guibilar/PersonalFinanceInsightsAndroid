@@ -23,9 +23,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -51,8 +48,10 @@ import com.guibilar.financeinsights.core.model.BudgetInput
 import com.guibilar.financeinsights.core.model.BudgetPeriod
 import com.guibilar.financeinsights.core.model.CategoryReference
 import com.guibilar.financeinsights.core.model.Status
+import com.guibilar.financeinsights.ui.common.ChoiceRow
 import com.guibilar.financeinsights.ui.common.ColorDot
 import com.guibilar.financeinsights.ui.common.DateField
+import com.guibilar.financeinsights.ui.common.Placeholder
 import com.guibilar.financeinsights.ui.theme.parseHexColor
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -82,7 +81,9 @@ internal fun budgetErrors(
             start > end -> put("days", "The last day can't be before the first.")
         }
     }
-    if (merchant.length > TextLimits.BUDGET_MERCHANT) put("merchant", "At most ${TextLimits.BUDGET_MERCHANT} characters.")
+    if (period != BudgetPeriod.Total && merchant.length > TextLimits.BUDGET_MERCHANT) {
+        put("merchant", "At most ${TextLimits.BUDGET_MERCHANT} characters.")
+    }
 }
 
 /**
@@ -141,22 +142,8 @@ fun BudgetFormSheet(
             )
 
             Text("Period", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                BudgetPeriod.entries.forEachIndexed { index, option ->
-                    SegmentedButton(
-                        selected = period == option,
-                        onClick = {
-                            period = option
-                            // A total budget has no period's spending to count by itself.
-                            if (option == BudgetPeriod.Total) {
-                                categoryIds = emptySet()
-                                merchant = ""
-                            }
-                        },
-                        shape = SegmentedButtonDefaults.itemShape(index, BudgetPeriod.entries.size),
-                    ) { Text(option.name) }
-                }
-            }
+            // The categories or merchant are kept when trying Total, for going back; a total budget saves without them.
+            ChoiceRow(BudgetPeriod.entries, period, { it.name }, { period = it })
             Text(period.hint, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (period == BudgetPeriod.Custom) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -190,7 +177,7 @@ fun BudgetFormSheet(
                     value = merchant,
                     onValueChange = { merchant = it },
                     label = { Text("Or a merchant") },
-                    placeholder = { Text("e.g. no frills") },
+                    placeholder = { Placeholder("e.g. no frills") },
                     enabled = categoryIds.isEmpty(),
                     singleLine = true,
                     isError = shown("merchant") != null,

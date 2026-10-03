@@ -123,7 +123,7 @@ sealed interface ImportOutcome {
 class TransactionsViewModel(
     private val api: FinanceApi,
     route: TransactionsRoute,
-    today: LocalDate = LocalDate.now(),
+    private val clock: () -> LocalDate = LocalDate::now,
 ) : ViewModel() {
     private val _state = MutableStateFlow(
         TransactionsState(
@@ -131,7 +131,7 @@ class TransactionsViewModel(
             search = "",
             breakdownOpen = route.overTime,
             interval = route.interval ?: BreakdownInterval.Month,
-            today = today,
+            today = clock(),
         ),
     )
     val state: StateFlow<TransactionsState> = _state.asStateFlow()
@@ -152,10 +152,19 @@ class TransactionsViewModel(
             .launchIn(viewModelScope)
         reloadList()
         reloadBreakdown()
+        loadLookups()
+    }
+
+    /**
+     * The categories, accounts and budgets the pickers offer. Again whenever the screen is back, as they can change
+     * under More (a new account to import into); a failed load keeps the ones there were.
+     */
+    private fun loadLookups() {
         viewModelScope.launch {
-            val categories = apiCall { api.categories() }.getOrNull().orEmpty()
-            val accounts = apiCall { api.accounts() }.getOrNull().orEmpty()
-            _state.update { it.copy(categories = categories, accounts = accounts) }
+            apiCall { api.categories() }.getOrNull()?.let { categories -> _state.update { it.copy(categories = categories) } }
+        }
+        viewModelScope.launch {
+            apiCall { api.accounts() }.getOrNull()?.let { accounts -> _state.update { it.copy(accounts = accounts) } }
         }
         loadBudgets()
     }
@@ -166,6 +175,25 @@ class TransactionsViewModel(
             if (budgets != null) _state.update { it.copy(budgets = budgets.items) }
         }
     }
+
+    /**
+     * The screen is shown again. A view model outlives a night in the background: on a new day, "today" (the new
+     * transaction's date, the date presets) moves on and the list and totals reload.
+     */
+    fun resumed() {
+        // The first time is the screen opening, just after init loaded everything.
+        if (!shown) {
+            shown = true
+            return
+        }
+        loadLookups()
+        val now = clock()
+        if (now == _state.value.today) return
+        _state.update { it.copy(today = now) }
+        reloadList()
+        reloadBreakdown()
+    }
+    private var shown = false
 
     /** Lists the deleted transactions instead (to restore one), or back. */
     fun toggleDeleted() {

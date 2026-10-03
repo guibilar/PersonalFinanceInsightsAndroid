@@ -1,5 +1,6 @@
 package com.guibilar.financeinsights.ui.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,7 +24,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.clickable
+import androidx.compose.ui.unit.sp
+import com.guibilar.financeinsights.ui.common.FitText
 
 /** Where the rest of the app lives: rules, categories, accounts, and the signed-in account. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -38,7 +40,7 @@ fun MoreScreen(
     openAccount: () -> Unit,
 ) {
     Column(Modifier.fillMaxSize().padding(bottom = contentPadding.calculateBottomPadding())) {
-        TopAppBar(title = { Text("More", fontWeight = FontWeight.SemiBold) })
+        TopAppBar(title = { FitText("More", fontWeight = FontWeight.SemiBold, minFontSize = 14.sp) })
         Column(Modifier.verticalScroll(rememberScrollState())) {
             Entry(Icons.AutoMirrored.Outlined.Rule, "Rules", "What sets each transaction's category, and what it counts as", openRules)
             Entry(Icons.Outlined.Palette, "Categories", "Names and colours, everywhere they show", openCategories)

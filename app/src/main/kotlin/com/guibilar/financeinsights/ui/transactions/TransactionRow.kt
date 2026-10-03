@@ -29,12 +29,15 @@ import com.guibilar.financeinsights.core.logic.Money
 import com.guibilar.financeinsights.core.model.Flow
 import com.guibilar.financeinsights.core.model.Transaction
 import com.guibilar.financeinsights.core.model.TransactionType
+import com.guibilar.financeinsights.ui.common.isLargeText
 import com.guibilar.financeinsights.ui.theme.LocalChartColors
 import com.guibilar.financeinsights.ui.theme.parseHexColor
+import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 private val dayFormat = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.US)
+private val shortDayFormat = DateTimeFormatter.ofPattern("MMM d", Locale.US)
 
 /** "+$12.50" for money in, "−$12.50" for money out, as on the web. */
 fun signedAmount(transaction: Transaction): String =
@@ -52,6 +55,10 @@ fun TransactionRow(
     val category = parseHexColor(transaction.category.color)
     val credit = transaction.transactionType == TransactionType.Credit
     val date = dayFormat.format(transaction.day)
+    // At large text sizes the description gets two lines and this year's dates drop the year, or the amount and
+    // date column leaves the description a few letters ("SHOPPE…").
+    val large = isLargeText
+    val shownDate = if (large && transaction.day.year == LocalDate.now().year) shortDayFormat.format(transaction.day) else date
     val flowNote = transaction.flow.takeIf { it != Flow.Spending }?.label
     Row(
         modifier
@@ -79,7 +86,7 @@ fun TransactionRow(
         }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(transaction.description, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyLarge)
+            Text(transaction.description, maxLines = if (large) 2 else 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyLarge)
             Text(
                 listOf(transaction.category.name, transaction.accountName).filter { it.isNotBlank() }.joinToString(" · "),
                 maxLines = 1,
@@ -109,7 +116,7 @@ fun TransactionRow(
                     )
                     Spacer(Modifier.width(6.dp))
                 }
-                Text(date, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(shownDate, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }

@@ -1,5 +1,6 @@
 package com.guibilar.financeinsights.ui.budgets
 
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -64,6 +65,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.guibilar.financeinsights.core.logic.BudgetHealth
 import com.guibilar.financeinsights.core.logic.Money
 import com.guibilar.financeinsights.core.logic.budgetHealth
@@ -76,7 +78,9 @@ import com.guibilar.financeinsights.ui.common.AccountMenuButton
 import com.guibilar.financeinsights.ui.common.ColorDot
 import com.guibilar.financeinsights.ui.common.EmptyState
 import com.guibilar.financeinsights.ui.common.ErrorState
+import com.guibilar.financeinsights.ui.common.FitText
 import com.guibilar.financeinsights.ui.common.PillBar
+import com.guibilar.financeinsights.ui.common.Placeholder
 import com.guibilar.financeinsights.ui.common.ShowMessages
 import com.guibilar.financeinsights.ui.common.Skeleton
 import com.guibilar.financeinsights.ui.theme.LocalChartColors
@@ -90,6 +94,10 @@ private val WARNING = androidx.compose.ui.graphics.Color(0xFFE0A100)
 @Composable
 fun BudgetsScreen(model: BudgetsViewModel, account: AccountInfo, onSignOut: suspend () -> Unit, contentPadding: PaddingValues) {
     val state by model.state.collectAsState()
+    LifecycleResumeEffect(model) {
+        model.resumed()
+        onPauseOrDispose {}
+    }
     var editing by remember { mutableStateOf<Budget?>(null) }
     var adding by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf<Budget?>(null) }
@@ -108,13 +116,13 @@ fun BudgetsScreen(model: BudgetsViewModel, account: AccountInfo, onSignOut: susp
     Box(Modifier.fillMaxSize().padding(bottom = contentPadding.calculateBottomPadding())) {
         Column(Modifier.fillMaxSize()) {
             TopAppBar(
-                title = { Text("Budgets", fontWeight = FontWeight.SemiBold) },
+                title = { FitText("Budgets", fontWeight = FontWeight.SemiBold, minFontSize = 14.sp) },
                 actions = { AccountMenuButton(account, onSignOut) },
             )
             OutlinedTextField(
                 value = state.search,
                 onValueChange = model::search,
-                placeholder = { Text("Search budgets") },
+                placeholder = { Placeholder("Search budgets") },
                 leadingIcon = { Icon(Icons.Outlined.Search, null) },
                 trailingIcon = { if (state.search.isNotEmpty()) IconButton(onClick = { model.search("") }) { Icon(Icons.Outlined.Close, "Clear search") } },
                 singleLine = true,

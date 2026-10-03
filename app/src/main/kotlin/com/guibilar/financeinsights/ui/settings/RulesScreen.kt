@@ -75,7 +75,9 @@ import com.guibilar.financeinsights.ui.common.ColorDot
 import com.guibilar.financeinsights.ui.common.DropdownPicker
 import com.guibilar.financeinsights.ui.common.EmptyState
 import com.guibilar.financeinsights.ui.common.ErrorState
+import com.guibilar.financeinsights.ui.common.FitText
 import com.guibilar.financeinsights.ui.common.LoadState
+import com.guibilar.financeinsights.ui.common.Placeholder
 import com.guibilar.financeinsights.ui.common.Skeleton
 import com.guibilar.financeinsights.ui.theme.parseHexColor
 import kotlinx.coroutines.launch
@@ -155,7 +157,7 @@ private fun CategoryRules(state: RulesState, model: RulesViewModel, onEdit: (Cat
         OutlinedTextField(
             value = search,
             onValueChange = { search = it },
-            placeholder = { Text("Search by keyword or category") },
+            placeholder = { Placeholder("Search by keyword or category") },
             leadingIcon = { Icon(Icons.Outlined.Search, null) },
             trailingIcon = { if (search.isNotEmpty()) IconButton(onClick = { search = "" }) { Icon(Icons.Outlined.Close, "Clear search") } },
             singleLine = true,
@@ -295,7 +297,7 @@ private fun CategoryRuleSheet(
         if (rule == null) {
             SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                 listOf(true to "Check it first", false to "Check it last").forEachIndexed { index, (value, label) ->
-                    SegmentedButton(first == value, onClick = { first = value }, shape = SegmentedButtonDefaults.itemShape(index, 2)) { Text(label) }
+                    SegmentedButton(first == value, onClick = { first = value }, shape = SegmentedButtonDefaults.itemShape(index, 2)) { FitText(label) }
                 }
             }
             Text(
@@ -336,7 +338,7 @@ private fun KeywordField(value: String, onChange: (String) -> Unit, label: Strin
         value = value,
         onValueChange = onChange,
         label = { Text(label) },
-        placeholder = { Text(placeholder) },
+        placeholder = { Placeholder(placeholder) },
         singleLine = true,
         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters, autoCorrectEnabled = false),
         modifier = Modifier.fillMaxWidth(),

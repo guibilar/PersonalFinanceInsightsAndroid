@@ -54,6 +54,7 @@ import com.guibilar.financeinsights.core.model.TransactionInput
 import com.guibilar.financeinsights.core.model.TransactionType
 import com.guibilar.financeinsights.ui.common.DateField
 import com.guibilar.financeinsights.ui.common.DropdownPicker
+import com.guibilar.financeinsights.ui.common.FitText
 import com.guibilar.financeinsights.ui.theme.parseHexColor
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -178,7 +179,7 @@ fun AddTransactionSheet(state: TransactionsState, model: TransactionsViewModel, 
                             duplicate = null
                         },
                         shape = SegmentedButtonDefaults.itemShape(index, 2),
-                    ) { Text(label) }
+                    ) { FitText(label) }
                 }
             }
             val categories: List<CategoryReference?> = listOf(null) + state.categories.map { it.reference }

@@ -76,7 +76,7 @@ class ScreenshotTest {
 
     @Test
     fun transactions() {
-        val model = TransactionsViewModel(api, TransactionsRoute(), today)
+        val model = TransactionsViewModel(api, TransactionsRoute()) { today }
         show { TransactionsScreen(model, account, {}, PaddingValues()) }
         shoot("transactions")
     }
@@ -91,8 +91,7 @@ class ScreenshotTest {
         val model = TransactionsViewModel(
             api,
             TransactionsRoute(startDate = "2026-06-01", endDate = "2026-09-30", overTime = true, interval = BreakdownInterval.Month),
-            today,
-        )
+        ) { today }
         show(dark) { TransactionsScreen(model, account, {}, PaddingValues()) }
         compose.onNodeWithText("Show 8 more").performClick()
         compose.waitForIdle()
@@ -101,7 +100,7 @@ class ScreenshotTest {
 
     @Test
     fun filters() {
-        val model = TransactionsViewModel(api, TransactionsRoute(startDate = "2026-07-01", endDate = "2026-09-30"), today)
+        val model = TransactionsViewModel(api, TransactionsRoute(startDate = "2026-07-01", endDate = "2026-09-30")) { today }
         show { TransactionsScreen(model, account, {}, PaddingValues()) }
         compose.onNodeWithContentDescriptionCompat("Filters")
         compose.waitForIdle()

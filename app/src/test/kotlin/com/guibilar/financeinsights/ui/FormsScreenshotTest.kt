@@ -52,7 +52,7 @@ class FormsScreenshotTest {
     }
 
     private fun transactions(dark: Boolean = false) {
-        val model = TransactionsViewModel(api, TransactionsRoute(), today)
+        val model = TransactionsViewModel(api, TransactionsRoute()) { today }
         show(dark) { TransactionsScreen(model, account, {}, PaddingValues()) }
     }
 
@@ -85,7 +85,7 @@ class FormsScreenshotTest {
     @Test
     fun importLooksLikeAnotherAccounts() {
         api.refusing["importStatement"] = FakeFinanceApi.conflict("4 of the 5 transactions in this file are already in \"Neo card\". Is \"Credit card\" the right account?", "account-mismatch")
-        val model = TransactionsViewModel(api, TransactionsRoute(), today)
+        val model = TransactionsViewModel(api, TransactionsRoute()) { today }
         show {
             val state by model.state.collectAsState()
             ImportSheet(state.accounts, model, {}, PickedFile("cibc_credit.csv", ByteArray(2048)))
