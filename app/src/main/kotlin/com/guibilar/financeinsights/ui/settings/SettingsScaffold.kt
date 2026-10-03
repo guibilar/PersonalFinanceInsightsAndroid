@@ -24,12 +24,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.guibilar.financeinsights.ui.common.FitText
 import com.guibilar.financeinsights.ui.common.ShowMessages
 import com.guibilar.financeinsights.ui.common.UiMessage
+import com.guibilar.financeinsights.ui.common.rememberFabExpansion
 import kotlinx.coroutines.flow.Flow
 
 /** A settings screen: a title with Back, optional actions and an add button, and its messages as snackbars. */
@@ -47,7 +49,8 @@ fun SettingsScaffold(
 ) {
     val snackbar = remember { SnackbarHostState() }
     ShowMessages(messages, snackbar)
-    Box(Modifier.fillMaxSize().padding(bottom = contentPadding.calculateBottomPadding())) {
+    val fab = rememberFabExpansion()
+    Box(Modifier.fillMaxSize().padding(bottom = contentPadding.calculateBottomPadding()).nestedScroll(fab.connection)) {
         Column(Modifier.fillMaxSize()) {
             TopAppBar(
                 title = { FitText(title, fontWeight = FontWeight.SemiBold, minFontSize = 14.sp) },
@@ -61,6 +64,7 @@ fun SettingsScaffold(
                 onClick = onAdd,
                 icon = { Icon(Icons.Outlined.Add, null) },
                 text = { Text(addLabel) },
+                expanded = fab.expanded,
                 modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
             )
         }

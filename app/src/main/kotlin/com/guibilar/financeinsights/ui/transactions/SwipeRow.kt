@@ -14,23 +14,30 @@ import androidx.compose.material.icons.outlined.Sell
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxState
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.unit.dp
 import com.guibilar.financeinsights.core.model.Transaction
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 /**
  * A transaction row with swipes: left to delete (Undo follows), right to change its category. In the deleted list,
@@ -49,7 +56,19 @@ fun SwipeRow(
 ) {
     val haptics = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
-    val state = rememberSwipeToDismissBoxState()
+    // Only a deliberate swipe acts: the row dragged at least [ACT_FRACTION] of its width. On its own the box also
+    // took a quick flick of a few dp as a full swipe, so a scroll that started a little sideways deleted the row.
+    var width by remember { mutableFloatStateOf(0f) }
+    val holder = remember { arrayOfNulls<SwipeToDismissBoxState>(1) }
+    @Suppress("DEPRECATION")
+    val state = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            val offset = holder[0]?.let { runCatching { it.requireOffset() }.getOrNull() } ?: 0f
+            value == SwipeToDismissBoxValue.Settled || (width > 0f && abs(offset) >= width * ACT_FRACTION)
+        },
+        positionalThreshold = { distance -> distance * ACT_FRACTION },
+    )
+    holder[0] = state
     // A tick when a swipe passes the point where letting go acts.
     LaunchedEffect(state.targetValue) {
         if (state.targetValue != SwipeToDismissBoxValue.Settled) haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
@@ -60,6 +79,7 @@ fun SwipeRow(
     else SwipeAction("Delete", Icons.Outlined.Delete, MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.onErrorContainer, onDelete)
     SwipeToDismissBox(
         state = state,
+        modifier = Modifier.onSizeChanged { width = it.width.toFloat() },
         enableDismissFromStartToEnd = enabled,
         enableDismissFromEndToStart = enabled && left != null,
         onDismiss = { value ->
@@ -96,6 +116,9 @@ fun SwipeRow(
         },
     ) { content(if (enabled) listOfNotNull(right, left).map { CustomAccessibilityAction(it.label) { it.action(); true } } else emptyList()) }
 }
+
+/** How far (of the row's width) a swipe must go to act. */
+private const val ACT_FRACTION = 0.4f
 
 /** How long a swiped-away row waits for the list to drop it before coming back. */
 private const val LEAVE_MS = 3_000L

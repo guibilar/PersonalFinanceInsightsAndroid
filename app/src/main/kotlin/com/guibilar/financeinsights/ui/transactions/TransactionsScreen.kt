@@ -93,6 +93,7 @@ import com.guibilar.financeinsights.ui.common.FitText
 import com.guibilar.financeinsights.ui.common.Placeholder
 import com.guibilar.financeinsights.ui.common.ShowMessages
 import com.guibilar.financeinsights.ui.common.Skeleton
+import com.guibilar.financeinsights.ui.common.rememberFabExpansion
 import com.guibilar.financeinsights.ui.common.rememberOpenItem
 
 private val SORT_LABELS = mapOf(
@@ -174,7 +175,8 @@ fun TransactionsScreen(
     val twoPane = LocalConfiguration.current.screenWidthDp >= TWO_PANE_FROM_WIDTH
     val paneTransaction = opened?.takeIf { twoPane && !it.hidden && !state.showDeleted }
     Row(Modifier.fillMaxSize().padding(bottom = contentPadding.calculateBottomPadding())) {
-        Box(Modifier.weight(1f).fillMaxHeight()) {
+        val fab = rememberFabExpansion()
+        Box(Modifier.weight(1f).fillMaxHeight().nestedScroll(fab.connection)) {
             Column(Modifier.fillMaxSize().nestedScroll(barBehavior.nestedScrollConnection)) {
                 TopAppBar(
                     scrollBehavior = barBehavior,
@@ -312,6 +314,7 @@ fun TransactionsScreen(
                     onClick = { adding = true },
                     icon = { Icon(Icons.Outlined.Add, null) },
                     text = { Text("Add") },
+                    expanded = fab.expanded,
                     modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
                 )
             }

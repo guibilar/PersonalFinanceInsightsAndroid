@@ -11,6 +11,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.test.onNodeWithText
 import com.guibilar.financeinsights.FakeFinanceApi
 import com.guibilar.financeinsights.ui.settings.RulesScreen
@@ -104,5 +105,32 @@ class GesturesTest {
         compose.mainClock.advanceTimeBy(2_000)
         compose.waitForIdle()
         assertTrue(api.transactionFilters.size > before)
+    }
+
+    @Test
+    fun `the Add button shrinks to its icon while scrolling down, and comes back scrolling up`() {
+        transactions()
+        compose.onNodeWithText("Add", useUnmergedTree = true).assertExists()
+        compose.onNode(hasContentDescription("METRO 221", substring = true)).performTouchInput { swipeUp() }
+        compose.mainClock.advanceTimeBy(1_000)
+        compose.onNodeWithText("Add", useUnmergedTree = true).assertDoesNotExist()
+        compose.onNode(hasContentDescription("NO FRILLS #3121", substring = true)).performTouchInput { swipeDown(startY = top, endY = top + 200f) }
+        compose.mainClock.advanceTimeBy(1_000)
+        compose.onNodeWithText("Add", useUnmergedTree = true).assertExists()
+    }
+
+    @Test
+    fun `a quick sideways flick while scrolling deletes nothing`() {
+        transactions()
+        // A scroll that starts a little sideways: short, fast, mostly vertical after the first move.
+        compose.onNode(hasContentDescription("NO FRILLS #3121", substring = true)).performTouchInput {
+            down(center)
+            moveBy(androidx.compose.ui.geometry.Offset(-60f, 0f), delayMillis = 8)
+            moveBy(androidx.compose.ui.geometry.Offset(-40f, -30f), delayMillis = 8)
+            up()
+        }
+        compose.mainClock.advanceTimeBy(1_000)
+        compose.waitForIdle()
+        assertTrue(api.sent.none { it.first == "deleteTransaction" })
     }
 }

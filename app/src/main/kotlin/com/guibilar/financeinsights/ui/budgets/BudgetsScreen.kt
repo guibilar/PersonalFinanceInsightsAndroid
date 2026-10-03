@@ -60,6 +60,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -77,7 +78,6 @@ import com.guibilar.financeinsights.core.model.Status
 import com.guibilar.financeinsights.ui.AccountInfo
 import com.guibilar.financeinsights.ui.common.AccountMenuButton
 import com.guibilar.financeinsights.ui.common.BUDGET_WARNING
-import com.guibilar.financeinsights.ui.common.budgetWarningText
 import com.guibilar.financeinsights.ui.common.ColorDot
 import com.guibilar.financeinsights.ui.common.EmptyState
 import com.guibilar.financeinsights.ui.common.ErrorState
@@ -86,6 +86,8 @@ import com.guibilar.financeinsights.ui.common.PillBar
 import com.guibilar.financeinsights.ui.common.Placeholder
 import com.guibilar.financeinsights.ui.common.ShowMessages
 import com.guibilar.financeinsights.ui.common.Skeleton
+import com.guibilar.financeinsights.ui.common.budgetWarningText
+import com.guibilar.financeinsights.ui.common.rememberFabExpansion
 import com.guibilar.financeinsights.ui.common.rememberOpenItem
 import com.guibilar.financeinsights.ui.theme.LocalChartColors
 import com.guibilar.financeinsights.ui.theme.parseHexColor
@@ -118,7 +120,8 @@ fun BudgetsScreen(model: BudgetsViewModel, account: AccountInfo, onSignOut: susp
     }
     LaunchedEffect(nearEnd, state.items.size) { if (nearEnd) model.loadMore() }
 
-    Box(Modifier.fillMaxSize().padding(bottom = contentPadding.calculateBottomPadding())) {
+    val fab = rememberFabExpansion()
+    Box(Modifier.fillMaxSize().padding(bottom = contentPadding.calculateBottomPadding()).nestedScroll(fab.connection)) {
         Column(Modifier.fillMaxSize()) {
             TopAppBar(
                 title = { FitText("Budgets", fontWeight = FontWeight.SemiBold, minFontSize = 14.sp) },
@@ -176,6 +179,7 @@ fun BudgetsScreen(model: BudgetsViewModel, account: AccountInfo, onSignOut: susp
             onClick = { adding = true },
             icon = { Icon(Icons.Outlined.Add, null) },
             text = { Text("New budget") },
+            expanded = fab.expanded,
             modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
         )
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(bottom = 72.dp))
