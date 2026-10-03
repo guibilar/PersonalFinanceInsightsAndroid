@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.Dashboard
+import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -36,6 +37,16 @@ import com.guibilar.financeinsights.ui.budgets.BudgetsScreen
 import com.guibilar.financeinsights.ui.budgets.BudgetsViewModel
 import com.guibilar.financeinsights.ui.dashboard.DashboardScreen
 import com.guibilar.financeinsights.ui.dashboard.DashboardViewModel
+import com.guibilar.financeinsights.BuildConfig
+import com.guibilar.financeinsights.ui.settings.AccountSettingsScreen
+import com.guibilar.financeinsights.ui.settings.AccountSettingsViewModel
+import com.guibilar.financeinsights.ui.settings.AccountsScreen
+import com.guibilar.financeinsights.ui.settings.AccountsViewModel
+import com.guibilar.financeinsights.ui.settings.CategoriesScreen
+import com.guibilar.financeinsights.ui.settings.CategoriesViewModel
+import com.guibilar.financeinsights.ui.settings.MoreScreen
+import com.guibilar.financeinsights.ui.settings.RulesScreen
+import com.guibilar.financeinsights.ui.settings.RulesViewModel
 import com.guibilar.financeinsights.ui.signin.SignInScreen
 import com.guibilar.financeinsights.ui.transactions.TransactionsScreen
 import com.guibilar.financeinsights.ui.transactions.PickedFile
@@ -48,6 +59,21 @@ data object DashboardRoute
 
 @Serializable
 data object BudgetsRoute
+
+@Serializable
+data object MoreRoute
+
+@Serializable
+data object RulesRoute
+
+@Serializable
+data object CategoriesRoute
+
+@Serializable
+data object AccountsRoute
+
+@Serializable
+data object AccountSettingsRoute
 
 /** The transactions list, optionally opened on criteria (the dashboard's links) with its "Over time" chart. */
 @Serializable
@@ -94,6 +120,10 @@ private val tabs = listOf(
     Tab("Dashboard", Icons.Outlined.Dashboard, DashboardRoute) { it.hasRoute<DashboardRoute>() },
     Tab("Transactions", Icons.Outlined.ReceiptLong, TransactionsRoute()) { it.hasRoute<TransactionsRoute>() },
     Tab("Budgets", Icons.Outlined.AccountBalanceWallet, BudgetsRoute) { it.hasRoute<BudgetsRoute>() },
+    Tab("More", Icons.Outlined.Menu, MoreRoute) {
+        it.hasRoute<MoreRoute>() || it.hasRoute<RulesRoute>() || it.hasRoute<CategoriesRoute>() ||
+            it.hasRoute<AccountsRoute>() || it.hasRoute<AccountSettingsRoute>()
+    },
 )
 
 @Composable
@@ -155,6 +185,29 @@ fun MainScreen(
                         }
                     },
                 )
+            }
+            composable<MoreRoute> {
+                MoreScreen(
+                    username = account.username,
+                    version = BuildConfig.VERSION_NAME,
+                    contentPadding = padding,
+                    openRules = { nav.navigate(RulesRoute) },
+                    openCategories = { nav.navigate(CategoriesRoute) },
+                    openAccounts = { nav.navigate(AccountsRoute) },
+                    openAccount = { nav.navigate(AccountSettingsRoute) },
+                )
+            }
+            composable<RulesRoute> {
+                RulesScreen(viewModel { RulesViewModel(api) }, padding, onBack = { nav.popBackStack() })
+            }
+            composable<CategoriesRoute> {
+                CategoriesScreen(viewModel { CategoriesViewModel(api) }, padding, onBack = { nav.popBackStack() })
+            }
+            composable<AccountsRoute> {
+                AccountsScreen(viewModel { AccountsViewModel(api) }, padding, onBack = { nav.popBackStack() })
+            }
+            composable<AccountSettingsRoute> {
+                AccountSettingsScreen(viewModel { AccountSettingsViewModel(api) }, account, onSignOut, padding, onBack = { nav.popBackStack() })
             }
             composable<BudgetsRoute> {
                 val model = viewModel { BudgetsViewModel(api) }

@@ -11,6 +11,9 @@ import kotlin.math.round
 
 /** Longest texts the API accepts (Finance.Contracts TextLimits). */
 object TextLimits {
+    const val CATEGORY_NAME = 50
+    const val ACCOUNT_NAME = 100
+    const val FLOW_RULE_KEYWORD = 100
     const val BUDGET_NAME = 100
     const val BUDGET_DESCRIPTION = 500
     const val BUDGET_MERCHANT = 100
@@ -111,4 +114,59 @@ fun budgetHealth(percentageUsed: Double) = when {
     percentageUsed >= 100 -> BudgetHealth.Over
     percentageUsed >= 80 -> BudgetHealth.Warning
     else -> BudgetHealth.Ok
+}
+
+/** Same rule as the API: length, not composition. */
+const val MIN_PASSWORD_LENGTH = 12
+
+/**
+ * Colours for categories: the ones the first categories had, then lighter shades of them. A new category starts on the
+ * first one no category has yet.
+ */
+val CATEGORY_PALETTE = listOf(
+    "#1F76B5", "#FF7E0F", "#2CA12D", "#D72628", "#9466BC", "#8C564B", "#E277C3", "#7F7E7E", "#BDBD23", "#16BFCF",
+    "#800080", "#AEC7E8", "#FFBB78", "#98DF8A", "#FF9896", "#C5B0D5", "#C49C94", "#F7B6D2", "#DBDB8D", "#9EDAE5",
+)
+
+/** The first palette colour no category has yet; the first one when all are taken. */
+fun freeCategoryColor(used: Collection<String>): String {
+    val taken = used.map { it.uppercase() }.toSet()
+    return CATEGORY_PALETTE.firstOrNull { it !in taken } ?: CATEGORY_PALETTE.first()
+}
+
+/** The flows a flow rule can set: money out is spending already without a rule. */
+val FLOW_RULE_FLOWS = listOf(Flow.Transfer, Flow.Ignored, Flow.Refund, Flow.Income)
+
+/** Which transactions a rule for each flow can apply to. */
+val Flow.ruleScope
+    get() = when (this) {
+        Flow.Refund, Flow.Income -> "Applies to money in only."
+        Flow.Transfer, Flow.Ignored -> "Applies to money in and out."
+        Flow.Spending -> ""
+    }
+
+fun formatLabel(format: com.guibilar.financeinsights.core.model.StatementFormat) = when (format) {
+    com.guibilar.financeinsights.core.model.StatementFormat.Cibc -> "CIBC"
+    com.guibilar.financeinsights.core.model.StatementFormat.Neo -> "Neo Financial"
+    com.guibilar.financeinsights.core.model.StatementFormat.Manual -> "No files (add by hand)"
+}
+
+fun accountTypeLabel(type: com.guibilar.financeinsights.core.model.AccountType) = when (type) {
+    com.guibilar.financeinsights.core.model.AccountType.Chequing -> "Chequing"
+    com.guibilar.financeinsights.core.model.AccountType.Savings -> "Savings"
+    com.guibilar.financeinsights.core.model.AccountType.CreditCard -> "Credit card"
+}
+
+/** What a password change's refusal says, by field: "currentPassword", "newPassword", or "other". */
+fun passwordErrors(error: com.guibilar.financeinsights.core.api.ApiError): Map<String, String> {
+    if (error is com.guibilar.financeinsights.core.api.ApiError.Http && error.status == 400) {
+        fun first(key: String) = error.fieldErrors.entries.firstOrNull { it.key.equals(key, ignoreCase = true) }?.value?.firstOrNull()
+        val current = first("currentPassword")
+        val new = first("newPassword")
+        if (current != null || new != null) return buildMap {
+            current?.let { put("currentPassword", it) }
+            new?.let { put("newPassword", it) }
+        }
+    }
+    return mapOf("other" to error.loadMessage("Could not change the password. Try again."))
 }

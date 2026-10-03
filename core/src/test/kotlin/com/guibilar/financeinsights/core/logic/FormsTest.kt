@@ -47,3 +47,19 @@ class FormsTest {
         assertEquals("All 40 transactions already match the rules", describeRulesResult(RulesResult(40, 0)))
     }
 }
+
+class SettingsFormsTest {
+    @Test
+    fun `a new category starts on a colour no category has yet`() {
+        assertEquals("#2CA12D", freeCategoryColor(listOf("#1f76b5", "#FF7E0F")))
+        assertEquals(CATEGORY_PALETTE.first(), freeCategoryColor(CATEGORY_PALETTE))
+    }
+
+    @Test
+    fun `a refused password change says which field, or why`() {
+        val wrong = com.guibilar.financeinsights.core.api.ApiError.Http(400, "Invalid", null, null, mapOf("CurrentPassword" to listOf("Incorrect password.")))
+        assertEquals(mapOf("currentPassword" to "Incorrect password."), passwordErrors(wrong))
+        val other = com.guibilar.financeinsights.core.api.ApiError.Http(500, null, null, null, emptyMap())
+        assertEquals(mapOf("other" to "Could not change the password. Try again."), passwordErrors(other))
+    }
+}

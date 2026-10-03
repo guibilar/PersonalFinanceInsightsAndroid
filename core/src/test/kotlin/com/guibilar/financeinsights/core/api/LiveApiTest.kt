@@ -1,6 +1,14 @@
 package com.guibilar.financeinsights.core.api
 
+import com.guibilar.financeinsights.core.model.AccountInput
+import com.guibilar.financeinsights.core.model.AccountType
+import com.guibilar.financeinsights.core.model.AccountUpdate
 import com.guibilar.financeinsights.core.model.BreakdownInput
+import com.guibilar.financeinsights.core.model.CategoryInput
+import com.guibilar.financeinsights.core.model.CategoryRuleInput
+import com.guibilar.financeinsights.core.model.CategoryRuleMove
+import com.guibilar.financeinsights.core.model.ChangePasswordInput
+import com.guibilar.financeinsights.core.model.FlowRuleInput
 import com.guibilar.financeinsights.core.model.BudgetInput
 import com.guibilar.financeinsights.core.model.BudgetPeriod
 import com.guibilar.financeinsights.core.model.CategoryRulePreviewInput
@@ -104,5 +112,56 @@ class LiveApiTest {
         assertEquals(1, result.read)
         val notCsv = apiCall { api.importStatement("x.csv", "nothing here".toByteArray(), cibc.id) }.apiError!!
         assertEquals("No transactions found in this file. Is it a CIBC CSV export (date, description, money out, money in)?", notCsv.importMessage())
+    }
+
+    @Test
+    fun `manages rules, categories and accounts, and the account's password and sessions`() = runTest {
+        assumeTrue("Set FINANCE_LIVE_API to run against a backend", server != null)
+        fun jar(): PersistentCookieJar {
+            var stored: String? = null
+            return PersistentCookieJar(object : CookieStorage {
+                override fun read() = stored
+                override fun write(value: String?) {
+                    stored = value
+                }
+            })
+        }
+        val address = ServerAddress.normalize(server!!)!!
+        val user = System.getenv("FINANCE_LIVE_USER")
+        val password = System.getenv("FINANCE_LIVE_PASSWORD")
+        val api = createFinanceApi(address, jar())
+        val other = createFinanceApi(address, jar())
+        api.login(LoginInput(user, password))
+        other.login(LoginInput(user, password))
+        val stamp = System.currentTimeMillis() % 100000
+
+        val flow = api.addFlowRule(FlowRuleInput("live flow $stamp", Flow.Transfer))
+        assertEquals("LIVE FLOW $stamp", flow.keyword)
+        api.updateFlowRule(flow.id, FlowRuleInput("live flow $stamp", Flow.Ignored))
+        assertEquals(Flow.Ignored, api.flowRules().first { it.id == flow.id }.flow)
+        api.deleteFlowRule(flow.id)
+
+        val category = api.addCategory(CategoryInput("Live $stamp", "#123456"))
+        api.updateCategory(category.id, CategoryInput("Live $stamp renamed", "#654321"))
+        val rule = api.addCategoryRule(CategoryRuleInput("LIVE RULE $stamp", category.id))
+        api.updateCategoryRule(rule.id, CategoryRuleInput("LIVE RULE $stamp B", category.id))
+        val moved = api.moveCategoryRule(rule.id, CategoryRuleMove(0))
+        assertEquals(rule.id, moved.first().id)
+        assertEquals(1, api.categories().first { it.id == category.id }.ruleCount)
+        api.deleteCategory(category.id, moveTo = null)
+        assertTrue(api.categoryRules().first { it.id == rule.id }.category.name == "Other")
+        api.deleteCategoryRule(rule.id)
+
+        val account = api.addAccount(AccountInput("Live $stamp", AccountType.Savings, StatementFormat.Manual))
+        assertEquals(StatementFormat.Neo, api.updateAccount(account.id, AccountUpdate("Live $stamp", StatementFormat.Neo)).format)
+        api.deleteAccount(account.id)
+
+        assertTrue(api.signOutOthers().count >= 1)
+        assertTrue(apiCall { other.me() }.apiError!!.isUnauthorized)
+        val wrong = apiCall { api.changePassword(ChangePasswordInput("not it", "a long enough password")) }.apiError!!
+        assertTrue(wrong is ApiError.Http && wrong.status == 400)
+        api.changePassword(ChangePasswordInput(password, "$password!"))
+        api.changePassword(ChangePasswordInput("$password!", password))
+        api.me()
     }
 }

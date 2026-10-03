@@ -18,7 +18,15 @@ import com.guibilar.financeinsights.core.model.Page
 import com.guibilar.financeinsights.core.model.Transaction
 import com.guibilar.financeinsights.core.model.TransactionFilter
 import com.guibilar.financeinsights.core.api.ApiError
+import com.guibilar.financeinsights.core.model.AccountInput
+import com.guibilar.financeinsights.core.model.AccountUpdate
 import com.guibilar.financeinsights.core.model.BudgetInput
+import com.guibilar.financeinsights.core.model.CategoryInput
+import com.guibilar.financeinsights.core.model.CategoryRuleMove
+import com.guibilar.financeinsights.core.model.ChangePasswordInput
+import com.guibilar.financeinsights.core.model.FlowRule
+import com.guibilar.financeinsights.core.model.FlowRuleInput
+import com.guibilar.financeinsights.core.model.SignedOutSessions
 import com.guibilar.financeinsights.core.model.CategoryReference
 import com.guibilar.financeinsights.core.model.CategoryRule
 import com.guibilar.financeinsights.core.model.CategoryRuleInput
@@ -132,4 +140,30 @@ class FakeFinanceApi : FinanceApi {
     override suspend fun deleteBudget(id: String) = write("deleteBudget", id) {}
 
     private fun RequestBody.text() = Buffer().also { writeTo(it) }.readUtf8()
+
+    override suspend fun categoryRules(): List<CategoryRule> = check("categoryRules").let { fixture("category-rules") }
+    override suspend fun updateCategoryRule(id: String, rule: CategoryRuleInput) = write("updateCategoryRule", id to rule) { fixture<List<CategoryRule>>("category-rules").first { it.id == id } }
+    override suspend fun deleteCategoryRule(id: String) = write("deleteCategoryRule", id) {}
+
+    /** Moves it like the API: out of its place, into [move]'s, positions renumbered. */
+    override suspend fun moveCategoryRule(id: String, move: CategoryRuleMove) = write("moveCategoryRule", id to move.position) {
+        val rules = fixture<List<CategoryRule>>("category-rules").toMutableList()
+        val rule = rules.first { it.id == id }
+        rules.remove(rule)
+        rules.add(move.position.coerceAtMost(rules.size), rule)
+        rules.mapIndexed { index, r -> r.copy(position = index) }
+    }
+
+    override suspend fun flowRules(): List<FlowRule> = check("flowRules").let { fixture("flow-rules") }
+    override suspend fun addFlowRule(rule: FlowRuleInput) = write("addFlowRule", rule) { FlowRule("f-new", rule.keyword.uppercase(), rule.flow) }
+    override suspend fun updateFlowRule(id: String, rule: FlowRuleInput) = write("updateFlowRule", id to rule) { FlowRule(id, rule.keyword.uppercase(), rule.flow) }
+    override suspend fun deleteFlowRule(id: String) = write("deleteFlowRule", id) {}
+    override suspend fun addCategory(category: CategoryInput) = write("addCategory", category) { fixture<List<Category>>("categories").first() }
+    override suspend fun updateCategory(id: String, category: CategoryInput) = write("updateCategory", id to category) { fixture<List<Category>>("categories").first { it.id == id } }
+    override suspend fun deleteCategory(id: String, moveTo: String?) = write("deleteCategory", id to moveTo) {}
+    override suspend fun addAccount(account: AccountInput) = write("addAccount", account) { fixture<List<Account>>("accounts").first() }
+    override suspend fun updateAccount(id: String, account: AccountUpdate) = write("updateAccount", id to account) { fixture<List<Account>>("accounts").first { it.id == id } }
+    override suspend fun deleteAccount(id: String) = write("deleteAccount", id) {}
+    override suspend fun changePassword(change: ChangePasswordInput) = write("changePassword", change) {}
+    override suspend fun signOutOthers() = write("signOutOthers", null) { SignedOutSessions(2) }
 }
