@@ -20,6 +20,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -167,7 +168,7 @@ private fun OverTime(state: TransactionsState, model: TransactionsViewModel) {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        var selected by remember(loaded) { mutableStateOf<Int?>(null) }
+        val selected = state.selectedPeriod
         PeriodCharts(
             labels = loaded.periods.map { it.label.substringBefore(' ').takeIf { _ -> interval != BreakdownInterval.Week } ?: it.label },
             values = loaded.periods.map(amount),
@@ -175,7 +176,7 @@ private fun OverTime(state: TransactionsState, model: TransactionsViewModel) {
             color = color,
             average = average,
             selected = selected,
-            onSelect = { selected = it },
+            onSelect = model::selectPeriod,
             description = "${if (income) "Income" else "Spending"} per ${interval.one}, with the running total below. Tap a bar for that ${interval.one}.",
         )
         val period = selected?.let { loaded.periods.getOrNull(it) }
@@ -202,9 +203,31 @@ private fun OverTime(state: TransactionsState, model: TransactionsViewModel) {
 @Composable
 private fun Merchants(state: TransactionsState, model: TransactionsViewModel, color: androidx.compose.ui.graphics.Color) {
     val merchants = state.merchants
-    if (merchants.size <= 1) return
+    val period = state.period
+    // A selected bar's merchants are on their way: the heading says which, with a bar until they come.
+    if (period != null && merchants.isEmpty()) {
+        if (state.loadingMerchants) {
+            Spacer(Modifier.height(4.dp))
+            Text("Where it went in ${period.label}", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            LinearProgressIndicator(Modifier.fillMaxWidth())
+        } else if (state.merchantsFailed) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Could not load where it went in ${period.label}.", Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
+                TextButton(onClick = model::loadMoreMerchants) { Text("Retry") }
+            }
+        } else {
+            Text("No spending in ${period.label}.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        return
+    }
+    if (merchants.size <= 1 && period == null) return
+    if (merchants.isEmpty()) return
     Spacer(Modifier.height(4.dp))
-    Text("Where it went", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+    Text(
+        if (period != null) "Where it went in ${period.label}" else "Where it went",
+        style = MaterialTheme.typography.titleSmall,
+        fontWeight = FontWeight.SemiBold,
+    )
     val max = merchants.maxOf { it.spending }.coerceAtLeast(0.01)
     merchants.forEach { merchant ->
         Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {

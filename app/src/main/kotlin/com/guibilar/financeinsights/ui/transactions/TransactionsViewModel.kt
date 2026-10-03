@@ -87,6 +87,11 @@ data class TransactionsState(
     val moreMerchants: List<MerchantTotal> = emptyList(),
     val loadingMerchants: Boolean = false,
     val merchantsFailed: Boolean = false,
+    /** The bar tapped in "Over time" (an index into the breakdown's periods): "Where it went" is then that period's. */
+    val selectedPeriod: Int? = null,
+    /** The selected period's merchants, a page at a time, and how many there are. */
+    val periodMerchants: List<MerchantTotal> = emptyList(),
+    val periodMerchantCount: Int = 0,
     val categories: List<Category> = emptyList(),
     val accounts: List<Account> = emptyList(),
     /** The accounts were asked for once (loaded or not): until then, none isn't "no account". */
@@ -99,8 +104,10 @@ data class TransactionsState(
     val lastAdded: Pair<LocalDate, String>? = null,
     val today: LocalDate = LocalDate.now(),
 ) {
-    val merchants get() = (breakdown.valueOrNull?.topMerchants ?: emptyList()) + moreMerchants
-    val merchantsLeft get() = (breakdown.valueOrNull?.merchantCount ?: 0) - merchants.size
+    val period get() = selectedPeriod?.let { breakdown.valueOrNull?.periods?.getOrNull(it) }
+    val merchants get() = if (period != null) periodMerchants else (breakdown.valueOrNull?.topMerchants ?: emptyList()) + moreMerchants
+    val merchantsLeft get() =
+        if (period != null) periodMerchantCount - periodMerchants.size else (breakdown.valueOrNull?.merchantCount ?: 0) - merchants.size
 }
 
 /** How adding a transaction went: an identical one exists (it can still be added on purpose), or another failure. */
@@ -396,26 +403,50 @@ class TransactionsViewModel(
 
     fun retryBreakdown() = reloadBreakdown()
 
+    /**
+     * A bar tapped in "Over time" (null: tapped again, to clear): "Where it went" follows, listing that period's
+     * merchants instead of the whole range's.
+     */
+    fun selectPeriod(index: Int?) {
+        merchantsJob?.cancel()
+        _state.update {
+            it.copy(selectedPeriod = index, periodMerchants = emptyList(), periodMerchantCount = 0, loadingMerchants = false, merchantsFailed = false)
+        }
+        if (index != null) loadMoreMerchants()
+    }
+
     fun loadMoreMerchants() {
         val current = _state.value
         val breakdown = current.breakdown.valueOrNull ?: return
-        if (current.loadingMerchants || current.merchantsLeft <= 0) return
+        val period = current.period
+        // A period's first page is asked for when it is selected; otherwise the breakdown brought it.
+        val firstPage = period != null && current.periodMerchants.isEmpty()
+        if (current.loadingMerchants || (!firstPage && current.merchantsLeft <= 0)) return
         _state.update { it.copy(loadingMerchants = true, merchantsFailed = false) }
         merchantsJob = viewModelScope.launch {
             val page = current.merchants.size / MERCHANTS_PAGE_SIZE + 1
-            val result = apiCall { api.merchants(MerchantsInput.of(current.criteria, page, MERCHANTS_PAGE_SIZE)) }
+            val criteria = period?.let { current.criteria.copy(startDate = it.start.take(10), endDate = it.end.take(10)) } ?: current.criteria
+            val result = apiCall { api.merchants(MerchantsInput.of(criteria, page, MERCHANTS_PAGE_SIZE)) }
             _state.update { state ->
-                // The criteria changed while it loaded: these are another list's merchants.
-                if (state.breakdown.valueOrNull !== breakdown) return@update state.copy(loadingMerchants = false)
+                // The criteria or the selected bar changed while it loaded: these are another list's merchants.
+                if (state.breakdown.valueOrNull !== breakdown || state.period != period) return@update state.copy(loadingMerchants = false)
                 result.fold(
-                    onSuccess = { state.copy(moreMerchants = state.moreMerchants + it.items, loadingMerchants = false) },
+                    onSuccess = {
+                        if (period != null) {
+                            state.copy(periodMerchants = state.periodMerchants + it.items, periodMerchantCount = it.totalCount, loadingMerchants = false)
+                        } else {
+                            state.copy(moreMerchants = state.moreMerchants + it.items, loadingMerchants = false)
+                        }
+                    },
                     onFailure = { state.copy(loadingMerchants = false, merchantsFailed = true) },
                 )
             }
         }
     }
 
-    fun showFewerMerchants() = _state.update { it.copy(moreMerchants = emptyList(), merchantsFailed = false) }
+    fun showFewerMerchants() = _state.update {
+        it.copy(moreMerchants = emptyList(), periodMerchants = it.periodMerchants.take(MERCHANTS_PAGE_SIZE), merchantsFailed = false)
+    }
 
     private fun setCriteria(change: TransactionCriteria.() -> TransactionCriteria) {
         val before = _state.value.criteria
@@ -453,7 +484,13 @@ class TransactionsViewModel(
         if (_state.value.showDeleted) return
         merchantsJob?.cancel()
         // The old totals stay until the new ones arrive (the strip dims meanwhile in the UI).
-        _state.update { it.copy(moreMerchants = emptyList(), loadingMerchants = false, merchantsFailed = false, breakdownLoading = true) }
+        // New periods: a selected bar no longer means the same one.
+        _state.update {
+            it.copy(
+                moreMerchants = emptyList(), loadingMerchants = false, merchantsFailed = false, breakdownLoading = true,
+                selectedPeriod = null, periodMerchants = emptyList(), periodMerchantCount = 0,
+            )
+        }
         breakdownJob = viewModelScope.launch {
             val current = _state.value
             val result = load("Could not total these transactions.") { api.breakdown(BreakdownInput.of(current.criteria, current.interval)) }
