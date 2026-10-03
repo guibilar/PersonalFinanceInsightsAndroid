@@ -27,8 +27,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.CustomAccessibilityAction
-import androidx.compose.ui.semantics.customActions
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.guibilar.financeinsights.core.model.Transaction
 import kotlinx.coroutines.delay
@@ -46,7 +44,8 @@ fun SwipeRow(
     onDelete: () -> Unit,
     onRestore: () -> Unit,
     onCategorise: () -> Unit,
-    content: @Composable () -> Unit,
+    /** The row, given the swipes as TalkBack actions: they must sit on the node TalkBack focuses. */
+    content: @Composable (actions: List<CustomAccessibilityAction>) -> Unit,
 ) {
     val haptics = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
@@ -77,9 +76,6 @@ fun SwipeRow(
                 state.reset()
             }
         },
-        modifier = Modifier.semantics {
-            customActions = listOfNotNull(right, left).map { CustomAccessibilityAction(it.label) { it.action(); true } }
-        },
         backgroundContent = {
             val action = when (state.dismissDirection) {
                 SwipeToDismissBoxValue.StartToEnd -> right
@@ -98,7 +94,7 @@ fun SwipeRow(
                 }
             }
         },
-    ) { content() }
+    ) { content(if (enabled) listOfNotNull(right, left).map { CustomAccessibilityAction(it.label) { it.action(); true } } else emptyList()) }
 }
 
 /** How long a swiped-away row waits for the list to drop it before coming back. */

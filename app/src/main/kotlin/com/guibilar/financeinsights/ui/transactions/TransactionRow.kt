@@ -19,8 +19,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -50,6 +53,8 @@ fun TransactionRow(
     modifier: Modifier = Modifier,
     horizontalPadding: Dp = 16.dp,
     onClick: (() -> Unit)? = null,
+    /** More than opening it (deleting, restoring), for TalkBack. */
+    actions: List<CustomAccessibilityAction> = emptyList(),
 ) {
     val colors = LocalChartColors.current
     val category = parseHexColor(transaction.category.color)
@@ -70,6 +75,8 @@ fun TransactionRow(
                     transaction.description, signedAmount(transaction), date, transaction.category.name,
                     transaction.accountName, flowNote, transaction.budget?.let { "Budget ${it.name}" },
                 ).joinToString(", ")
+                if (onClick != null) onClick(label = "Open") { onClick(); true }
+                if (actions.isNotEmpty()) customActions = actions
             },
         verticalAlignment = Alignment.CenterVertically,
     ) {

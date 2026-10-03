@@ -3,6 +3,7 @@ package com.guibilar.financeinsights.ui
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.Surface
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -83,4 +84,25 @@ class GesturesTest {
     }
 
     private val Int.dp get() = androidx.compose.ui.unit.Dp(this.toFloat())
+
+    @Test
+    fun `TalkBack reaches the swipes as actions on the row`() {
+        transactions()
+        val row = compose.onNode(hasContentDescription("NO FRILLS #3121", substring = true))
+        val actions = row.fetchSemanticsNode().config[SemanticsActions.CustomActions]
+        assertEquals(listOf("Category", "Delete"), actions.map { it.label })
+        compose.runOnIdle { actions.first { it.label == "Delete" }.action() }
+        compose.waitForIdle()
+        assertTrue(api.sent.any { it.first == "deleteTransaction" })
+    }
+
+    @Test
+    fun `pulling down the list refreshes it, with the collapsing bar in the way`() {
+        transactions()
+        val before = api.transactionFilters.size
+        compose.onNodeWithText("Search descriptions").performTouchInput { swipeDown(startY = top, endY = top + 600f, durationMillis = 400) }
+        compose.mainClock.advanceTimeBy(2_000)
+        compose.waitForIdle()
+        assertTrue(api.transactionFilters.size > before)
+    }
 }
