@@ -6,10 +6,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -50,12 +53,15 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -63,6 +69,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -160,149 +168,185 @@ fun TransactionsScreen(
     }
     BackHandler(enabled = state.showDeleted, onBack = model::toggleDeleted)
 
-    Box(Modifier.fillMaxSize().padding(bottom = contentPadding.calculateBottomPadding())) {
-        Column(Modifier.fillMaxSize()) {
-            TopAppBar(
-                title = { FitText(if (state.showDeleted) "Deleted transactions" else "Transactions", fontWeight = FontWeight.SemiBold, minFontSize = 14.sp) },
-                navigationIcon = {
-                    if (state.showDeleted) IconButton(onClick = model::toggleDeleted) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back to transactions") }
-                },
-                actions = {
-                    SortMenu(state.sortBy, state.sortDirection, model::sort)
-                    IconButton(onClick = { filtersOpen = true }) {
-                        BadgedBox(badge = { if (chips.isNotEmpty()) Badge { Text(chips.size.toString()) } }) {
-                            Icon(Icons.Outlined.FilterList, "Filters")
-                        }
-                    }
-                    if (!state.showDeleted) {
-                        MoreMenu(
-                            onImport = {
-                                importing = null
-                                importOpen = true
-                            },
-                            onApplyRules = { confirmRules = true },
-                            onShowDeleted = model::toggleDeleted,
-                        )
-                    }
-                    AccountMenuButton(account, onSignOut)
-                },
-            )
-            OutlinedTextField(
-                value = state.search,
-                onValueChange = model::search,
-                placeholder = { Placeholder("Search descriptions") },
-                leadingIcon = { Icon(Icons.Outlined.Search, null) },
-                trailingIcon = {
-                    if (state.search.isNotEmpty()) IconButton(onClick = model::clearSearch) { Icon(Icons.Outlined.Close, "Clear search") }
-                },
-                singleLine = true,
-                shape = RoundedCornerShape(28.dp),
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-            )
-            if (chips.isNotEmpty()) {
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(top = 8.dp),
-                ) {
-                    items(chips, key = { it.key }) { chip ->
-                        InputChip(
-                            selected = true,
-                            onClick = chip.remove,
-                            label = { Text(chip.label) },
-                            trailingIcon = { Icon(Icons.Outlined.Close, "Remove", Modifier.size(16.dp)) },
-                        )
-                    }
-                    if (chips.size > 1) item { TextButton(onClick = model::clearAll) { Text("Clear all") } }
-                }
-            }
-            PullToRefreshBox(isRefreshing = state.refreshing, onRefresh = model::refresh, modifier = Modifier.fillMaxSize()) {
-                LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 88.dp)) {
-                    if (!state.showDeleted) item { Box(Modifier.padding(16.dp)) { BreakdownPanel(state, model) } }
-                    else item {
-                        Text(
-                            "Deleted transactions are left out of lists, reports and budgets. Tap one to restore it.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(16.dp),
-                        )
-                    }
-                    val list = state.list
-                    when {
-                        list.loading && list.items.isEmpty() -> item { Box(Modifier.padding(16.dp)) { Skeleton(lines = 8, lineHeight = 28.dp) } }
-                        list.error != null -> item { ErrorState(list.error, model::refresh) }
-                        list.items.isEmpty() -> item {
-                            Column(Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                                if (state.showDeleted) {
-                                    EmptyState(if (state.criteria.isEmpty) "No deleted transactions." else "No deleted transactions match these filters.")
-                                    OutlinedButton(onClick = model::toggleDeleted) { Text("Back to transactions") }
-                                } else if (state.criteria.isEmpty) {
-                                    EmptyState("No transactions yet.")
-                                    OutlinedButton(onClick = { importOpen = true }) { Text("Import a statement") }
-                                } else {
-                                    EmptyState("No transactions match these filters.")
-                                    OutlinedButton(onClick = model::clearAll) { Text("Clear filters") }
-                                }
+    // The bar leaves as the list scrolls down and comes back on any scroll up.
+    val barBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
+    // On a wide screen (a tablet, an unfolded foldable) the transaction opens beside the list instead of over it.
+    val twoPane = LocalConfiguration.current.screenWidthDp >= TWO_PANE_FROM_WIDTH
+    val paneTransaction = opened?.takeIf { twoPane && !it.hidden && !state.showDeleted }
+    Row(Modifier.fillMaxSize().padding(bottom = contentPadding.calculateBottomPadding())) {
+        Box(Modifier.weight(1f).fillMaxHeight()) {
+            Column(Modifier.fillMaxSize().nestedScroll(barBehavior.nestedScrollConnection)) {
+                TopAppBar(
+                    scrollBehavior = barBehavior,
+                    title = { FitText(if (state.showDeleted) "Deleted transactions" else "Transactions", fontWeight = FontWeight.SemiBold, minFontSize = 14.sp) },
+                    navigationIcon = {
+                        if (state.showDeleted) IconButton(onClick = model::toggleDeleted) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back to transactions") }
+                    },
+                    actions = {
+                        SortMenu(state.sortBy, state.sortDirection, model::sort)
+                        IconButton(onClick = { filtersOpen = true }) {
+                            BadgedBox(badge = { if (chips.isNotEmpty()) Badge { Text(chips.size.toString()) } }) {
+                                Icon(Icons.Outlined.FilterList, "Filters")
                             }
                         }
-                        else -> {
-                            // The old rows while the new ones load: dimmed, and not opened (they may not match any more).
-                            val stale = list.loading && !state.refreshing
-                            items(list.items, key = { it.id }) { transaction ->
-                                Column(Modifier.alpha(if (stale) 0.5f else 1f).animateItem()) {
-                                    SwipeRow(
-                                        transaction = transaction,
-                                        deletedList = state.showDeleted,
-                                        enabled = !stale,
-                                        onDelete = { model.delete(transaction) },
-                                        onRestore = { model.restore(transaction) },
-                                        onCategorise = { opened = transaction },
+                        if (!state.showDeleted) {
+                            MoreMenu(
+                                onImport = {
+                                    importing = null
+                                    importOpen = true
+                                },
+                                onApplyRules = { confirmRules = true },
+                                onShowDeleted = model::toggleDeleted,
+                            )
+                        }
+                        AccountMenuButton(account, onSignOut)
+                    },
+                )
+                PullToRefreshBox(isRefreshing = state.refreshing, onRefresh = model::refresh, modifier = Modifier.fillMaxSize()) {
+                    LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 88.dp)) {
+                        // The search and the filters set scroll away with the list; the bar above comes back on scrolling up.
+                        item(key = "search") {
+                            Column {
+                                OutlinedTextField(
+                                    value = state.search,
+                                    onValueChange = model::search,
+                                    placeholder = { Placeholder("Search descriptions") },
+                                    leadingIcon = { Icon(Icons.Outlined.Search, null) },
+                                    trailingIcon = {
+                                        if (state.search.isNotEmpty()) IconButton(onClick = model::clearSearch) { Icon(Icons.Outlined.Close, "Clear search") }
+                                    },
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(28.dp),
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                                )
+                                if (chips.isNotEmpty()) {
+                                    LazyRow(
+                                        contentPadding = PaddingValues(horizontal = 16.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        modifier = Modifier.padding(top = 8.dp),
                                     ) {
-                                        // Opaque, so the swipe's colour shows only beside it.
-                                        Surface { TransactionRow(transaction, onClick = { if (!stale) opened = transaction }) }
+                                        items(chips, key = { it.key }) { chip ->
+                                            InputChip(
+                                                selected = true,
+                                                onClick = chip.remove,
+                                                label = { Text(chip.label) },
+                                                trailingIcon = { Icon(Icons.Outlined.Close, "Remove", Modifier.size(16.dp)) },
+                                            )
+                                        }
+                                        if (chips.size > 1) item { TextButton(onClick = model::clearAll) { Text("Clear all") } }
                                     }
-                                    HorizontalDivider(Modifier.padding(start = 64.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                                 }
                             }
-                            item {
-                                Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                                    when {
-                                        list.loadingMore -> CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
-                                        list.moreFailed -> TextButton(onClick = model::loadMore) { Text("Could not load more. Try again") }
-                                        list.endReached -> Text(
-                                            "${list.totalCount} ${if (list.totalCount == 1) "transaction" else "transactions"}",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            textAlign = TextAlign.Center,
-                                        )
+                        }
+                        if (!state.showDeleted) item { Box(Modifier.padding(16.dp)) { BreakdownPanel(state, model) } }
+                        else item {
+                            Text(
+                                "Deleted transactions are left out of lists, reports and budgets. Tap one, or swipe it right, to restore it.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(16.dp),
+                            )
+                        }
+                        val list = state.list
+                        when {
+                            list.loading && list.items.isEmpty() -> item { Box(Modifier.padding(16.dp)) { Skeleton(lines = 8, lineHeight = 28.dp) } }
+                            list.error != null -> item { ErrorState(list.error, model::refresh) }
+                            list.items.isEmpty() -> item {
+                                Column(Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                    if (state.showDeleted) {
+                                        EmptyState(if (state.criteria.isEmpty) "No deleted transactions." else "No deleted transactions match these filters.")
+                                        OutlinedButton(onClick = model::toggleDeleted) { Text("Back to transactions") }
+                                    } else if (state.criteria.isEmpty) {
+                                        EmptyState("No transactions yet.")
+                                        OutlinedButton(onClick = { importOpen = true }) { Text("Import a statement") }
+                                    } else {
+                                        EmptyState("No transactions match these filters.")
+                                        OutlinedButton(onClick = model::clearAll) { Text("Clear filters") }
+                                    }
+                                }
+                            }
+                            else -> {
+                                // The old rows while the new ones load: dimmed, and not opened (they may not match any more).
+                                val stale = list.loading && !state.refreshing
+                                items(list.items, key = { it.id }) { transaction ->
+                                    Column(Modifier.alpha(if (stale) 0.5f else 1f).animateItem()) {
+                                        SwipeRow(
+                                            transaction = transaction,
+                                            deletedList = state.showDeleted,
+                                            enabled = !stale,
+                                            onDelete = { model.delete(transaction) },
+                                            onRestore = { model.restore(transaction) },
+                                            onCategorise = { opened = transaction },
+                                        ) {
+                                            // Opaque, so the swipe's colour shows only beside it.
+                                            Surface { TransactionRow(transaction, onClick = { if (!stale) opened = transaction }) }
+                                        }
+                                        HorizontalDivider(Modifier.padding(start = 64.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                                    }
+                                }
+                                item {
+                                    Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                                        when {
+                                            list.loadingMore -> CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
+                                            list.moreFailed -> TextButton(onClick = model::loadMore) { Text("Could not load more. Try again") }
+                                            list.endReached -> Text(
+                                                "${list.totalCount} ${if (list.totalCount == 1) "transaction" else "transactions"}",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                textAlign = TextAlign.Center,
+                                            )
+                                        }
                                     }
                                 }
                             }
                         }
                     }
-                }
-                if (state.list.loading && state.list.items.isNotEmpty() && !state.refreshing) {
-                    LinearProgressIndicator(Modifier.fillMaxWidth().align(Alignment.TopCenter))
+                    if (state.list.loading && state.list.items.isNotEmpty() && !state.refreshing) {
+                        LinearProgressIndicator(Modifier.fillMaxWidth().align(Alignment.TopCenter))
+                    }
                 }
             }
+
+            if (!state.showDeleted) {
+                ExtendedFloatingActionButton(
+                    onClick = { adding = true },
+                    icon = { Icon(Icons.Outlined.Add, null) },
+                    text = { Text("Add") },
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+                )
+            }
+            SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(bottom = if (state.showDeleted) 0.dp else FAB_CLEARANCE))
         }
 
-        if (!state.showDeleted) {
-            ExtendedFloatingActionButton(
-                onClick = { adding = true },
-                icon = { Icon(Icons.Outlined.Add, null) },
-                text = { Text("Add") },
-                modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
-            )
+        if (paneTransaction != null) {
+            VerticalDivider()
+            Surface(Modifier.width(PANE_WIDTH).fillMaxHeight(), color = MaterialTheme.colorScheme.surfaceContainerLow) {
+                Column {
+                    Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 4.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text("Transaction", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                        IconButton(onClick = { opened = null }) { Icon(Icons.Outlined.Close, "Close") }
+                    }
+                    // A new transaction picked starts its own edits.
+                    key(paneTransaction.id) {
+                        EditTransaction(
+                            transaction = paneTransaction,
+                            categories = state.categories.map { it.reference },
+                            budgets = state.budgets,
+                            model = model,
+                            onClose = { opened = null },
+                            modifier = Modifier.imePadding(),
+                        )
+                    }
+                }
+            }
         }
-        SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(bottom = if (state.showDeleted) 0.dp else FAB_CLEARANCE))
     }
 
     if (filtersOpen) FiltersSheet(state, onDismiss = { filtersOpen = false }, model = model)
     opened?.let { transaction ->
         if (transaction.hidden || state.showDeleted) {
             DeletedTransactionSheet(transaction, model, onDismiss = { opened = null })
-        } else {
+        } else if (!twoPane) {
             EditTransactionSheet(
                 transaction = transaction,
                 categories = state.categories.map { it.reference },
@@ -337,6 +381,10 @@ fun TransactionsScreen(
 
 /** Keeps a message clear of the Add button. */
 private val FAB_CLEARANCE: Dp = 72.dp
+
+/** From this width (dp) on, a transaction opens in a pane beside the list. */
+private const val TWO_PANE_FROM_WIDTH = 840
+private val PANE_WIDTH = 420.dp
 
 @Composable
 private fun MoreMenu(onImport: () -> Unit, onApplyRules: () -> Unit, onShowDeleted: () -> Unit) {

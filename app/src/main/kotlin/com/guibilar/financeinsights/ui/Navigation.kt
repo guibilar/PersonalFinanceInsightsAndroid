@@ -1,6 +1,10 @@
 package com.guibilar.financeinsights.ui
 
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
@@ -11,6 +15,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -113,7 +120,7 @@ fun FinanceRoot(
 ) {
     val state by session.state.collectAsState()
     val locked = lock?.locked?.collectAsState()?.value == true
-    val activity = LocalContext.current as? FragmentActivity
+    val activity = LocalActivity.current as? FragmentActivity
     when (val current = state) {
         AuthState.Checking -> {
             LaunchedEffect(Unit) { session.resume() }
@@ -152,6 +159,9 @@ fun FinanceRoot(
 
 /** Who is signed in where, for the account menu. */
 data class AccountInfo(val username: String, val server: String)
+
+/** From this width (dp) on, the tabs are a rail at the side. */
+private const val RAIL_FROM_WIDTH = 600
 
 private data class Tab(val label: String, val icon: ImageVector, val route: Any, val matches: (androidx.navigation.NavDestination) -> Boolean)
 
@@ -202,97 +212,119 @@ fun MainScreen(
         }
         quickAction.value = null
     }
+    // A rail at the side on a wide screen (a tablet, an unfolded foldable, landscape); the bar below otherwise.
+    val rail = LocalConfiguration.current.screenWidthDp >= RAIL_FROM_WIDTH
+    fun select(tab: Tab, selected: Boolean) {
+        if (!selected) {
+            nav.navigate(tab.route) {
+                popUpTo(nav.graph.findStartDestination().id) { saveState = true }
+                launchSingleTop = true
+                restoreState = true
+            }
+        } else if (entry?.destination?.hasRoute(tab.route::class) == false) {
+            // The tab again, from a page inside it (Rules under More): back to the tab's first page.
+            nav.popBackStack(tab.route, inclusive = false)
+        }
+    }
     Scaffold(
         bottomBar = {
-            NavigationBar {
-                tabs.forEach { tab ->
-                    val selected = entry?.destination?.let(tab.matches) == true
-                    NavigationBarItem(
-                        selected = selected,
-                        onClick = {
-                            if (!selected) {
-                                nav.navigate(tab.route) {
-                                    popUpTo(nav.graph.findStartDestination().id) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            } else if (entry?.destination?.hasRoute(tab.route::class) == false) {
-                                // The tab again, from a page inside it (Rules under More): back to the tab's first page.
-                                nav.popBackStack(tab.route, inclusive = false)
-                            }
-                        },
-                        icon = { Icon(tab.icon, null) },
-                        label = { Text(tab.label) },
-                    )
+            if (!rail) {
+                NavigationBar {
+                    tabs.forEach { tab ->
+                        val selected = entry?.destination?.let(tab.matches) == true
+                        NavigationBarItem(
+                            selected = selected,
+                            onClick = { select(tab, selected) },
+                            icon = { Icon(tab.icon, null) },
+                            label = { Text(tab.label) },
+                        )
+                    }
                 }
             }
         },
     ) { padding ->
-        NavHost(nav, startDestination = DashboardRoute, modifier = Modifier) {
-            composable<DashboardRoute> {
-                val model = viewModel { DashboardViewModel(api) }
-                DashboardScreen(
-                    model = model,
-                    account = account,
-                    onSignOut = onSignOut,
-                    contentPadding = padding,
-                    openTransactions = { route ->
-                        // A new list on these criteria, Back returning to the dashboard.
-                        nav.navigate(route) { popUpTo<DashboardRoute>() }
-                    },
-                    openBudgets = {
-                        nav.navigate(BudgetsRoute) {
-                            popUpTo(nav.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
-                )
+        Row(Modifier.fillMaxSize()) {
+            if (rail) {
+                NavigationRail(Modifier.fillMaxHeight()) {
+                    Spacer(Modifier.weight(1f))
+                    tabs.forEach { tab ->
+                        val selected = entry?.destination?.let(tab.matches) == true
+                        NavigationRailItem(
+                            selected = selected,
+                            onClick = { select(tab, selected) },
+                            icon = { Icon(tab.icon, null) },
+                            label = { Text(tab.label) },
+                        )
+                    }
+                    Spacer(Modifier.weight(1f))
+                }
             }
-            composable<MoreRoute> {
-                MoreScreen(
-                    username = account.username,
-                    version = BuildConfig.VERSION_NAME,
-                    contentPadding = padding,
-                    openRules = { nav.navigate(RulesRoute) },
-                    openCategories = { nav.navigate(CategoriesRoute) },
-                    openAccounts = { nav.navigate(AccountsRoute) },
-                    openAccount = { nav.navigate(AccountSettingsRoute) },
-                    openSettings = { nav.navigate(AppSettingsRoute) },
-                )
-            }
-            composable<AppSettingsRoute> {
-                if (preferences != null) AppSettingsScreen(preferences, lock, padding, onBack = { nav.popBackStack() })
-            }
-            composable<RulesRoute> {
-                RulesScreen(viewModel { RulesViewModel(api) }, padding, onBack = { nav.popBackStack() })
-            }
-            composable<CategoriesRoute> {
-                CategoriesScreen(viewModel { CategoriesViewModel(api) }, padding, onBack = { nav.popBackStack() })
-            }
-            composable<AccountsRoute> {
-                AccountsScreen(viewModel { AccountsViewModel(api) }, padding, onBack = { nav.popBackStack() })
-            }
-            composable<AccountSettingsRoute> {
-                AccountSettingsScreen(viewModel { AccountSettingsViewModel(api) }, account, onSignOut, padding, onBack = { nav.popBackStack() })
-            }
-            composable<BudgetsRoute> {
-                val model = viewModel { BudgetsViewModel(api) }
-                BudgetsScreen(model = model, account = account, onSignOut = onSignOut, contentPadding = padding)
-            }
-            composable<TransactionsRoute> { backStack ->
-                val route = backStack.toRoute<TransactionsRoute>()
-                val model = viewModel { TransactionsViewModel(api, route) }
-                TransactionsScreen(
-                    model = model,
-                    account = account,
-                    onSignOut = onSignOut,
-                    contentPadding = padding,
-                    sharedFile = statement,
-                    onSharedFileTaken = { sharedStatement.value = null },
-                    addRequested = addRequested,
-                    onAddTaken = { addRequested = false },
-                )
+            NavHost(nav, startDestination = DashboardRoute, modifier = Modifier.weight(1f)) {
+                composable<DashboardRoute> {
+                    val model = viewModel { DashboardViewModel(api) }
+                    DashboardScreen(
+                        model = model,
+                        account = account,
+                        onSignOut = onSignOut,
+                        contentPadding = padding,
+                        openTransactions = { route ->
+                            // A new list on these criteria, Back returning to the dashboard.
+                            nav.navigate(route) { popUpTo<DashboardRoute>() }
+                        },
+                        openBudgets = {
+                            nav.navigate(BudgetsRoute) {
+                                popUpTo(nav.graph.findStartDestination().id) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        },
+                    )
+                }
+                composable<MoreRoute> {
+                    MoreScreen(
+                        username = account.username,
+                        version = BuildConfig.VERSION_NAME,
+                        contentPadding = padding,
+                        openRules = { nav.navigate(RulesRoute) },
+                        openCategories = { nav.navigate(CategoriesRoute) },
+                        openAccounts = { nav.navigate(AccountsRoute) },
+                        openAccount = { nav.navigate(AccountSettingsRoute) },
+                        openSettings = { nav.navigate(AppSettingsRoute) },
+                    )
+                }
+                composable<AppSettingsRoute> {
+                    if (preferences != null) AppSettingsScreen(preferences, lock, padding, onBack = { nav.popBackStack() })
+                }
+                composable<RulesRoute> {
+                    RulesScreen(viewModel { RulesViewModel(api) }, padding, onBack = { nav.popBackStack() })
+                }
+                composable<CategoriesRoute> {
+                    CategoriesScreen(viewModel { CategoriesViewModel(api) }, padding, onBack = { nav.popBackStack() })
+                }
+                composable<AccountsRoute> {
+                    AccountsScreen(viewModel { AccountsViewModel(api) }, padding, onBack = { nav.popBackStack() })
+                }
+                composable<AccountSettingsRoute> {
+                    AccountSettingsScreen(viewModel { AccountSettingsViewModel(api) }, account, onSignOut, padding, onBack = { nav.popBackStack() })
+                }
+                composable<BudgetsRoute> {
+                    val model = viewModel { BudgetsViewModel(api) }
+                    BudgetsScreen(model = model, account = account, onSignOut = onSignOut, contentPadding = padding)
+                }
+                composable<TransactionsRoute> { backStack ->
+                    val route = backStack.toRoute<TransactionsRoute>()
+                    val model = viewModel { TransactionsViewModel(api, route) }
+                    TransactionsScreen(
+                        model = model,
+                        account = account,
+                        onSignOut = onSignOut,
+                        contentPadding = padding,
+                        sharedFile = statement,
+                        onSharedFileTaken = { sharedStatement.value = null },
+                        addRequested = addRequested,
+                        onAddTaken = { addRequested = false },
+                    )
+                }
             }
         }
     }

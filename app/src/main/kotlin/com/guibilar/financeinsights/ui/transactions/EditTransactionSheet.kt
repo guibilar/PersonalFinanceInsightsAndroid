@@ -84,9 +84,30 @@ fun EditTransactionSheet(
     model: TransactionsViewModel,
     onDismiss: () -> Unit,
 ) {
-    val colors = LocalChartColors.current
     val scope = rememberCoroutineScope()
     val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    fun close() = scope.launch { sheet.hide() }.invokeOnCompletion { onDismiss() }
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheet) {
+        EditTransaction(transaction, categories, budgets, model, onClose = ::close, Modifier.navigationBarsPadding().imePadding())
+    }
+}
+
+/**
+ * What [EditTransactionSheet] shows, also shown beside the list on a wide screen. [onClose] runs once it is saved,
+ * linked or deleted.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun EditTransaction(
+    transaction: Transaction,
+    categories: List<CategoryReference>,
+    budgets: List<Budget>,
+    model: TransactionsViewModel,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = LocalChartColors.current
+    val scope = rememberCoroutineScope()
     var description by rememberSaveable { mutableStateOf(transaction.description) }
     var categoryId by rememberSaveable { mutableStateOf(transaction.category.id) }
     var flow by rememberSaveable { mutableStateOf(transaction.flow) }
@@ -121,119 +142,117 @@ fun EditTransactionSheet(
         previewFailed = preview == null
     }
 
-    fun close() = scope.launch { sheet.hide() }.invokeOnCompletion { onDismiss() }
+    fun close() = onClose()
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheet) {
-        Column(
-            Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).navigationBarsPadding().imePadding(),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Column {
-                Text(
-                    signedAmount(transaction),
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (transaction.transactionType == TransactionType.Credit) colors.positive else MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    listOfNotNull(
-                        DateTimeFormatter.ofPattern("EEE, MMM d, yyyy", Locale.US).format(transaction.day),
-                        transaction.accountName.takeIf { it.isNotBlank() },
-                    ).joinToString(" · "),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            OutlinedTextField(
-                value = description,
-                onValueChange = { description = it },
-                label = { Text("Description") },
-                isError = descriptionError != null,
-                supportingText = descriptionError?.let { { Text(it) } },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
+    Column(
+        modifier.verticalScroll(rememberScrollState()).padding(horizontal = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Column {
+            Text(
+                signedAmount(transaction),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = if (transaction.transactionType == TransactionType.Credit) colors.positive else MaterialTheme.colorScheme.onSurface,
             )
-            DropdownPicker(
-                label = "Category",
-                options = options,
-                selected = options.firstOrNull { it.id == categoryId },
-                text = { it?.name ?: "" },
-                dot = { it?.let { c -> parseHexColor(c.color) } },
-                onPick = {
-                    categoryId = it.id
-                    if (it.id == transaction.category.id) alsoSimilar = false
-                },
-                supportingText = if (transaction.categoryLocked && !categoryChanged) "Picked by hand: the rules leave it alone." else null,
+            Text(
+                listOfNotNull(
+                    DateTimeFormatter.ofPattern("EEE, MMM d, yyyy", Locale.US).format(transaction.day),
+                    transaction.accountName.takeIf { it.isNotBlank() },
+                ).joinToString(" · "),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            if (categoryChanged) {
-                Row(
-                    Modifier.toggleable(value = alsoSimilar, role = Role.Switch, onValueChange = { alsoSimilar = it }),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text("Also categorise similar transactions", style = MaterialTheme.typography.bodyLarge)
-                        Text(
-                            "Adds a rule, checked first, and applies the rules.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Switch(checked = alsoSimilar, onCheckedChange = null)
-                }
-                if (alsoSimilar) {
-                    OutlinedTextField(
-                        value = keyword,
-                        onValueChange = { keyword = it.take(TextLimits.CATEGORY_RULE_KEYWORD) },
-                        label = { Text("Descriptions containing") },
-                        isError = keywordError != null,
-                        supportingText = {
-                            Text(
-                                keywordError ?: preview?.let { p ->
-                                    if (p.count == 0) "No other transaction would change."
-                                    else "${p.count} other ${if (p.count == 1) "transaction" else "transactions"} would change, like ${p.examples.take(2).joinToString(", ")}"
-                                } ?: if (previewFailed) "Couldn't check what it would change." else "Checking what it would change…",
-                            )
-                        },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters, autoCorrectEnabled = false),
-                        modifier = Modifier.fillMaxWidth(),
+        }
+        OutlinedTextField(
+            value = description,
+            onValueChange = { description = it },
+            label = { Text("Description") },
+            isError = descriptionError != null,
+            supportingText = descriptionError?.let { { Text(it) } },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        DropdownPicker(
+            label = "Category",
+            options = options,
+            selected = options.firstOrNull { it.id == categoryId },
+            text = { it?.name ?: "" },
+            dot = { it?.let { c -> parseHexColor(c.color) } },
+            onPick = {
+                categoryId = it.id
+                if (it.id == transaction.category.id) alsoSimilar = false
+            },
+            supportingText = if (transaction.categoryLocked && !categoryChanged) "Picked by hand: the rules leave it alone." else null,
+        )
+        if (categoryChanged) {
+            Row(
+                Modifier.toggleable(value = alsoSimilar, role = Role.Switch, onValueChange = { alsoSimilar = it }),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("Also categorise similar transactions", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        "Adds a rule, checked first, and applies the rules.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+                Switch(checked = alsoSimilar, onCheckedChange = null)
             }
-            Text("Counts as", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                flows.forEach { option -> FilterChip(flow == option, onClick = { flow = option }, label = { Text(option.label) }) }
+            if (alsoSimilar) {
+                OutlinedTextField(
+                    value = keyword,
+                    onValueChange = { keyword = it.take(TextLimits.CATEGORY_RULE_KEYWORD) },
+                    label = { Text("Descriptions containing") },
+                    isError = keywordError != null,
+                    supportingText = {
+                        Text(
+                            keywordError ?: preview?.let { p ->
+                                if (p.count == 0) "No other transaction would change."
+                                else "${p.count} other ${if (p.count == 1) "transaction" else "transactions"} would change, like ${p.examples.take(2).joinToString(", ")}"
+                            } ?: if (previewFailed) "Couldn't check what it would change." else "Checking what it would change…",
+                        )
+                    },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters, autoCorrectEnabled = false),
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
-            Text(flow.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-
-            if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
-            Button(
-                enabled = !saving && descriptionError == null && keywordError == null,
-                onClick = {
-                    saving = true
-                    error = null
-                    scope.launch {
-                        val update = TransactionUpdate(description.trim(), categoryId, flow.takeIf { it != transaction.flow })
-                        error = model.saveEdit(transaction, update, rule)
-                        saving = false
-                        if (error == null) close()
-                    }
-                },
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-            ) {
-                if (saving) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp) else Text("Save")
-            }
-
-            HorizontalDivider()
-            BudgetLink(transaction, budgets, model, onDone = ::close)
-            HorizontalDivider()
-            TextButton(onClick = { confirmDelete = true }, modifier = Modifier.fillMaxWidth()) {
-                Icon(Icons.Outlined.Delete, null, tint = MaterialTheme.colorScheme.error)
-                Spacer(Modifier.width(8.dp))
-                Text("Delete transaction", color = MaterialTheme.colorScheme.error)
-            }
-            Spacer(Modifier.height(8.dp))
         }
+        Text("Counts as", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            flows.forEach { option -> FilterChip(flow == option, onClick = { flow = option }, label = { Text(option.label) }) }
+        }
+        Text(flow.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+        if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+        Button(
+            enabled = !saving && descriptionError == null && keywordError == null,
+            onClick = {
+                saving = true
+                error = null
+                scope.launch {
+                    val update = TransactionUpdate(description.trim(), categoryId, flow.takeIf { it != transaction.flow })
+                    error = model.saveEdit(transaction, update, rule)
+                    saving = false
+                    if (error == null) close()
+                }
+            },
+            modifier = Modifier.fillMaxWidth().height(48.dp),
+        ) {
+            if (saving) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp) else Text("Save")
+        }
+
+        HorizontalDivider()
+        BudgetLink(transaction, budgets, model, onDone = ::close)
+        HorizontalDivider()
+        TextButton(onClick = { confirmDelete = true }, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Outlined.Delete, null, tint = MaterialTheme.colorScheme.error)
+            Spacer(Modifier.width(8.dp))
+            Text("Delete transaction", color = MaterialTheme.colorScheme.error)
+        }
+        Spacer(Modifier.height(8.dp))
     }
 
     if (confirmDelete) {

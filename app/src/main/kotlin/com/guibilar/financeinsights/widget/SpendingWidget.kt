@@ -78,7 +78,7 @@ class SpendingWidgetReceiver : GlanceAppWidgetReceiver() {
 }
 
 @Composable
-private fun Content(data: WidgetData) {
+internal fun Content(data: WidgetData) {
     val context = LocalContext.current
     val open = actionStartActivity(Intent(context, MainActivity::class.java))
     val add = actionStartActivity(Intent(context, MainActivity::class.java).setAction(MainActivity.ACTION_ADD_TRANSACTION))

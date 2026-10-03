@@ -32,7 +32,10 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-/** A read-only field that opens a list to pick from. [dot] gives an option a colour dot (categories). */
+/**
+ * A field that opens a list to pick from. [dot] gives an option a colour dot (categories). A long list (categories,
+ * say) can be searched: typing in the open field narrows it.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun <T> DropdownPicker(
@@ -48,34 +51,58 @@ fun <T> DropdownPicker(
     isError: Boolean = false,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { if (enabled) expanded = it }, modifier = modifier) {
+    val searchable = options.size > SEARCH_FROM
+    var query by remember { mutableStateOf("") }
+    val searching = searchable && expanded
+    val shown = if (searching && query.isNotBlank()) options.filter { text(it).contains(query.trim(), ignoreCase = true) } else options
+    fun close() {
+        expanded = false
+        query = ""
+    }
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { if (enabled) { if (it) expanded = true else close() } },
+        modifier = modifier,
+    ) {
         OutlinedTextField(
-            value = text(selected),
-            onValueChange = {},
-            readOnly = true,
+            // Open and searchable, the field takes the search; the choice shows behind it.
+            value = if (searching) query else text(selected),
+            onValueChange = {
+                query = it
+                expanded = true
+            },
+            readOnly = !searchable,
             enabled = enabled,
             singleLine = true,
             label = { Text(label) },
-            leadingIcon = dot(selected)?.let { color -> { ColorDot(color) } },
+            placeholder = if (searching) ({ Text(text(selected), maxLines = 1) }) else null,
+            leadingIcon = (if (searching) null else dot(selected))?.let { color -> { ColorDot(color) } },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
             supportingText = supportingText?.let { { Text(it) } },
             isError = isError,
-            modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled),
+            modifier = Modifier.fillMaxWidth().menuAnchor(
+                if (searchable) ExposedDropdownMenuAnchorType.PrimaryEditable else ExposedDropdownMenuAnchorType.PrimaryNotEditable,
+                enabled,
+            ),
         )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            options.forEach { option ->
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = ::close) {
+            shown.forEach { option ->
                 DropdownMenuItem(
                     text = { Text(text(option)) },
                     leadingIcon = dot(option)?.let { color -> { ColorDot(color) } },
                     onClick = {
-                        expanded = false
+                        close()
                         onPick(option)
                     },
                 )
             }
+            if (shown.isEmpty()) DropdownMenuItem(text = { Text("Nothing matches “${query.trim()}”") }, onClick = {}, enabled = false)
         }
     }
 }
+
+/** From this many options on, a picker can be searched by typing. */
+private const val SEARCH_FROM = 8
 
 private val fieldDate = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.US)
 

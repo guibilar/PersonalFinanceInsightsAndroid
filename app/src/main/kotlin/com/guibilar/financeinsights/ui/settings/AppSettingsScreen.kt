@@ -2,6 +2,7 @@ package com.guibilar.financeinsights.ui.settings
 
 import android.Manifest
 import android.os.Build
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -49,6 +50,7 @@ import kotlinx.coroutines.flow.emptyFlow
 @Composable
 fun AppSettingsScreen(preferences: AppPreferences, lock: AppLock?, contentPadding: PaddingValues, onBack: () -> Unit) {
     val context = LocalContext.current
+    val hostActivity = LocalActivity.current
     val theme by preferences.theme.collectAsState()
     val dynamicColor by preferences.dynamicColor.collectAsState()
     val locking by preferences.lock.collectAsState()
@@ -100,7 +102,7 @@ fun AppSettingsScreen(preferences: AppPreferences, lock: AppLock?, contentPaddin
                 locking,
                 enabled = lockAvailable,
             ) { on ->
-                val activity = context as? FragmentActivity
+                val activity = hostActivity as? FragmentActivity
                 if (!on) {
                     preferences.setLock(false)
                     lock?.enabledChanged(false)
