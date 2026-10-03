@@ -52,6 +52,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -277,5 +278,12 @@ fun <T> ChoiceRow(options: List<T>, selected: T, label: (T) -> String, onSelect:
     }
 }
 
-/** A budget nearly used up (80% and more), on the dashboard and the Budgets screen alike. */
+/** A budget nearly used up (80% and more), on the dashboard and the Budgets screen alike: its bar. */
 val BUDGET_WARNING = Color(0xFFE0A100)
+
+/**
+ * The same, for text: the bar's amber on a light card is 2.3:1, too faint to read (4.5:1 is the minimum), so light
+ * themes get a darker amber (5.5:1). On a dark card the bar's amber reads well.
+ */
+val budgetWarningText: Color
+    @Composable get() = if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) Color(0xFF8A6100) else BUDGET_WARNING

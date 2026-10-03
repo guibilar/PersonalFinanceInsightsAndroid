@@ -77,6 +77,7 @@ import com.guibilar.financeinsights.core.model.Status
 import com.guibilar.financeinsights.ui.AccountInfo
 import com.guibilar.financeinsights.ui.common.AccountMenuButton
 import com.guibilar.financeinsights.ui.common.BUDGET_WARNING
+import com.guibilar.financeinsights.ui.common.budgetWarningText
 import com.guibilar.financeinsights.ui.common.ColorDot
 import com.guibilar.financeinsights.ui.common.EmptyState
 import com.guibilar.financeinsights.ui.common.ErrorState
@@ -286,7 +287,7 @@ private fun BudgetCard(budget: Budget, onEdit: () -> Unit, onDelete: () -> Unit)
                         fontWeight = FontWeight.Medium,
                         color = when (health) {
                             BudgetHealth.Over -> colors.negative
-                            BudgetHealth.Warning -> WARNING
+                            BudgetHealth.Warning -> budgetWarningText
                             BudgetHealth.Ok -> MaterialTheme.colorScheme.onSurface
                         },
                     )
