@@ -189,6 +189,23 @@ class TransactionsViewModelTest {
     }
 
     @Test
+    fun `back in a new month, this month's filter moves on with it`() = runTest(dispatcher) {
+        var day = LocalDate.of(2026, 9, 30)
+        val model = TransactionsViewModel(api, TransactionsRoute()) { day }
+        advanceUntilIdle()
+        model.setDates(DatePreset.ThisMonth.range(day))
+        advanceUntilIdle()
+        model.resumed()
+
+        day = LocalDate.of(2026, 10, 1)
+        model.resumed()
+        advanceUntilIdle()
+        assertEquals("2026-10-01", model.state.value.criteria.startDate)
+        assertEquals("2026-10-01", api.transactionFilters.last().startDate)
+        assertEquals("2026-10-01", api.breakdownInputs.last().startDate)
+    }
+
+    @Test
     fun `back on screen, the pickers reload, and a failed reload keeps what they had`() = runTest(dispatcher) {
         val model = model()
         advanceUntilIdle()

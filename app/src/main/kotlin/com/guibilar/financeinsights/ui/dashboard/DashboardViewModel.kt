@@ -13,7 +13,7 @@ import com.guibilar.financeinsights.core.model.Transaction
 import com.guibilar.financeinsights.core.model.TransactionFilter
 import com.guibilar.financeinsights.ui.common.LoadState
 import com.guibilar.financeinsights.ui.common.load
-import kotlinx.coroutines.async
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -67,28 +67,22 @@ class DashboardViewModel(private val api: FinanceApi, private val today: () -> L
     fun retryRecent() = retry({ copy(recent = it) }) { loadRecent() }
 
     /**
-     * Loads the five reports. [quiet] (coming back to the screen) keeps a report that was showing when its reload
-     * fails, offline say, instead of turning it into an error card.
+     * Loads the five reports, each showing as soon as it arrives (it used to wait for the slowest). [quiet] (coming
+     * back to the screen) keeps a report that was showing when its reload fails, offline say, instead of turning it
+     * into an error card.
      */
     private fun load(quiet: Boolean = false) {
+        fun <T> next(old: LoadState<T>, new: LoadState<T>) = if (quiet && new is LoadState.Failed && old is LoadState.Loaded) old else new
         viewModelScope.launch {
-            val year = async { load("Could not load monthly spending.") { api.yearReport() } }
-            val month = async { load("Could not load this month's spending.") { api.monthReport() } }
-            val cashFlow = async { load("Could not load income and spending.") { api.cashFlow() } }
-            val budgets = async { loadBudgets() }
-            val recent = async { loadRecent() }
-            fun <T> next(old: LoadState<T>, new: LoadState<T>) =
-                if (quiet && new is LoadState.Failed && old is LoadState.Loaded) old else new
-            _state.update {
-                it.copy(
-                    year = next(it.year, year.await()),
-                    month = next(it.month, month.await()),
-                    cashFlow = next(it.cashFlow, cashFlow.await()),
-                    budgets = next(it.budgets, budgets.await()),
-                    recent = next(it.recent, recent.await()),
-                    refreshing = false,
-                )
-            }
+            val reports = listOf(
+                launch { load("Could not load monthly spending.") { api.yearReport() }.let { r -> _state.update { it.copy(year = next(it.year, r)) } } },
+                launch { load("Could not load this month's spending.") { api.monthReport() }.let { r -> _state.update { it.copy(month = next(it.month, r)) } } },
+                launch { load("Could not load income and spending.") { api.cashFlow() }.let { r -> _state.update { it.copy(cashFlow = next(it.cashFlow, r)) } } },
+                launch { loadBudgets().let { r -> _state.update { it.copy(budgets = next(it.budgets, r)) } } },
+                launch { loadRecent().let { r -> _state.update { it.copy(recent = next(it.recent, r)) } } },
+            )
+            reports.joinAll()
+            _state.update { it.copy(refreshing = false) }
         }
     }
 

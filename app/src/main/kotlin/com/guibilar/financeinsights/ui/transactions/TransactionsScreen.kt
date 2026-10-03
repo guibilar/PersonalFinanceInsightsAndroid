@@ -260,7 +260,11 @@ fun TransactionsScreen(
                                         OutlinedButton(onClick = model::toggleDeleted) { Text("Back to transactions") }
                                     } else if (state.criteria.isEmpty) {
                                         EmptyState("No transactions yet.")
-                                        OutlinedButton(onClick = { importOpen = true }) { Text("Import a statement") }
+                                        OutlinedButton(onClick = {
+                                            // Not a statement shared earlier: this one is picked afresh.
+                                            importing = null
+                                            importOpen = true
+                                        }) { Text("Import a statement") }
                                     } else {
                                         EmptyState("No transactions match these filters.")
                                         OutlinedButton(onClick = model::clearAll) { Text("Clear filters") }
