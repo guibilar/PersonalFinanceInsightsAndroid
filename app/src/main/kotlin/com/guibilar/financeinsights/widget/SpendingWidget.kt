@@ -9,10 +9,12 @@ import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
 import androidx.glance.LocalContext
+import androidx.glance.LocalSize
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.LinearProgressIndicator
+import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
@@ -32,27 +34,40 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.guibilar.financeinsights.FinanceApp
 import com.guibilar.financeinsights.MainActivity
+import com.guibilar.financeinsights.core.api.ApiJson
 import com.guibilar.financeinsights.core.api.apiCall
 import com.guibilar.financeinsights.core.logic.Money
 import com.guibilar.financeinsights.core.logic.spentThisMonth
 import com.guibilar.financeinsights.core.model.Budget
 import com.guibilar.financeinsights.core.model.BudgetFilter
 import com.guibilar.financeinsights.core.model.Status
+import kotlinx.serialization.Serializable
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /** What the widget shows: this month's spending and the fullest budgets, or why it can't. */
 sealed interface WidgetData {
-    data class Loaded(val month: String, val spent: Double, val budgets: List<Budget>) : WidgetData
+    @Serializable
+    data class Loaded(
+        val month: String,
+        val spent: Double,
+        val budgets: List<Budget>,
+        /** When these figures were fetched, "14:05", shown when they couldn't be refreshed since. */
+        val asOf: String? = null,
+    ) : WidgetData
     data object SignedOut : WidgetData
-    /** The app lock is on: the home screen shows no amounts, as anyone can see it. */
-    data object Locked : WidgetData
+    /** Amounts hidden by choice (Settings): the home screen shows none, as anyone can see it. */
+    data object Hidden : WidgetData
     data object Failed : WidgetData
 }
 
 /** The home-screen widget: spent this month, the three fullest budgets, and a button to add a transaction. */
 class SpendingWidget : GlanceAppWidget() {
+    // Told its real size, so it shows as many budgets as fit instead of cutting the last off.
+    override val sizeMode = SizeMode.Exact
+
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val data = load(context)
         provideContent { GlanceTheme { Content(data) } }
@@ -60,18 +75,42 @@ class SpendingWidget : GlanceAppWidget() {
 
     private suspend fun load(context: Context): WidgetData {
         val app = context.applicationContext as FinanceApp
-        if (app.preferences.lock.value) return WidgetData.Locked
+        // Hidden only when asked: the app lock alone used to hide them, which looked like the widget had broken.
+        if (app.preferences.hideWidgetAmounts.value) return WidgetData.Hidden
         val api = app.session.backgroundApi() ?: return WidgetData.SignedOut
-        val month = apiCall { api.monthReport() }.getOrNull() ?: return WidgetData.Failed
+        val month = apiCall { api.monthReport() }.getOrNull()
+            // Unreachable (Tailscale off), the last figures stay, with when they are from; better than nothing.
+            ?: return lastLoaded(context)?.takeIf { it.month == thisMonth() } ?: WidgetData.Failed
         val budgets = apiCall { api.budgets(BudgetFilter(status = Status.Active, page = 1, pageSize = 1000)) }.getOrNull()
-        return WidgetData.Loaded(
-            month = LocalDate.now().format(DateTimeFormatter.ofPattern("MMMM", Locale.US)),
+        val loaded = WidgetData.Loaded(
+            month = thisMonth(),
             spent = spentThisMonth(month),
             budgets = budgets?.items.orEmpty().sortedByDescending { it.percentageUsed }.take(3),
         )
+        remember(context, loaded)
+        return loaded
     }
 
+    private fun thisMonth() = LocalDate.now().format(DateTimeFormatter.ofPattern("MMMM", Locale.US))
+
+    private fun store(context: Context) = context.getSharedPreferences("widget", Context.MODE_PRIVATE)
+
+    private fun remember(context: Context, loaded: WidgetData.Loaded) {
+        val asOf = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm", Locale.US))
+        store(context).edit().putString(KEY_LAST, ApiJson.encodeToString(loaded.copy(asOf = asOf))).apply()
+    }
+
+    private fun lastLoaded(context: Context): WidgetData.Loaded? =
+        store(context).getString(KEY_LAST, null)?.let { runCatching { ApiJson.decodeFromString<WidgetData.Loaded>(it) }.getOrNull() }
+
     companion object {
+        private const val KEY_LAST = "last"
+
+        /** Forgets the last figures: signed out, they belong to no one now. */
+        fun forget(context: Context) {
+            context.getSharedPreferences("widget", Context.MODE_PRIVATE).edit().clear().apply()
+        }
+
         /** Redraws every placed widget with fresh figures; nothing when none is placed. */
         suspend fun refresh(context: Context) = runCatching { SpendingWidget().updateAll(context) }
     }
@@ -81,6 +120,10 @@ class SpendingWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget = SpendingWidget()
 }
 
+private val WIDGET_PADDING = 14.dp
+private val TOTAL_HEIGHT = 56.dp
+private val BUDGET_HEIGHT = 34.dp
+
 @Composable
 internal fun Content(data: WidgetData) {
     val context = LocalContext.current
@@ -88,13 +131,13 @@ internal fun Content(data: WidgetData) {
     val add = actionStartActivity(Intent(context, MainActivity::class.java).setAction(MainActivity.ACTION_ADD_TRANSACTION))
     val muted = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 12.sp)
     Column(
-        GlanceModifier.fillMaxSize().background(GlanceTheme.colors.widgetBackground).cornerRadius(20.dp).padding(14.dp).clickable(open),
+        GlanceModifier.fillMaxSize().background(GlanceTheme.colors.widgetBackground).cornerRadius(20.dp).padding(WIDGET_PADDING).clickable(open),
     ) {
         when (data) {
             WidgetData.SignedOut -> Text("Open Finance Insights to sign in.", style = TextStyle(color = GlanceTheme.colors.onSurface))
-            WidgetData.Locked -> {
+            WidgetData.Hidden -> {
                 Text("Finance Insights", style = muted)
-                Text("Locked. Tap to open.", style = TextStyle(color = GlanceTheme.colors.onSurface))
+                Text("Amounts hidden. Tap to open.", style = TextStyle(color = GlanceTheme.colors.onSurface))
             }
             WidgetData.Failed -> {
                 Text("Spent this month", style = muted)
@@ -103,7 +146,7 @@ internal fun Content(data: WidgetData) {
             is WidgetData.Loaded -> {
                 Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Column(GlanceModifier.defaultWeight()) {
-                        Text("Spent in ${data.month}", style = muted)
+                        Text(if (data.asOf != null) "Spent in ${data.month} · as of ${data.asOf}" else "Spent in ${data.month}", style = muted)
                         Text(
                             Money.format(data.spent),
                             style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = 22.sp, fontWeight = FontWeight.Bold),
@@ -116,7 +159,9 @@ internal fun Content(data: WidgetData) {
                             .padding(horizontal = 12.dp, vertical = 6.dp).clickable(add),
                     )
                 }
-                data.budgets.forEach { budget ->
+                // The total takes about 56dp of the height; each budget about 34dp.
+                val room = ((LocalSize.current.height - WIDGET_PADDING * 2 - TOTAL_HEIGHT) / BUDGET_HEIGHT).toInt().coerceAtLeast(0)
+                data.budgets.take(room).forEach { budget ->
                     Spacer(GlanceModifier.height(8.dp))
                     Row(GlanceModifier.fillMaxWidth()) {
                         Text(budget.name, style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = 13.sp), modifier = GlanceModifier.defaultWeight(), maxLines = 1)

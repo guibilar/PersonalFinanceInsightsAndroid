@@ -25,6 +25,10 @@ class AppPreferences(context: Context) {
     /** Opening the app asks for a fingerprint, face or the phone's PIN. */
     val lock: StateFlow<Boolean> = _lock.asStateFlow()
 
+    private val _hideWidgetAmounts = MutableStateFlow(prefs.getBoolean(KEY_HIDE_WIDGET_AMOUNTS, false))
+    /** The home-screen widget shows no amounts (anyone can see the home screen). Its own choice, not the lock's. */
+    val hideWidgetAmounts: StateFlow<Boolean> = _hideWidgetAmounts.asStateFlow()
+
     private val _budgetAlerts = MutableStateFlow(prefs.getBoolean(KEY_BUDGET_ALERTS, false))
     /** A notification when a budget passes 80% and 100%. */
     val budgetAlerts: StateFlow<Boolean> = _budgetAlerts.asStateFlow()
@@ -44,6 +48,11 @@ class AppPreferences(context: Context) {
         _lock.value = value
     }
 
+    fun setHideWidgetAmounts(value: Boolean) {
+        prefs.edit().putBoolean(KEY_HIDE_WIDGET_AMOUNTS, value).apply()
+        _hideWidgetAmounts.value = value
+    }
+
     fun setBudgetAlerts(value: Boolean) {
         prefs.edit().putBoolean(KEY_BUDGET_ALERTS, value).apply()
         _budgetAlerts.value = value
@@ -54,5 +63,6 @@ class AppPreferences(context: Context) {
         const val KEY_DYNAMIC_COLOR = "dynamicColor"
         const val KEY_LOCK = "lock"
         const val KEY_BUDGET_ALERTS = "budgetAlerts"
+        const val KEY_HIDE_WIDGET_AMOUNTS = "hideWidgetAmounts"
     }
 }

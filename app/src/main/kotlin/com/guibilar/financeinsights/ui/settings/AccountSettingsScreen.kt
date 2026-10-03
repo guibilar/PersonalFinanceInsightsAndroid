@@ -47,6 +47,7 @@ fun AccountSettingsScreen(
 ) {
     val scope = rememberCoroutineScope()
     var confirmOthers by remember { mutableStateOf(false) }
+    var confirmSignOut by remember { mutableStateOf(false) }
     SettingsScaffold("Account", onBack, contentPadding, model.messages) {
         Column(
             Modifier.verticalScroll(rememberScrollState()).padding(16.dp).imePadding(),
@@ -64,8 +65,18 @@ fun AccountSettingsScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             OutlinedButton(onClick = { confirmOthers = true }, modifier = Modifier.fillMaxWidth()) { Text("Sign out everywhere else") }
-            OutlinedButton(onClick = { scope.launch { onSignOut() } }, modifier = Modifier.fillMaxWidth()) { Text("Sign out of this phone") }
+            // Asked first, like its neighbour: a slip meant typing the password again.
+            OutlinedButton(onClick = { confirmSignOut = true }, modifier = Modifier.fillMaxWidth()) { Text("Sign out of this phone") }
         }
+    }
+    if (confirmSignOut) {
+        ConfirmDelete(
+            "Sign out of this phone?",
+            "You'll need your password to sign in again.",
+            onConfirm = { scope.launch { onSignOut() } },
+            onDismiss = { confirmSignOut = false },
+            confirmLabel = "Sign out",
+        )
     }
     if (confirmOthers) {
         ConfirmDelete(
