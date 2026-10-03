@@ -1,0 +1,105 @@
+{
+    "interval": "Month",
+    "count": 87,
+    "spending": 6147.19,
+    "refunds": 0,
+    "income": 3.25,
+    "averageSpending": 1490.075,
+    "averageIncome": 0.8125,
+    "averagedPeriods": 4,
+    "periods": [
+        {
+            "start": "2026-06-01T00:00:00Z",
+            "end": "2026-06-30T00:00:00Z",
+            "label": "Jun 2026",
+            "count": 2,
+            "spending": 103.1,
+            "income": 0,
+            "cumulativeSpending": 103.1,
+            "cumulativeIncome": 0
+        },
+        {
+            "start": "2026-07-01T00:00:00Z",
+            "end": "2026-07-31T00:00:00Z",
+            "label": "Jul 2026",
+            "count": 5,
+            "spending": 659.3,
+            "income": 0,
+            "cumulativeSpending": 762.4,
+            "cumulativeIncome": 0
+        },
+        {
+            "start": "2026-08-01T00:00:00Z",
+            "end": "2026-08-31T00:00:00Z",
+            "label": "Aug 2026",
+            "count": 65,
+            "spending": 4747.4,
+            "income": 3.25,
+            "cumulativeSpending": 5509.8,
+            "cumulativeIncome": 3.25
+        },
+        {
+            "start": "2026-09-01T00:00:00Z",
+            "end": "2026-09-30T00:00:00Z",
+            "label": "Sep 2026",
+            "count": 9,
+            "spending": 450.5,
+            "income": 0,
+            "cumulativeSpending": 5960.3,
+            "cumulativeIncome": 3.25
+        },
+        {
+            "start": "2026-10-01T00:00:00Z",
+            "end": "2026-10-31T00:00:00Z",
+            "label": "Oct 2026",
+            "count": 6,
+            "spending": 186.89,
+            "income": 0,
+            "cumulativeSpending": 6147.19,
+            "cumulativeIncome": 3.25
+        }
+    ],
+    "topMerchants": [
+        {
+            "name": "AIR CAN",
+            "count": 1,
+            "spending": 2125.52
+        },
+        {
+            "name": "GROCERY",
+            "count": 4,
+            "spending": 743.84
+        },
+        {
+            "name": "NO FRILLS",
+            "count": 12,
+            "spending": 455.79
+        },
+        {
+            "name": "SAMSUNG",
+            "count": 2,
+            "spending": 386.49
+        },
+        {
+            "name": "RESTAURANT",
+            "count": 2,
+            "spending": 230
+        },
+        {
+            "name": "VET C",
+            "count": 1,
+            "spending": 210
+        },
+        {
+            "name": "ANYTIME FITNE",
+            "count": 2,
+            "spending": 203.68
+        },
+        {
+            "name": "TRUPANION",
+            "count": 1,
+            "spending": 196.06
+        }
+    ],
+    "merchantCount": 44
+}

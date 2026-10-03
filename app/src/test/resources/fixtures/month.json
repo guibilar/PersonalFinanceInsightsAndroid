@@ -1,0 +1,38 @@
+{
+    "categories": [
+        {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b01",
+            "name": "Dining",
+            "color": "#1F76B5"
+        },
+        {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b03",
+            "name": "Groceries",
+            "color": "#2CA12D"
+        },
+        {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b08",
+            "name": "Shopping",
+            "color": "#7F7E7E"
+        },
+        {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b0a",
+            "name": "Transportation",
+            "color": "#16BFCF"
+        }
+    ],
+    "monthlyData": [
+        {
+            "month": "Oct 2026",
+            "categoryValues": {
+                "Groceries": 126.29,
+                "Shopping": 18.75,
+                "Transportation": 35.4,
+                "Dining": 6.45
+            },
+            "total": 186.89
+        }
+    ],
+    "averageMonthlyTotal": 186.89,
+    "previousMonthToDateTotal": 30
+}

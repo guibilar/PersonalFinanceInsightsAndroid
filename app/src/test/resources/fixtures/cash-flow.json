@@ -1,0 +1,45 @@
+{
+    "months": [
+        {
+            "month": "Jun 2026",
+            "income": 0,
+            "spending": 103.1,
+            "net": -103.1,
+            "savingsChange": 0
+        },
+        {
+            "month": "Jul 2026",
+            "income": 0,
+            "spending": 659.3,
+            "net": -659.3,
+            "savingsChange": 0
+        },
+        {
+            "month": "Aug 2026",
+            "income": 3.25,
+            "spending": 4747.4,
+            "net": -4744.15,
+            "savingsChange": 0
+        },
+        {
+            "month": "Sep 2026",
+            "income": 0,
+            "spending": 450.5,
+            "net": -450.5,
+            "savingsChange": 0
+        },
+        {
+            "month": "Oct 2026",
+            "income": 0,
+            "spending": 186.89,
+            "net": -186.89,
+            "savingsChange": 0
+        }
+    ],
+    "averageMonthlyIncome": 0.8125,
+    "averageMonthlySpending": 1490.075,
+    "averageMonthlyNet": -1489.2625,
+    "averageMonthlySavingsChange": 0,
+    "averagedMonths": 4,
+    "averagesIncludeCurrentMonth": false
+}

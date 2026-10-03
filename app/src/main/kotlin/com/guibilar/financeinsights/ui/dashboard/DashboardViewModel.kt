@@ -1,0 +1,93 @@
+package com.guibilar.financeinsights.ui.dashboard
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.guibilar.financeinsights.core.api.FinanceApi
+import com.guibilar.financeinsights.core.model.Budget
+import com.guibilar.financeinsights.core.model.BudgetFilter
+import com.guibilar.financeinsights.core.model.CashFlowReport
+import com.guibilar.financeinsights.core.model.CategorizedReport
+import com.guibilar.financeinsights.core.model.Page
+import com.guibilar.financeinsights.core.model.Status
+import com.guibilar.financeinsights.core.model.Transaction
+import com.guibilar.financeinsights.core.model.TransactionFilter
+import com.guibilar.financeinsights.ui.common.LoadState
+import com.guibilar.financeinsights.ui.common.load
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import java.time.LocalDate
+
+data class DashboardState(
+    val today: LocalDate,
+    val year: LoadState<CategorizedReport> = LoadState.Loading,
+    val month: LoadState<CategorizedReport> = LoadState.Loading,
+    val cashFlow: LoadState<CashFlowReport> = LoadState.Loading,
+    val budgets: LoadState<Page<Budget>> = LoadState.Loading,
+    val recent: LoadState<Page<Transaction>> = LoadState.Loading,
+    /** Pulled to refresh: the figures stay on screen while they reload. */
+    val refreshing: Boolean = false,
+)
+
+/** The dashboard's five reports, each loading (and failing) on its own, as on the web. */
+class DashboardViewModel(private val api: FinanceApi, today: () -> LocalDate = LocalDate::now) : ViewModel() {
+    private val _state = MutableStateFlow(DashboardState(today()))
+    val state: StateFlow<DashboardState> = _state.asStateFlow()
+
+    init {
+        load()
+    }
+
+    fun refresh() {
+        _state.update { it.copy(refreshing = true) }
+        load()
+    }
+
+    fun retryYear() = retry({ copy(year = it) }) { load("Could not load monthly spending.") { api.yearReport() } }
+    fun retryMonth() = retry({ copy(month = it) }) { load("Could not load this month's spending.") { api.monthReport() } }
+    fun retryCashFlow() = retry({ copy(cashFlow = it) }) { load("Could not load income and spending.") { api.cashFlow() } }
+    fun retryBudgets() = retry({ copy(budgets = it) }) { loadBudgets() }
+    fun retryRecent() = retry({ copy(recent = it) }) { loadRecent() }
+
+    private fun load() {
+        viewModelScope.launch {
+            val year = async { load("Could not load monthly spending.") { api.yearReport() } }
+            val month = async { load("Could not load this month's spending.") { api.monthReport() } }
+            val cashFlow = async { load("Could not load income and spending.") { api.cashFlow() } }
+            val budgets = async { loadBudgets() }
+            val recent = async { loadRecent() }
+            _state.update {
+                it.copy(
+                    year = year.await(),
+                    month = month.await(),
+                    cashFlow = cashFlow.await(),
+                    budgets = budgets.await(),
+                    recent = recent.await(),
+                    refreshing = false,
+                )
+            }
+        }
+    }
+
+    private suspend fun loadBudgets() =
+        load("Could not load budgets.") { api.budgets(BudgetFilter(status = Status.Active, page = 1, pageSize = 1000)) }
+
+    private suspend fun loadRecent() =
+        load("Could not load transactions.") { api.transactions(TransactionFilter(page = 1, pageSize = RECENT)) }
+
+    /** Reloads one report, leaving the others as they are. */
+    private fun <T> retry(set: DashboardState.(LoadState<T>) -> DashboardState, fetch: suspend () -> LoadState<T>) {
+        _state.update { it.set(LoadState.Loading) }
+        viewModelScope.launch {
+            val result = fetch()
+            _state.update { it.set(result) }
+        }
+    }
+
+    companion object {
+        const val RECENT = 5
+    }
+}

@@ -1,0 +1,115 @@
+{
+    "items": [
+        {
+            "id": "01a0ff22-674a-7e98-bb70-9dab0d96bb50",
+            "date": "2026-10-03T00:00:00Z",
+            "description": "METRO 221",
+            "amount": 41.92,
+            "category": {
+                "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b03",
+                "name": "Groceries",
+                "color": "#2CA12D"
+            },
+            "categoryLocked": false,
+            "hidden": false,
+            "transactionType": "Debit",
+            "accountId": "01a0eb35-f474-7573-a368-db81834d7a92",
+            "accountName": "Neo chequing",
+            "accountType": "Chequing",
+            "flow": "Spending",
+            "flowLocked": false,
+            "budgetId": null,
+            "budget": null
+        },
+        {
+            "id": "01a0ff22-6766-7b4f-8e90-e4d62018367f",
+            "date": "2026-10-03T00:00:00Z",
+            "description": "SHOPPERS DRUG MART",
+            "amount": 18.75,
+            "category": {
+                "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b08",
+                "name": "Shopping",
+                "color": "#7F7E7E"
+            },
+            "categoryLocked": false,
+            "hidden": false,
+            "transactionType": "Debit",
+            "accountId": "01a0eb35-f474-7573-a368-db81834d7a92",
+            "accountName": "Neo chequing",
+            "accountType": "Chequing",
+            "flow": "Spending",
+            "flowLocked": false,
+            "budgetId": null,
+            "budget": null
+        },
+        {
+            "id": "01a0ff22-6708-71a2-8888-9a6a5ce9a129",
+            "date": "2026-10-02T00:00:00Z",
+            "description": "UBER EATS",
+            "amount": 32.1,
+            "category": {
+                "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b0a",
+                "name": "Transportation",
+                "color": "#16BFCF"
+            },
+            "categoryLocked": false,
+            "hidden": false,
+            "transactionType": "Debit",
+            "accountId": "01a0eb35-f474-7573-a368-db81834d7a92",
+            "accountName": "Neo chequing",
+            "accountType": "Chequing",
+            "flow": "Spending",
+            "flowLocked": false,
+            "budgetId": null,
+            "budget": null
+        },
+        {
+            "id": "01a0ff22-672b-7942-b6b6-5edbaadf51a3",
+            "date": "2026-10-02T00:00:00Z",
+            "description": "PRESTO FARE",
+            "amount": 3.3,
+            "category": {
+                "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b0a",
+                "name": "Transportation",
+                "color": "#16BFCF"
+            },
+            "categoryLocked": false,
+            "hidden": false,
+            "transactionType": "Debit",
+            "accountId": "01a0eb35-f474-7573-a368-db81834d7a92",
+            "accountName": "Neo chequing",
+            "accountType": "Chequing",
+            "flow": "Spending",
+            "flowLocked": false,
+            "budgetId": null,
+            "budget": null
+        },
+        {
+            "id": "01a0ff22-6637-7d0e-83fc-e5b0fccabe4c",
+            "date": "2026-10-01T00:00:00Z",
+            "description": "NO FRILLS #3121",
+            "amount": 84.37,
+            "category": {
+                "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b03",
+                "name": "Groceries",
+                "color": "#2CA12D"
+            },
+            "categoryLocked": false,
+            "hidden": false,
+            "transactionType": "Debit",
+            "accountId": "01a0eb35-f474-7573-a368-db81834d7a92",
+            "accountName": "Neo chequing",
+            "accountType": "Chequing",
+            "flow": "Spending",
+            "flowLocked": false,
+            "budgetId": null,
+            "budget": null
+        }
+    ],
+    "page": 1,
+    "pageSize": 5,
+    "totalCount": 87,
+    "totalPages": 18,
+    "hasPreviousPage": false,
+    "hasNextPage": true
+}

@@ -1,0 +1,101 @@
+[
+    {
+        "transactionCount": 21,
+        "ruleCount": 29,
+        "isFallback": false,
+        "builtInReason": null,
+        "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b01",
+        "name": "Dining",
+        "color": "#1F76B5"
+    },
+    {
+        "transactionCount": 2,
+        "ruleCount": 4,
+        "isFallback": false,
+        "builtInReason": null,
+        "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b02",
+        "name": "Entertainment",
+        "color": "#FF7E0F"
+    },
+    {
+        "transactionCount": 22,
+        "ruleCount": 16,
+        "isFallback": false,
+        "builtInReason": null,
+        "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b03",
+        "name": "Groceries",
+        "color": "#2CA12D"
+    },
+    {
+        "transactionCount": 7,
+        "ruleCount": 7,
+        "isFallback": false,
+        "builtInReason": null,
+        "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b04",
+        "name": "Health",
+        "color": "#D72628"
+    },
+    {
+        "transactionCount": 8,
+        "ruleCount": 0,
+        "isFallback": true,
+        "builtInReason": "Built in: transactions that no rule matches go here.",
+        "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b05",
+        "name": "Other",
+        "color": "#9466BC"
+    },
+    {
+        "transactionCount": 4,
+        "ruleCount": 5,
+        "isFallback": false,
+        "builtInReason": null,
+        "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b06",
+        "name": "Pet",
+        "color": "#8C564B"
+    },
+    {
+        "transactionCount": 0,
+        "ruleCount": 1,
+        "isFallback": false,
+        "builtInReason": "Built in: a rent payment in it on chequing replaces the generated monthly rent.",
+        "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b07",
+        "name": "Rent",
+        "color": "#E277C3"
+    },
+    {
+        "transactionCount": 12,
+        "ruleCount": 20,
+        "isFallback": false,
+        "builtInReason": null,
+        "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b08",
+        "name": "Shopping",
+        "color": "#7F7E7E"
+    },
+    {
+        "transactionCount": 2,
+        "ruleCount": 6,
+        "isFallback": false,
+        "builtInReason": null,
+        "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b09",
+        "name": "Subscriptions",
+        "color": "#BDBD23"
+    },
+    {
+        "transactionCount": 6,
+        "ruleCount": 9,
+        "isFallback": false,
+        "builtInReason": null,
+        "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b0a",
+        "name": "Transportation",
+        "color": "#16BFCF"
+    },
+    {
+        "transactionCount": 3,
+        "ruleCount": 6,
+        "isFallback": false,
+        "builtInReason": null,
+        "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b0b",
+        "name": "Utilities",
+        "color": "#800080"
+    }
+]
