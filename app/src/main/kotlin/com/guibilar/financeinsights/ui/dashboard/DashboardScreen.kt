@@ -99,6 +99,7 @@ fun DashboardScreen(
     onSignOut: suspend () -> Unit,
     contentPadding: PaddingValues,
     openTransactions: (TransactionsRoute) -> Unit,
+    openBudgets: () -> Unit = {},
 ) {
     val state by model.state.collectAsState()
     val monthName = state.today.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.US))
@@ -152,7 +153,16 @@ fun DashboardScreen(
                     }
                 }
                 item {
-                    SectionCard("Budgets at a glance") {
+                    SectionCard(
+                        "Budgets at a glance",
+                        action = {
+                            TextButton(onClick = openBudgets) {
+                                Text("Manage")
+                                Spacer(Modifier.width(4.dp))
+                                Icon(Icons.AutoMirrored.Outlined.ArrowForward, null)
+                            }
+                        },
+                    ) {
                         Loaded(state.budgets, model::retryBudgets) { page ->
                             if (page.items.isEmpty()) EmptyState("No active budgets yet.")
                             else BudgetOverview(page.items)
@@ -166,12 +176,12 @@ fun DashboardScreen(
                             TextButton(onClick = { openTransactions(TransactionsRoute()) }) {
                                 Text("View all")
                                 Spacer(Modifier.width(4.dp))
-                                Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, Modifier.padding(0.dp))
+                                Icon(Icons.AutoMirrored.Outlined.ArrowForward, null)
                             }
                         },
                     ) {
                         Loaded(state.recent, model::retryRecent) { page ->
-                            if (page.items.isEmpty()) EmptyState("No transactions yet. Import a statement on the web.")
+                            if (page.items.isEmpty()) EmptyState("No transactions yet. Import a statement from Transactions.")
                             else RecentTransactions(page.items)
                         }
                     }

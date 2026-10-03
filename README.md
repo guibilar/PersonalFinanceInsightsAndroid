@@ -16,8 +16,14 @@ account and data as the web app, on your phone.
   quarter or year, with the running total; tap a bar to list that period. "Where it went" lists the merchants,
   more on request.
 
-Coming next: adding, editing, deleting and restoring transactions, linking them to budgets, importing statements,
-budgets; then rules, categories, accounts and account settings.
+  Tap a transaction to correct its description, category (optionally adding a rule so similar ones follow) or what
+  it counts as, link it to a budget, or delete it (with Undo; deleted ones can be restored from the ⋮ menu). Add
+  transactions by hand, import a bank statement (CSV) from the phone, or share one to the app from another app, and
+  re-apply the rules.
+- **Budgets:** search and filter by status; add, edit and delete budgets: total, monthly, yearly or custom dates,
+  counting linked transactions, some categories, or a merchant.
+
+Coming next: rules, categories, accounts and account settings.
 
 ## Reaching the server
 

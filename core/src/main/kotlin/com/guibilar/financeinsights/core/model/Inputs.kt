@@ -60,6 +60,7 @@ data class TransactionFilter(
 
 @Serializable
 data class BudgetFilter(
+    /** Part of the name, ignoring case. */
     val name: String? = null,
     val status: Status? = null,
     val page: Int = 1,
@@ -102,3 +103,62 @@ data class MerchantsInput(
         )
     }
 }
+
+/** A transaction added by hand. Category and flow left out: the rules decide, as for an imported row. */
+@Serializable
+data class TransactionInput(
+    /** "yyyy-MM-dd". */
+    val date: String,
+    val description: String,
+    /** Always positive; [transactionType] says which way the money moved. */
+    val amount: Double,
+    val transactionType: TransactionType,
+    val accountId: String,
+    val categoryId: String? = null,
+    val flow: Flow? = null,
+    /** Adds it although an identical one exists (two coffees at the same price on the same day). */
+    val allowDuplicate: Boolean = false,
+)
+
+/** Corrects an imported transaction: a changed category or flow is then kept when the rules are re-applied. */
+@Serializable
+data class TransactionUpdate(
+    val description: String,
+    val categoryId: String,
+    /** Sent only when changed. */
+    val flow: Flow? = null,
+)
+
+@Serializable
+data class TransactionLink(val transactionId: String, val budgetId: String)
+
+@Serializable
+data class CategoryRuleInput(
+    val keyword: String,
+    val categoryId: String,
+    /** 0 is checked first; at the end when left out. */
+    val position: Int? = null,
+)
+
+@Serializable
+data class CategoryRulePreviewInput(
+    val keyword: String,
+    val categoryId: String,
+    val excludeTransactionId: String? = null,
+)
+
+@Serializable
+data class BudgetInput(
+    val name: String,
+    val description: String,
+    val status: Status,
+    val amount: Double,
+    val period: BudgetPeriod,
+    /** Custom periods only, "yyyy-MM-dd". */
+    val startDate: String? = null,
+    val endDate: String? = null,
+    /** Any period but Total; not with a merchant. */
+    val categoryIds: List<String> = emptyList(),
+    /** Any period but Total; not with categories. */
+    val merchant: String? = null,
+)

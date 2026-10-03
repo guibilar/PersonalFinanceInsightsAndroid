@@ -3,6 +3,7 @@ package com.guibilar.financeinsights.ui
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material3.CircularProgressIndicator
@@ -31,15 +32,22 @@ import com.guibilar.financeinsights.core.model.BreakdownInterval
 import com.guibilar.financeinsights.core.model.TransactionCriteria
 import com.guibilar.financeinsights.data.AuthState
 import com.guibilar.financeinsights.data.Session
+import com.guibilar.financeinsights.ui.budgets.BudgetsScreen
+import com.guibilar.financeinsights.ui.budgets.BudgetsViewModel
 import com.guibilar.financeinsights.ui.dashboard.DashboardScreen
 import com.guibilar.financeinsights.ui.dashboard.DashboardViewModel
 import com.guibilar.financeinsights.ui.signin.SignInScreen
 import com.guibilar.financeinsights.ui.transactions.TransactionsScreen
+import com.guibilar.financeinsights.ui.transactions.PickedFile
 import com.guibilar.financeinsights.ui.transactions.TransactionsViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.serialization.Serializable
 
 @Serializable
 data object DashboardRoute
+
+@Serializable
+data object BudgetsRoute
 
 /** The transactions list, optionally opened on criteria (the dashboard's links) with its "Over time" chart. */
 @Serializable
@@ -55,7 +63,7 @@ data class TransactionsRoute(
 
 /** Signed in or not decides what shows; signing out (or the session ending) brings back the sign-in screen. */
 @Composable
-fun FinanceRoot(session: Session) {
+fun FinanceRoot(session: Session, sharedStatement: MutableStateFlow<PickedFile?> = MutableStateFlow(null)) {
     val state by session.state.collectAsState()
     when (val current = state) {
         AuthState.Checking -> {
@@ -72,6 +80,7 @@ fun FinanceRoot(session: Session) {
             api = current.api,
             account = AccountInfo(current.username, session.server.orEmpty()),
             onSignOut = { session.signOut() },
+            sharedStatement = sharedStatement,
         )
     }
 }
@@ -84,12 +93,25 @@ private data class Tab(val label: String, val icon: ImageVector, val route: Any,
 private val tabs = listOf(
     Tab("Dashboard", Icons.Outlined.Dashboard, DashboardRoute) { it.hasRoute<DashboardRoute>() },
     Tab("Transactions", Icons.Outlined.ReceiptLong, TransactionsRoute()) { it.hasRoute<TransactionsRoute>() },
+    Tab("Budgets", Icons.Outlined.AccountBalanceWallet, BudgetsRoute) { it.hasRoute<BudgetsRoute>() },
 )
 
 @Composable
-fun MainScreen(api: FinanceApi, account: AccountInfo, onSignOut: suspend () -> Unit) {
+fun MainScreen(
+    api: FinanceApi,
+    account: AccountInfo,
+    onSignOut: suspend () -> Unit,
+    sharedStatement: MutableStateFlow<PickedFile?> = MutableStateFlow(null),
+) {
     val nav = rememberNavController()
     val entry by nav.currentBackStackEntryAsState()
+    val statement by sharedStatement.collectAsState()
+    // A statement shared to the app opens the transactions, where the import takes it.
+    LaunchedEffect(statement) {
+        if (statement != null && entry?.destination?.hasRoute<TransactionsRoute>() != true) {
+            nav.navigate(TransactionsRoute()) { popUpTo<DashboardRoute>() }
+        }
+    }
     Scaffold(
         bottomBar = {
             NavigationBar {
@@ -125,12 +147,30 @@ fun MainScreen(api: FinanceApi, account: AccountInfo, onSignOut: suspend () -> U
                         // A new list on these criteria, Back returning to the dashboard.
                         nav.navigate(route) { popUpTo<DashboardRoute>() }
                     },
+                    openBudgets = {
+                        nav.navigate(BudgetsRoute) {
+                            popUpTo(nav.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
                 )
+            }
+            composable<BudgetsRoute> {
+                val model = viewModel { BudgetsViewModel(api) }
+                BudgetsScreen(model = model, account = account, onSignOut = onSignOut, contentPadding = padding)
             }
             composable<TransactionsRoute> { backStack ->
                 val route = backStack.toRoute<TransactionsRoute>()
                 val model = viewModel { TransactionsViewModel(api, route) }
-                TransactionsScreen(model = model, account = account, onSignOut = onSignOut, contentPadding = padding)
+                TransactionsScreen(
+                    model = model,
+                    account = account,
+                    onSignOut = onSignOut,
+                    contentPadding = padding,
+                    sharedFile = statement,
+                    onSharedFileTaken = { sharedStatement.value = null },
+                )
             }
         }
     }
