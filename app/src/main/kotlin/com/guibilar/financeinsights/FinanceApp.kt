@@ -59,8 +59,9 @@ class FinanceApp : Application() {
                     SpendingWidget.refresh(this@FinanceApp)
                 }
         }
-        // Long-pressing the app's icon offers "Add transaction".
-        ShortcutManagerCompat.setDynamicShortcuts(
+        // Long-pressing the app's icon offers "Add transaction". Set once: the app also starts in the background (for
+        // budget checks), where setting shortcuts on every start runs into Android's rate limit.
+        if (ShortcutManagerCompat.getDynamicShortcuts(this).none { it.id == "add_transaction" }) ShortcutManagerCompat.setDynamicShortcuts(
             this,
             listOf(
                 ShortcutInfoCompat.Builder(this, "add_transaction")
