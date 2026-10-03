@@ -15,13 +15,23 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Sort
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.FileUpload
+import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.Rule
 import androidx.compose.material.icons.outlined.ArrowDownward
 import androidx.compose.material.icons.outlined.ArrowUpward
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -47,6 +57,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -63,6 +74,7 @@ import com.guibilar.financeinsights.ui.AccountInfo
 import com.guibilar.financeinsights.ui.common.AccountMenuButton
 import com.guibilar.financeinsights.ui.common.EmptyState
 import com.guibilar.financeinsights.ui.common.ErrorState
+import com.guibilar.financeinsights.ui.common.ShowMessages
 import com.guibilar.financeinsights.ui.common.Skeleton
 
 private val SORT_LABELS = mapOf(
@@ -74,10 +86,32 @@ private val SORT_LABELS = mapOf(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TransactionsScreen(model: TransactionsViewModel, account: AccountInfo, onSignOut: suspend () -> Unit, contentPadding: PaddingValues) {
+fun TransactionsScreen(
+    model: TransactionsViewModel,
+    account: AccountInfo,
+    onSignOut: suspend () -> Unit,
+    contentPadding: PaddingValues,
+    sharedFile: PickedFile? = null,
+    onSharedFileTaken: () -> Unit = {},
+) {
     val state by model.state.collectAsState()
     var filtersOpen by remember { mutableStateOf(false) }
     var opened by remember { mutableStateOf<Transaction?>(null) }
+    var adding by remember { mutableStateOf(false) }
+    var importing by remember { mutableStateOf<PickedFile?>(null) }
+    var importOpen by remember { mutableStateOf(false) }
+    var confirmRules by remember { mutableStateOf(false) }
+    val snackbar = remember { SnackbarHostState() }
+
+    // A statement shared to the app opens the import, ready to go.
+    LaunchedEffect(sharedFile) {
+        if (sharedFile != null) {
+            importing = sharedFile
+            importOpen = true
+            onSharedFileTaken()
+        }
+    }
+    ShowMessages(model.messages, snackbar)
     val listState = rememberLazyListState()
     val chips = filterChips(state, model)
 
@@ -90,81 +124,108 @@ fun TransactionsScreen(model: TransactionsViewModel, account: AccountInfo, onSig
     }
     LaunchedEffect(nearEnd, state.list.items.size) { if (nearEnd) model.loadMore() }
 
-    Column(Modifier.fillMaxSize().padding(bottom = contentPadding.calculateBottomPadding())) {
-        TopAppBar(
-            title = { Text("Transactions", fontWeight = FontWeight.SemiBold) },
-            actions = {
-                SortMenu(state.sortBy, state.sortDirection, model::sort)
-                IconButton(onClick = { filtersOpen = true }) {
-                    BadgedBox(badge = { if (chips.isNotEmpty()) Badge { Text(chips.size.toString()) } }) {
-                        Icon(Icons.Outlined.FilterList, "Filters")
+    Box(Modifier.fillMaxSize().padding(bottom = contentPadding.calculateBottomPadding())) {
+        Column(Modifier.fillMaxSize()) {
+            TopAppBar(
+                title = { Text(if (state.showDeleted) "Deleted transactions" else "Transactions", fontWeight = FontWeight.SemiBold) },
+                navigationIcon = {
+                    if (state.showDeleted) IconButton(onClick = model::toggleDeleted) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back to transactions") }
+                },
+                actions = {
+                    SortMenu(state.sortBy, state.sortDirection, model::sort)
+                    IconButton(onClick = { filtersOpen = true }) {
+                        BadgedBox(badge = { if (chips.isNotEmpty()) Badge { Text(chips.size.toString()) } }) {
+                            Icon(Icons.Outlined.FilterList, "Filters")
+                        }
                     }
+                    if (!state.showDeleted) {
+                        MoreMenu(
+                            onImport = {
+                                importing = null
+                                importOpen = true
+                            },
+                            onApplyRules = { confirmRules = true },
+                            onShowDeleted = model::toggleDeleted,
+                        )
+                    }
+                    AccountMenuButton(account, onSignOut)
+                },
+            )
+            OutlinedTextField(
+                value = state.search,
+                onValueChange = model::search,
+                placeholder = { Text("Search descriptions") },
+                leadingIcon = { Icon(Icons.Outlined.Search, null) },
+                trailingIcon = {
+                    if (state.search.isNotEmpty()) IconButton(onClick = model::clearSearch) { Icon(Icons.Outlined.Close, "Clear search") }
+                },
+                singleLine = true,
+                shape = RoundedCornerShape(28.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            )
+            if (chips.isNotEmpty()) {
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(top = 8.dp),
+                ) {
+                    items(chips, key = { it.label }) { chip ->
+                        InputChip(
+                            selected = true,
+                            onClick = chip.remove,
+                            label = { Text(chip.label) },
+                            trailingIcon = { Icon(Icons.Outlined.Close, "Remove", Modifier.size(16.dp)) },
+                        )
+                    }
+                    if (chips.size > 1) item { TextButton(onClick = model::clearAll) { Text("Clear all") } }
                 }
-                AccountMenuButton(account, onSignOut)
-            },
-        )
-        OutlinedTextField(
-            value = state.search,
-            onValueChange = model::search,
-            placeholder = { Text("Search descriptions") },
-            leadingIcon = { Icon(Icons.Outlined.Search, null) },
-            trailingIcon = {
-                if (state.search.isNotEmpty()) IconButton(onClick = model::clearSearch) { Icon(Icons.Outlined.Close, "Clear search") }
-            },
-            singleLine = true,
-            shape = RoundedCornerShape(28.dp),
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-        )
-        if (chips.isNotEmpty()) {
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(top = 8.dp),
-            ) {
-                items(chips, key = { it.label }) { chip ->
-                    InputChip(
-                        selected = true,
-                        onClick = chip.remove,
-                        label = { Text(chip.label) },
-                        trailingIcon = { Icon(Icons.Outlined.Close, "Remove", Modifier.size(16.dp)) },
-                    )
-                }
-                if (chips.size > 1) item { TextButton(onClick = model::clearAll) { Text("Clear all") } }
             }
-        }
-        PullToRefreshBox(isRefreshing = state.refreshing, onRefresh = model::refresh, modifier = Modifier.fillMaxSize()) {
-            LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 16.dp)) {
-                item { Box(Modifier.padding(16.dp)) { BreakdownPanel(state, model) } }
-                val list = state.list
-                when {
-                    list.loading && list.items.isEmpty() -> item { Box(Modifier.padding(16.dp)) { Skeleton(lines = 8, lineHeight = 28.dp) } }
-                    list.error != null -> item { ErrorState(list.error, model::refresh) }
-                    list.items.isEmpty() -> item {
-                        Column(Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                            if (state.criteria.isEmpty) {
-                                EmptyState("No transactions yet. Import a statement on the web.")
-                            } else {
-                                EmptyState("No transactions match these filters.")
-                                OutlinedButton(onClick = model::clearAll) { Text("Clear filters") }
+            PullToRefreshBox(isRefreshing = state.refreshing, onRefresh = model::refresh, modifier = Modifier.fillMaxSize()) {
+                LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 88.dp)) {
+                    if (!state.showDeleted) item { Box(Modifier.padding(16.dp)) { BreakdownPanel(state, model) } }
+                    else item {
+                        Text(
+                            "Deleted transactions are left out of lists, reports and budgets. Tap one to restore it.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(16.dp),
+                        )
+                    }
+                    val list = state.list
+                    when {
+                        list.loading && list.items.isEmpty() -> item { Box(Modifier.padding(16.dp)) { Skeleton(lines = 8, lineHeight = 28.dp) } }
+                        list.error != null -> item { ErrorState(list.error, model::refresh) }
+                        list.items.isEmpty() -> item {
+                            Column(Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                if (state.showDeleted) {
+                                    EmptyState(if (state.criteria.isEmpty) "No deleted transactions." else "No deleted transactions match these filters.")
+                                    OutlinedButton(onClick = model::toggleDeleted) { Text("Back to transactions") }
+                                } else if (state.criteria.isEmpty) {
+                                    EmptyState("No transactions yet.")
+                                    OutlinedButton(onClick = { importOpen = true }) { Text("Import a statement") }
+                                } else {
+                                    EmptyState("No transactions match these filters.")
+                                    OutlinedButton(onClick = model::clearAll) { Text("Clear filters") }
+                                }
                             }
                         }
-                    }
-                    else -> {
-                        items(list.items, key = { it.id }) { transaction ->
-                            TransactionRow(transaction, onClick = { opened = transaction })
-                            HorizontalDivider(Modifier.padding(start = 64.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                        }
-                        item {
-                            Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                                when {
-                                    list.loadingMore -> CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
-                                    list.moreFailed -> TextButton(onClick = model::loadMore) { Text("Could not load more. Try again") }
-                                    list.endReached -> Text(
-                                        "${list.totalCount} ${if (list.totalCount == 1) "transaction" else "transactions"}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        textAlign = TextAlign.Center,
-                                    )
+                        else -> {
+                            items(list.items, key = { it.id }) { transaction ->
+                                TransactionRow(transaction, onClick = { opened = transaction })
+                                HorizontalDivider(Modifier.padding(start = 64.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            }
+                            item {
+                                Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                                    when {
+                                        list.loadingMore -> CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
+                                        list.moreFailed -> TextButton(onClick = model::loadMore) { Text("Could not load more. Try again") }
+                                        list.endReached -> Text(
+                                            "${list.totalCount} ${if (list.totalCount == 1) "transaction" else "transactions"}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            textAlign = TextAlign.Center,
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -172,10 +233,79 @@ fun TransactionsScreen(model: TransactionsViewModel, account: AccountInfo, onSig
                 }
             }
         }
+
+        if (!state.showDeleted) {
+            ExtendedFloatingActionButton(
+                onClick = { adding = true },
+                icon = { Icon(Icons.Outlined.Add, null) },
+                text = { Text("Add") },
+                modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+            )
+        }
+        SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(bottom = if (state.showDeleted) 0.dp else FAB_CLEARANCE))
     }
 
     if (filtersOpen) FiltersSheet(state, onDismiss = { filtersOpen = false }, model = model)
-    opened?.let { TransactionDetailSheet(it, onDismiss = { opened = null }) }
+    opened?.let { transaction ->
+        if (transaction.hidden || state.showDeleted) {
+            DeletedTransactionSheet(transaction, model, onDismiss = { opened = null })
+        } else {
+            EditTransactionSheet(
+                transaction = transaction,
+                categories = state.categories.map { it.reference },
+                budgets = state.budgets,
+                model = model,
+                onDismiss = { opened = null },
+            )
+        }
+    }
+    if (adding) AddTransactionSheet(state, model, onDismiss = { adding = false })
+    if (importOpen) ImportSheet(state.accounts, model, onDismiss = { importOpen = false }, initialFile = importing)
+    if (confirmRules) {
+        AlertDialog(
+            onDismissRequest = { confirmRules = false },
+            title = { Text("Apply the rules?") },
+            text = {
+                Text(
+                    "Every transaction gets its category and flow from the current rules again. Categories and flows you " +
+                        "picked by hand, and the categories of savings transactions, are left as they are.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmRules = false
+                    model.applyRules()
+                }) { Text("Apply rules") }
+            },
+            dismissButton = { TextButton(onClick = { confirmRules = false }) { Text("Cancel") } },
+        )
+    }
+}
+
+/** Keeps a message clear of the Add button. */
+private val FAB_CLEARANCE: Dp = 72.dp
+
+@Composable
+private fun MoreMenu(onImport: () -> Unit, onApplyRules: () -> Unit, onShowDeleted: () -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    IconButton(onClick = { open = true }) { Icon(Icons.Outlined.MoreVert, "More") }
+    DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        DropdownMenuItem(
+            text = { Text("Import a statement") },
+            leadingIcon = { Icon(Icons.Outlined.FileUpload, null) },
+            onClick = { open = false; onImport() },
+        )
+        DropdownMenuItem(
+            text = { Text("Apply the rules") },
+            leadingIcon = { Icon(Icons.Outlined.Rule, null) },
+            onClick = { open = false; onApplyRules() },
+        )
+        DropdownMenuItem(
+            text = { Text("Deleted transactions") },
+            leadingIcon = { Icon(Icons.Outlined.DeleteOutline, null) },
+            onClick = { open = false; onShowDeleted() },
+        )
+    }
 }
 
 /** A criterion that is set, as a removable chip. */

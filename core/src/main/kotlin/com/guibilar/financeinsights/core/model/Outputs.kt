@@ -176,3 +176,35 @@ data class CurrentUser(val username: String)
 
 @Serializable
 data class SignedOutSessions(val count: Int)
+
+@Serializable
+data class ImportResult(
+    val read: Int,
+    val added: Int,
+    /** Rows already stored by an earlier import. */
+    val skipped: Int,
+)
+
+@Serializable
+data class RulesResult(
+    /** Transactions the rules were applied to. */
+    val checked: Int,
+    /** Transactions whose category or flow changed. */
+    val updated: Int,
+)
+
+@Serializable
+data class CategoryRule(
+    val id: String,
+    val keyword: String,
+    val category: CategoryReference,
+    val position: Int,
+)
+
+@Serializable
+data class CategoryRulePreview(
+    /** Transactions whose category would change if the rule were added first and the rules re-applied. */
+    val count: Int,
+    /** Up to five of their descriptions. */
+    val examples: List<String> = emptyList(),
+)

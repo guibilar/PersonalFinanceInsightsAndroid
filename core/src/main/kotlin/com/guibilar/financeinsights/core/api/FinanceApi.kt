@@ -15,9 +15,26 @@ import com.guibilar.financeinsights.core.model.MerchantsInput
 import com.guibilar.financeinsights.core.model.Page
 import com.guibilar.financeinsights.core.model.Transaction
 import com.guibilar.financeinsights.core.model.TransactionFilter
+import com.guibilar.financeinsights.core.model.BudgetInput
+import com.guibilar.financeinsights.core.model.CategoryRule
+import com.guibilar.financeinsights.core.model.CategoryRuleInput
+import com.guibilar.financeinsights.core.model.CategoryRulePreview
+import com.guibilar.financeinsights.core.model.CategoryRulePreviewInput
+import com.guibilar.financeinsights.core.model.ImportResult
+import com.guibilar.financeinsights.core.model.RulesResult
+import com.guibilar.financeinsights.core.model.TransactionInput
+import com.guibilar.financeinsights.core.model.TransactionLink
+import com.guibilar.financeinsights.core.model.TransactionUpdate
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.Multipart
 import retrofit2.http.POST
+import retrofit2.http.PUT
+import retrofit2.http.Part
+import retrofit2.http.Path
 
 /** The backend's REST API, under `<server>/api/`. Every call but [login] needs the session cookie [login] sets. */
 interface FinanceApi {
@@ -60,4 +77,57 @@ interface FinanceApi {
     /** Every account: chequing, then savings, then credit cards, each by name. */
     @GET("Accounts")
     suspend fun accounts(): List<Account>
+
+    /** Adds a transaction by hand; an identical one is a 409 unless [TransactionInput.allowDuplicate]. */
+    @POST("Transaction")
+    suspend fun addTransaction(@Body input: TransactionInput): Transaction
+
+    @PUT("Transaction/{id}")
+    suspend fun updateTransaction(@Path("id") id: String, @Body update: TransactionUpdate): Transaction
+
+    /** Hides it from lists, reports and budgets; kept so a re-import doesn't add it back, and [restoreTransaction] undoes it. */
+    @DELETE("Transaction/{id}")
+    suspend fun deleteTransaction(@Path("id") id: String)
+
+    @POST("Transaction/{id}/Restore")
+    suspend fun restoreTransaction(@Path("id") id: String)
+
+    @POST("Transaction/LinkTransaction")
+    suspend fun linkTransaction(@Body link: TransactionLink)
+
+    @POST("Transaction/UnlinkTransaction/{id}")
+    suspend fun unlinkTransaction(@Path("id") id: String)
+
+    /** Re-runs the category and flow rules over the stored transactions; picks made by hand stay. */
+    @POST("Transaction/ApplyRules")
+    suspend fun applyRules(): RulesResult
+
+    /**
+     * Imports a statement file into an account. A file that looks like another account's is a 409 with code
+     * "account-mismatch", unless [confirmed] is "true".
+     */
+    @Multipart
+    @POST("Transaction/Import")
+    suspend fun importStatement(
+        @Part file: MultipartBody.Part,
+        @Part("accountId") accountId: RequestBody,
+        @Part("confirmed") confirmed: RequestBody?,
+    ): ImportResult
+
+    @POST("CategoryRules")
+    suspend fun addCategoryRule(@Body rule: CategoryRuleInput): CategoryRule
+
+    /** What adding this rule first and re-applying the rules would change. */
+    @POST("CategoryRules/Preview")
+    suspend fun previewCategoryRule(@Body rule: CategoryRulePreviewInput): CategoryRulePreview
+
+    @POST("Budget")
+    suspend fun addBudget(@Body budget: BudgetInput): Budget
+
+    @PUT("Budget/{id}")
+    suspend fun updateBudget(@Path("id") id: String, @Body budget: BudgetInput): Budget
+
+    /** Its linked transactions stay, unlinked. */
+    @DELETE("Budget/{id}")
+    suspend fun deleteBudget(@Path("id") id: String)
 }

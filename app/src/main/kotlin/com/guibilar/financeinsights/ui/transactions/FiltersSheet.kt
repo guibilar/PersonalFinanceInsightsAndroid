@@ -47,6 +47,7 @@ import com.guibilar.financeinsights.core.model.AccountType
 import com.guibilar.financeinsights.core.model.Category
 import com.guibilar.financeinsights.core.model.Flow
 import com.guibilar.financeinsights.ui.common.ColorDot
+import com.guibilar.financeinsights.ui.common.DropdownPicker
 import com.guibilar.financeinsights.ui.theme.parseHexColor
 import java.time.Instant
 import java.time.LocalDate
@@ -97,7 +98,7 @@ fun FiltersSheet(
             }
 
             SheetLabel("Category")
-            Picker(
+            DropdownPicker(
                 label = "Category",
                 options = listOf<Category?>(null) + state.categories,
                 selected = state.categories.firstOrNull { it.id == criteria.categoryId },
@@ -107,7 +108,7 @@ fun FiltersSheet(
             )
 
             SheetLabel("Account")
-            Picker(
+            DropdownPicker(
                 label = "Account",
                 options = listOf<Account?>(null) + state.accounts,
                 selected = state.accounts.firstOrNull { it.id == criteria.accountId },
@@ -148,42 +149,6 @@ fun accountTypeLabel(type: AccountType) = when (type) {
 @Composable
 private fun SheetLabel(text: String) {
     Text(text, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun <T> Picker(
-    label: String,
-    options: List<T>,
-    selected: T?,
-    text: (T?) -> String,
-    onPick: (T) -> Unit,
-    dot: (T?) -> androidx.compose.ui.graphics.Color? = { null },
-) {
-    var expanded by remember { mutableStateOf(false) }
-    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
-        OutlinedTextField(
-            value = text(selected),
-            onValueChange = {},
-            readOnly = true,
-            label = { Text(label) },
-            leadingIcon = dot(selected)?.let { color -> { ColorDot(color) } },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-            modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
-        )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            options.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(text(option)) },
-                    leadingIcon = dot(option)?.let { color -> { ColorDot(color) } },
-                    onClick = {
-                        expanded = false
-                        onPick(option)
-                    },
-                )
-            }
-        }
-    }
 }
 
 /** Picks a range on a calendar; both ends are needed, in either order the person taps them. */
