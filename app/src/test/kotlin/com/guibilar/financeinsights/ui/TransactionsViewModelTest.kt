@@ -202,4 +202,23 @@ class TransactionsViewModelTest {
         assertEquals(categories, model.state.value.categories)
         assertEquals(1, api.transactionFilters.size)
     }
+
+    @Test
+    fun `a selected bar narrows where it went to that period, and tapping it again widens it`() = runTest(dispatcher) {
+        val model = model(TransactionsRoute(overTime = true))
+        advanceUntilIdle()
+        val whole = model.state.value.merchants
+        val period = model.state.value.breakdown.valueOrNull!!.periods.first()
+
+        model.selectPeriod(0)
+        advanceUntilIdle()
+        val asked = api.merchantInputs.last()
+        assertEquals(period.start.take(10), asked.startDate)
+        assertEquals(period.end.take(10), asked.endDate)
+        assertEquals(period, model.state.value.period)
+        assertTrue(model.state.value.merchants.isNotEmpty())
+
+        model.selectPeriod(null)
+        assertEquals(whole, model.state.value.merchants)
+    }
 }
