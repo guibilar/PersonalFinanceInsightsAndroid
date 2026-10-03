@@ -9,8 +9,10 @@ import com.guibilar.financeinsights.core.api.apiCall
 import com.guibilar.financeinsights.core.api.apiError
 import com.guibilar.financeinsights.core.api.importMessage
 import com.guibilar.financeinsights.core.api.importStatement
+import com.guibilar.financeinsights.core.logic.DateChoice
 import com.guibilar.financeinsights.core.logic.DateRange
 import com.guibilar.financeinsights.core.logic.describeRulesResult
+import com.guibilar.financeinsights.core.logic.matchDatePreset
 import com.guibilar.financeinsights.core.model.Budget
 import com.guibilar.financeinsights.core.model.BudgetFilter
 import com.guibilar.financeinsights.core.model.CategoryRuleInput
@@ -198,8 +200,19 @@ class TransactionsViewModel(
         }
         loadLookups()
         val now = clock()
-        if (now == _state.value.today) return
+        val before = _state.value
+        if (now == before.today) return
+        // A quick date filter means the same thing on the new day: "This month" moves on to the new month.
+        val preset = (matchDatePreset(before.criteria, before.today) as? DateChoice.Preset)?.preset
         _state.update { it.copy(today = now) }
+        if (preset != null) {
+            val range = preset.range(now)
+            val moved = before.criteria.copy(startDate = range.startDate, endDate = range.endDate)
+            if (moved != before.criteria) {
+                setCriteria { moved }
+                return
+            }
+        }
         reloadList()
         reloadBreakdown()
     }

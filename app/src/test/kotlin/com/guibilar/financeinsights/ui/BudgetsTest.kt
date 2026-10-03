@@ -16,6 +16,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -46,6 +47,26 @@ class BudgetsTest {
             errors,
         )
         assertTrue(budgetErrors("Food", "d", "400", BudgetPeriod.Monthly, null, null, "no frills").isEmpty())
+    }
+
+    @Test
+    fun `a failed later page keeps the list and offers to try again`() = runTest(dispatcher) {
+        api.budgetCount = 6
+        val model = BudgetsViewModel(api)
+        advanceUntilIdle()
+        assertEquals(2, model.state.value.items.size)
+
+        api.failing += "budgets"
+        model.loadMore()
+        advanceUntilIdle()
+        assertEquals(2, model.state.value.items.size)
+        assertTrue(model.state.value.moreFailed)
+
+        api.failing.clear()
+        model.loadMore()
+        advanceUntilIdle()
+        assertEquals(4, model.state.value.items.size)
+        assertFalse(model.state.value.moreFailed)
     }
 
     @Test

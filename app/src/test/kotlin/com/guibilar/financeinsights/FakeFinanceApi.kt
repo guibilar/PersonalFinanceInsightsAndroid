@@ -54,6 +54,10 @@ class FakeFinanceApi : FinanceApi {
     val failing = mutableSetOf<String>()
     /** Calls (by name) answered with this API error instead. */
     val refusing = mutableMapOf<String, ApiError.Http>()
+    /** Calls (by name) that take this long (ms) to answer. */
+    val slow = mutableMapOf<String, Long>()
+    /** How many budgets there are, when more than the recorded ones: the later pages repeat them under new ids. */
+    var budgetCount: Int? = null
     /** What was sent, by call: the writes the app made. */
     val sent = mutableListOf<Pair<String, Any?>>()
 
@@ -82,7 +86,10 @@ class FakeFinanceApi : FinanceApi {
     override suspend fun login(login: LoginInput) = CurrentUser("dev").also { check("login") }
     override suspend fun logout() = check("logout")
     override suspend fun me() = CurrentUser("dev").also { check("me") }
-    override suspend fun yearReport(): CategorizedReport = check("yearReport").let { fixture("year") }
+    override suspend fun yearReport(): CategorizedReport {
+        slow["yearReport"]?.let { kotlinx.coroutines.delay(it) }
+        return check("yearReport").let { fixture("year") }
+    }
     override suspend fun monthReport(): CategorizedReport = check("monthReport").let { fixture("month") }
     override suspend fun cashFlow(): CashFlowReport = check("cashFlow").let { fixture("cash-flow") }
 
@@ -109,7 +116,13 @@ class FakeFinanceApi : FinanceApi {
         return Page(items, filter.page, half, totalCount = all.items.size, totalPages = 2, hasNextPage = filter.page == 1)
     }
 
-    override suspend fun budgets(filter: BudgetFilter): Page<Budget> = check("budgets").let { fixture("budgets") }
+    override suspend fun budgets(filter: BudgetFilter): Page<Budget> {
+        check("budgets")
+        val recorded = fixture<Page<Budget>>("budgets")
+        val count = budgetCount ?: return recorded
+        val items = recorded.items.map { it.copy(id = "${it.id}-${filter.page}") }
+        return Page(items, filter.page, items.size, totalCount = count, totalPages = (count + items.size - 1) / items.size, hasNextPage = filter.page * items.size < count)
+    }
     /** Categories added to the recorded ones, for cases the recording doesn't have. */
     val extraCategories = mutableListOf<Category>()
     override suspend fun categories(): List<Category> = check("categories").let { fixture<List<Category>>("categories") + extraCategories }

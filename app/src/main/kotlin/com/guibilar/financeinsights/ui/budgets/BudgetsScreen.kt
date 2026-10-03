@@ -169,6 +169,12 @@ fun BudgetsScreen(model: BudgetsViewModel, account: AccountInfo, onSignOut: susp
                             }
                             if (state.loadingMore) {
                                 item { Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { CircularProgressIndicator(Modifier.size(24.dp)) } }
+                            } else if (state.moreFailed) {
+                                item {
+                                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                        TextButton(onClick = model::loadMore) { Text("Could not load more. Try again") }
+                                    }
+                                }
                             }
                         }
                     }

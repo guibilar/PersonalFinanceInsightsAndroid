@@ -39,6 +39,8 @@ data class BudgetsState(
     val loading: Boolean = true,
     val loadingMore: Boolean = false,
     val error: String? = null,
+    /** A later page failed: the list stays, with a retry at its end. */
+    val moreFailed: Boolean = false,
     val refreshing: Boolean = false,
     val categories: List<CategoryReference> = emptyList(),
 ) {
@@ -115,7 +117,7 @@ class BudgetsViewModel(private val api: FinanceApi) : ViewModel() {
     fun loadMore() {
         val current = _state.value
         if (current.loading || current.loadingMore || current.endReached || current.error != null) return
-        _state.update { it.copy(loadingMore = true) }
+        _state.update { it.copy(loadingMore = true, moreFailed = false) }
         listJob = viewModelScope.launch {
             val result = apiCall { api.budgets(filter(current, current.pagesLoaded + 1)) }
             _state.update { state ->
@@ -128,7 +130,8 @@ class BudgetsViewModel(private val api: FinanceApi) : ViewModel() {
                             loadingMore = false,
                         )
                     },
-                    onFailure = { state.copy(loadingMore = false) },
+                    // It used to stop there without a word, the rest of the budgets out of reach.
+                    onFailure = { state.copy(loadingMore = false, moreFailed = true) },
                 )
             }
         }
@@ -159,7 +162,7 @@ class BudgetsViewModel(private val api: FinanceApi) : ViewModel() {
     /** The first page again. [quiet] (back on the screen) keeps the list showing when the reload fails. */
     private fun reload(quiet: Boolean = false) {
         listJob?.cancel()
-        _state.update { it.copy(loading = true, error = null, loadingMore = false) }
+        _state.update { it.copy(loading = true, error = null, loadingMore = false, moreFailed = false) }
         listJob = viewModelScope.launch {
             val current = _state.value
             val result = apiCall { api.budgets(filter(current, 1)) }
