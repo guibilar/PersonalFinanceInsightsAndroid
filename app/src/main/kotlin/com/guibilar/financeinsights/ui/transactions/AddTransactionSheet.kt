@@ -138,6 +138,13 @@ fun AddTransactionSheet(state: TransactionsState, model: TransactionsViewModel, 
                     accountId = it.id
                     duplicate = null
                 },
+                // Without one, Add did nothing and said nothing.
+                supportingText = when {
+                    accountId != null || !tried -> null
+                    state.accounts.isEmpty() -> "Add an account under More › Accounts first."
+                    else -> "Choose an account."
+                },
+                isError = tried && accountId == null,
             )
             DateField("Date", date, onChange = {
                 date = it

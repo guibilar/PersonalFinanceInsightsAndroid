@@ -85,7 +85,7 @@ class BudgetsViewModel(private val api: FinanceApi) : ViewModel() {
             shown = true
             return
         }
-        reload()
+        reload(quiet = true)
         loadCategories()
     }
     private var shown = false
@@ -156,7 +156,8 @@ class BudgetsViewModel(private val api: FinanceApi) : ViewModel() {
         }
     }
 
-    private fun reload() {
+    /** The first page again. [quiet] (back on the screen) keeps the list showing when the reload fails. */
+    private fun reload(quiet: Boolean = false) {
         listJob?.cancel()
         _state.update { it.copy(loading = true, error = null, loadingMore = false) }
         listJob = viewModelScope.launch {
@@ -168,6 +169,7 @@ class BudgetsViewModel(private val api: FinanceApi) : ViewModel() {
                         state.copy(items = page.items, totalCount = page.totalCount, pagesLoaded = 1, loading = false, refreshing = false)
                     },
                     onFailure = {
+                        if (quiet && state.items.isNotEmpty()) return@fold state.copy(loading = false, refreshing = false)
                         state.copy(
                             items = emptyList(), pagesLoaded = 0, loading = false, refreshing = false,
                             error = result.apiError?.loadMessage(LOAD_FAILED) ?: LOAD_FAILED,

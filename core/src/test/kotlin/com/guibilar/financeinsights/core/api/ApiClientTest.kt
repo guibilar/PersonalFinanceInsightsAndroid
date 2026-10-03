@@ -114,4 +114,11 @@ class ApiClientTest {
         assertTrue(unreachable is ApiError.Unreachable)
         assertTrue(unreachable.loadMessage("Could not load.").contains("Tailscale"))
     }
+
+    @Test
+    fun `a proxy's bad gateway says the server isn't answering, not just a number`() {
+        val gateway = ApiError.fromResponse(502, "<html>Bad Gateway</html>")
+        assertTrue(gateway.message!!.startsWith("The server isn't answering right now (502)"))
+        assertEquals("The server answered 418.", ApiError.fromResponse(418, null).message)
+    }
 }

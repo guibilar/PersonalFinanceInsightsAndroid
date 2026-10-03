@@ -30,7 +30,7 @@ sealed class ApiError(message: String) : Exception(message) {
         val code: String?,
         /** For a 400: the reasons per field. */
         val fieldErrors: Map<String, List<String>>,
-    ) : ApiError(detail ?: title ?: "The server answered $status.")
+    ) : ApiError(detail ?: title ?: defaultMessage(status))
 
     /** Anything else (a response the app couldn't read). */
     class Unexpected(cause: Throwable) : ApiError("Something went wrong. Please try again.") {
@@ -105,3 +105,13 @@ suspend fun <T> apiCall(block: suspend () -> T): Result<T> =
 
 /** The failure as an [ApiError] (every failure from [apiCall] is one). */
 val Result<*>.apiError: ApiError? get() = exceptionOrNull() as? ApiError
+
+/**
+ * What a status without the API's explanation means to the person. 502–504 come from the proxy in front of the
+ * API (Tailscale serve, nginx) when the API itself is down or restarting.
+ */
+private fun defaultMessage(status: Int) = when (status) {
+    502, 503, 504 -> "The server isn't answering right now ($status). It may be restarting: try again in a moment."
+    in 500..599 -> "The server had a problem ($status). Try again in a moment."
+    else -> "The server answered $status."
+}

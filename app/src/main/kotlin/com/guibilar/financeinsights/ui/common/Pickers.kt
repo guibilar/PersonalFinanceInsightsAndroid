@@ -45,6 +45,7 @@ fun <T> DropdownPicker(
     dot: (T?) -> Color? = { null },
     enabled: Boolean = true,
     supportingText: String? = null,
+    isError: Boolean = false,
 ) {
     var expanded by remember { mutableStateOf(false) }
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { if (enabled) expanded = it }, modifier = modifier) {
@@ -58,6 +59,7 @@ fun <T> DropdownPicker(
             leadingIcon = dot(selected)?.let { color -> { ColorDot(color) } },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
             supportingText = supportingText?.let { { Text(it) } },
+            isError = isError,
             modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled),
         )
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {

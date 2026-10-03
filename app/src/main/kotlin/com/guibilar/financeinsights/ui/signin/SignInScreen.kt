@@ -66,7 +66,8 @@ fun SignInScreen(
 ) {
     var server by rememberSaveable { mutableStateOf(initialServer ?: "") }
     var username by rememberSaveable { mutableStateOf(initialUsername ?: "") }
-    var password by rememberSaveable { mutableStateOf("") }
+    // Not saved with the screen's state (which can be written to disk); re-typed after the app is restarted.
+    var password by remember { mutableStateOf("") }
     var showPassword by rememberSaveable { mutableStateOf(false) }
     var error by remember { mutableStateOf(initialMessage) }
     var busy by remember { mutableStateOf(false) }
