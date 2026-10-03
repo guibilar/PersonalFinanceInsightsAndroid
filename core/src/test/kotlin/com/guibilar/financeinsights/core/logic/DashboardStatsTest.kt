@@ -72,5 +72,6 @@ class DashboardStatsTest {
         assertEquals("$0.00", Money.format(-0.001))
         assertEquals(listOf("$950", "$1.2K", "$5K", "-$2.5M"), listOf(950.0, 1234.0, 5000.0, -2_500_000.0).map(Money::compact))
         assertEquals(listOf("$1M", "$960K", "$1K", "$0"), listOf(999_960.0, 960_000.0, 999.6, -0.3).map(Money::compact))
+        assertEquals(listOf("99%", "100%", "100%", "0%"), listOf(99.6, 100.0, 100.4, -3.0).map(Money::percentUsed))
     }
 }

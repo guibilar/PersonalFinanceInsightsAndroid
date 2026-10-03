@@ -84,6 +84,7 @@ import com.guibilar.financeinsights.ui.common.FitText
 import com.guibilar.financeinsights.ui.common.Placeholder
 import com.guibilar.financeinsights.ui.common.ShowMessages
 import com.guibilar.financeinsights.ui.common.Skeleton
+import com.guibilar.financeinsights.ui.common.rememberOpenItem
 
 private val SORT_LABELS = mapOf(
     TransactionSortField.Date to "Date",
@@ -108,12 +109,13 @@ fun TransactionsScreen(
         model.resumed()
         onPauseOrDispose {}
     }
-    var filtersOpen by remember { mutableStateOf(false) }
-    var opened by remember { mutableStateOf<Transaction?>(null) }
-    var adding by remember { mutableStateOf(false) }
+    // Saved, so a sheet stays open (with what was typed) when the phone rotates.
+    var filtersOpen by rememberSaveable { mutableStateOf(false) }
+    var opened by rememberOpenItem(state.list.items) { it.id }
+    var adding by rememberSaveable { mutableStateOf(false) }
     var importing by remember { mutableStateOf<PickedFile?>(null) }
-    var importOpen by remember { mutableStateOf(false) }
-    var confirmRules by remember { mutableStateOf(false) }
+    var importOpen by rememberSaveable { mutableStateOf(false) }
+    var confirmRules by rememberSaveable { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
 
     // A statement shared to the app opens the import, ready to go.
@@ -290,7 +292,7 @@ fun TransactionsScreen(
         }
     }
     if (adding) AddTransactionSheet(state, model, onDismiss = { adding = false })
-    if (importOpen) ImportSheet(state.accounts, model, onDismiss = { importOpen = false }, initialFile = importing)
+    if (importOpen) ImportSheet(state.accounts, model, onDismiss = { importOpen = false }, initialFile = importing, accountsLoaded = state.accountsLoaded)
     if (confirmRules) {
         AlertDialog(
             onDismissRequest = { confirmRules = false },

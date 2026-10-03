@@ -61,6 +61,7 @@ import com.guibilar.financeinsights.ui.common.EmptyState
 import com.guibilar.financeinsights.ui.common.ErrorState
 import com.guibilar.financeinsights.ui.common.LoadState
 import com.guibilar.financeinsights.ui.common.Skeleton
+import com.guibilar.financeinsights.ui.common.rememberOpenItem
 import kotlinx.coroutines.launch
 
 private fun AccountType.icon() = when (this) {
@@ -72,9 +73,11 @@ private fun AccountType.icon() = when (this) {
 @Composable
 fun AccountsScreen(model: AccountsViewModel, contentPadding: PaddingValues, onBack: () -> Unit) {
     val state by model.state.collectAsState()
-    var editing by remember { mutableStateOf<Account?>(null) }
-    var adding by remember { mutableStateOf(false) }
-    var deleting by remember { mutableStateOf<Account?>(null) }
+    val accounts = state.valueOrNull.orEmpty()
+    // Saved, so a sheet stays open (with what was typed) when the phone rotates.
+    var editing by rememberOpenItem(accounts) { it.id }
+    var adding by rememberSaveable { mutableStateOf(false) }
+    var deleting by rememberOpenItem(accounts) { it.id }
 
     SettingsScaffold("Accounts", onBack, contentPadding, model.messages, addLabel = "New account", onAdd = { adding = true }) {
         Text(

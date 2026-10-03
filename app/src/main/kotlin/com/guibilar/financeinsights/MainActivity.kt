@@ -3,6 +3,7 @@ package com.guibilar.financeinsights
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -41,7 +42,9 @@ class MainActivity : ComponentActivity() {
         } ?: return
         lifecycleScope.launch {
             val file = withContext(Dispatchers.IO) { readFile(this@MainActivity, uri) }
+            // Unreadable, it used to vanish without a word.
             if (file != null) app.sharedStatement.value = file
+            else Toast.makeText(this@MainActivity, "Could not read that file.", Toast.LENGTH_LONG).show()
         }
     }
 }

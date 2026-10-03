@@ -4,6 +4,7 @@ import java.text.NumberFormat
 import java.util.Currency
 import java.util.Locale
 import kotlin.math.abs
+import kotlin.math.floor
 import kotlin.math.round
 
 /** Amounts as the web app shows them: Canadian dollars, "$1,234.56", "-$5.00". */
@@ -34,4 +35,10 @@ object Money {
 
     /** A percentage, rounded: "12%". */
     fun percent(value: Double) = "${round(value).toLong()}%"
+
+    /**
+     * How much of a budget is used. Below 100 it rounds down, so a budget that isn't full never reads "100%" (in
+     * the colour of one that is nearly full).
+     */
+    fun percentUsed(value: Double) = if (value < 100) "${floor(value).toLong().coerceAtLeast(0)}%" else percent(value)
 }

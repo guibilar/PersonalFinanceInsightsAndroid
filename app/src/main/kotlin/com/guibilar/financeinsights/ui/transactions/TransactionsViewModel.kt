@@ -89,6 +89,8 @@ data class TransactionsState(
     val merchantsFailed: Boolean = false,
     val categories: List<Category> = emptyList(),
     val accounts: List<Account> = emptyList(),
+    /** The accounts were asked for once (loaded or not): until then, none isn't "no account". */
+    val accountsLoaded: Boolean = false,
     /** The active budgets, to link transactions to. */
     val budgets: List<Budget> = emptyList(),
     /** Deleted transactions are listed instead of the others, to restore one. */
@@ -164,7 +166,8 @@ class TransactionsViewModel(
             apiCall { api.categories() }.getOrNull()?.let { categories -> _state.update { it.copy(categories = categories) } }
         }
         viewModelScope.launch {
-            apiCall { api.accounts() }.getOrNull()?.let { accounts -> _state.update { it.copy(accounts = accounts) } }
+            val accounts = apiCall { api.accounts() }.getOrNull()
+            _state.update { it.copy(accounts = accounts ?: it.accounts, accountsLoaded = true) }
         }
         loadBudgets()
     }

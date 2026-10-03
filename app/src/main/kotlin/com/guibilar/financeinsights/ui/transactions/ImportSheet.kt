@@ -5,6 +5,7 @@ import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -33,6 +34,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -60,7 +62,13 @@ private val STATEMENT_TYPES = arrayOf(
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ImportSheet(accounts: List<Account>, model: TransactionsViewModel, onDismiss: () -> Unit, initialFile: PickedFile? = null) {
+fun ImportSheet(
+    accounts: List<Account>,
+    model: TransactionsViewModel,
+    onDismiss: () -> Unit,
+    initialFile: PickedFile? = null,
+    accountsLoaded: Boolean = true,
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -69,25 +77,32 @@ fun ImportSheet(accounts: List<Account>, model: TransactionsViewModel, onDismiss
     var account by remember { mutableStateOf(importable.singleOrNull()) }
     // Opened from a shared statement right at launch, the accounts may arrive after the sheet.
     LaunchedEffect(importable) { if (account == null) account = importable.singleOrNull() }
-    var file by remember { mutableStateOf(initialFile) }
+    var file by remember { mutableStateOf<PickedFile?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var mismatch by remember { mutableStateOf<String?>(null) }
     var uploading by remember { mutableStateOf(false) }
 
+    // Picked here or shared to the app, a file goes through the same checks: a shared one over the limit was
+    // uploaded cut short (it is only read that far).
+    fun take(picked: PickedFile?) {
+        error = null
+        mismatch = null
+        when {
+            picked == null -> error = "Could not read that file."
+            picked.bytes.size > MAX_STATEMENT_BYTES -> {
+                file = null
+                error = "The file is larger than 5 MB."
+            }
+            else -> file = picked
+        }
+    }
+    // Shared again while the sheet is open, the new file replaces the old.
+    LaunchedEffect(initialFile) { if (initialFile != null) take(initialFile) }
+
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         if (uri == null) return@rememberLauncherForActivityResult
         scope.launch {
-            error = null
-            mismatch = null
-            val picked = withContext(Dispatchers.IO) { readFile(context, uri) }
-            when {
-                picked == null -> error = "Could not read that file."
-                picked.bytes.size > MAX_STATEMENT_BYTES -> {
-                    file = null
-                    error = "The file is larger than 5 MB."
-                }
-                else -> file = picked
-            }
+            take(withContext(Dispatchers.IO) { readFile(context, uri) })
         }
     }
 
@@ -118,8 +133,13 @@ fun ImportSheet(accounts: List<Account>, model: TransactionsViewModel, onDismiss
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            if (!accountsLoaded) {
+                // Not "no account takes statements" while they are still on their way.
+                Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                return@Column
+            }
             if (importable.isEmpty()) {
-                Text("No account takes statement files. Add one, or change an account's statement format, on the web.")
+                Text("No account takes statement files. Add one, or change an account's statement format, under More › Accounts.")
                 Spacer(Modifier.height(16.dp))
                 return@Column
             }

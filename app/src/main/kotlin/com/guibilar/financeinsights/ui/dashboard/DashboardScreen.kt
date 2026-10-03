@@ -49,8 +49,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import com.guibilar.financeinsights.core.logic.BudgetHealth
 import com.guibilar.financeinsights.core.logic.Money
 import com.guibilar.financeinsights.core.logic.averageCaption
+import com.guibilar.financeinsights.core.logic.budgetHealth
 import com.guibilar.financeinsights.core.logic.budgetsOverLimit
 import com.guibilar.financeinsights.core.logic.categoryAverages
 import com.guibilar.financeinsights.core.logic.categoryShares
@@ -69,6 +71,7 @@ import com.guibilar.financeinsights.ui.charts.ChartSeries
 import com.guibilar.financeinsights.ui.charts.GroupedBarChart
 import com.guibilar.financeinsights.ui.charts.StackedBarChart
 import com.guibilar.financeinsights.ui.common.AccountMenuButton
+import com.guibilar.financeinsights.ui.common.BUDGET_WARNING
 import com.guibilar.financeinsights.ui.common.ColorDot
 import com.guibilar.financeinsights.ui.common.EmptyState
 import com.guibilar.financeinsights.ui.common.ErrorState
@@ -290,8 +293,6 @@ private fun HeadlineTiles(state: DashboardState) {
     }
 }
 
-/** From this text size on, the headline tiles take a row each. */
-
 private fun placeholder(state: LoadState<*>) = if (state is LoadState.Failed) "—" else "…"
 
 private fun failedHint(state: LoadState<*>, failed: String) = if (state is LoadState.Failed) failed else null
@@ -434,9 +435,14 @@ private fun CategoryAverages(report: CategorizedReport, today: LocalDate) {
                 Text("${Money.format(row.average)}/mo", fontWeight = FontWeight.Medium)
                 if (change != null) {
                     Text(
-                        "${if (change >= 0) "+" else "−"}${Money.percent(kotlin.math.abs(change))}",
+                        // No sign on what rounds to 0%: "−0%" read like a drop.
+                        "${if (kotlin.math.round(change) == 0.0) "" else if (change > 0) "+" else "−"}${Money.percent(kotlin.math.abs(change))}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (change > 0) colors.negative else colors.positive,
+                        color = when {
+                            kotlin.math.round(change) == 0.0 -> MaterialTheme.colorScheme.onSurfaceVariant
+                            change > 0 -> colors.negative
+                            else -> colors.positive
+                        },
                     )
                 }
             }
@@ -556,19 +562,21 @@ private fun CashFlowTable(report: CashFlowReport) {
 private fun BudgetOverview(budgets: List<Budget>) {
     val colors = LocalChartColors.current
     budgets.sortedByDescending { it.percentageUsed }.forEach { budget ->
-        val color = when {
-            budget.percentageUsed >= 100 -> colors.negative
-            budget.percentageUsed >= 80 -> Color(0xFFE0A100)
-            else -> colors.aqua
+        // The same colours and thresholds as on the Budgets screen.
+        val health = budgetHealth(budget.percentageUsed)
+        val color = when (health) {
+            BudgetHealth.Over -> colors.negative
+            BudgetHealth.Warning -> BUDGET_WARNING
+            BudgetHealth.Ok -> colors.blue
         }
         Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(budget.name, Modifier.weight(1f), fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
-                    "${Money.percent(budget.percentageUsed)} used",
+                    "${Money.percentUsed(budget.percentageUsed)} used",
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (budget.percentageUsed >= 100) colors.negative else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (health == BudgetHealth.Over) colors.negative else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             Spacer(Modifier.height(6.dp))

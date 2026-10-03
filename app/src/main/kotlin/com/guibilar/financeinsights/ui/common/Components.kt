@@ -276,3 +276,6 @@ fun <T> ChoiceRow(options: List<T>, selected: T, label: (T) -> String, onSelect:
         }
     }
 }
+
+/** A budget nearly used up (80% and more), on the dashboard and the Budgets screen alike. */
+val BUDGET_WARNING = Color(0xFFE0A100)
