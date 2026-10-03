@@ -36,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.guibilar.financeinsights.core.api.MAX_STATEMENT_BYTES
+import com.guibilar.financeinsights.core.logic.accountTypeLabel
 import com.guibilar.financeinsights.core.model.Account
 import com.guibilar.financeinsights.core.model.StatementFormat
 import com.guibilar.financeinsights.ui.common.DropdownPicker

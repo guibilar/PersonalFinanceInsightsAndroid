@@ -162,3 +162,27 @@ data class BudgetInput(
     /** Any period but Total; not with categories. */
     val merchant: String? = null,
 )
+
+@Serializable
+data class CategoryRuleMove(val position: Int)
+
+@Serializable
+data class FlowRuleInput(val keyword: String, val flow: Flow)
+
+@Serializable
+data class CategoryInput(
+    val name: String,
+    /** "#RRGGBB". */
+    val color: String,
+)
+
+/** A new account; its type can't change afterwards. */
+@Serializable
+data class AccountInput(val name: String, val type: AccountType, val format: StatementFormat)
+
+/** Renames an account and/or corrects its statement format. */
+@Serializable
+data class AccountUpdate(val name: String, val format: StatementFormat)
+
+@Serializable
+data class ChangePasswordInput(val currentPassword: String, val newPassword: String)

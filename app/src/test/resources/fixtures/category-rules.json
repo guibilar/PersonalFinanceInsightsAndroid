@@ -1,0 +1,1032 @@
+[
+    {
+        "id": "01a0eb35-bf26-7a5e-bfc2-057cacd13ba5",
+        "keyword": "METRO",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b03",
+            "name": "Groceries",
+            "color": "#2CA12D"
+        },
+        "position": 0
+    },
+    {
+        "id": "01a0eb35-bf38-7663-afa6-bbdeb7535d0d",
+        "keyword": "GROCERY",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b03",
+            "name": "Groceries",
+            "color": "#2CA12D"
+        },
+        "position": 1
+    },
+    {
+        "id": "01a0eb35-bf38-70cd-adb2-d23e5bf5a2cb",
+        "keyword": "SUPERMARKET",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b03",
+            "name": "Groceries",
+            "color": "#2CA12D"
+        },
+        "position": 2
+    },
+    {
+        "id": "01a0eb35-bf38-7bf1-acae-6f62479639d5",
+        "keyword": "DYLAN'S NF",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b03",
+            "name": "Groceries",
+            "color": "#2CA12D"
+        },
+        "position": 3
+    },
+    {
+        "id": "01a0eb35-bf38-7774-8f33-2f9e21171cd2",
+        "keyword": "LOBLAWS",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b03",
+            "name": "Groceries",
+            "color": "#2CA12D"
+        },
+        "position": 4
+    },
+    {
+        "id": "01a0eb35-bf38-76ab-90b6-43b1215a0842",
+        "keyword": "GIANT TIGER",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b03",
+            "name": "Groceries",
+            "color": "#2CA12D"
+        },
+        "position": 5
+    },
+    {
+        "id": "01a0eb35-bf38-78fa-839c-e326ed550ef5",
+        "keyword": "FARM BOY",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b03",
+            "name": "Groceries",
+            "color": "#2CA12D"
+        },
+        "position": 6
+    },
+    {
+        "id": "01a0eb35-bf38-7a79-837c-e571ce38936c",
+        "keyword": "FRESHCO",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b03",
+            "name": "Groceries",
+            "color": "#2CA12D"
+        },
+        "position": 7
+    },
+    {
+        "id": "01a0eb35-bf38-7a17-9168-67c7f2ea10a3",
+        "keyword": "WAL-MART",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b03",
+            "name": "Groceries",
+            "color": "#2CA12D"
+        },
+        "position": 8
+    },
+    {
+        "id": "01a0eb35-bf38-72d1-b4e6-6424d0769723",
+        "keyword": "SOBEYS",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b03",
+            "name": "Groceries",
+            "color": "#2CA12D"
+        },
+        "position": 9
+    },
+    {
+        "id": "01a0eb35-bf38-7f28-a2da-836984dc8d9c",
+        "keyword": "HALENDA'S MEATS",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b03",
+            "name": "Groceries",
+            "color": "#2CA12D"
+        },
+        "position": 10
+    },
+    {
+        "id": "01a0eb35-bf38-72f3-af9f-6a312bf9f866",
+        "keyword": "BURRITO",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b01",
+            "name": "Dining",
+            "color": "#1F76B5"
+        },
+        "position": 11
+    },
+    {
+        "id": "01a0eb35-bf38-7b6c-8b6d-ddd4af1591d0",
+        "keyword": "RESTAURANT",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b01",
+            "name": "Dining",
+            "color": "#1F76B5"
+        },
+        "position": 12
+    },
+    {
+        "id": "01a0eb35-bf38-74ca-9c87-bf0fc62cae91",
+        "keyword": "PIZZA",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b01",
+            "name": "Dining",
+            "color": "#1F76B5"
+        },
+        "position": 13
+    },
+    {
+        "id": "01a0eb35-bf38-765d-a9c8-6b5ceec7a016",
+        "keyword": "CAFE",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b01",
+            "name": "Dining",
+            "color": "#1F76B5"
+        },
+        "position": 14
+    },
+    {
+        "id": "01a0eb35-bf38-7801-ba5e-c1ee8dce706b",
+        "keyword": "SUBWAY",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b01",
+            "name": "Dining",
+            "color": "#1F76B5"
+        },
+        "position": 15
+    },
+    {
+        "id": "01a0eb35-bf38-7685-8578-f7fb3bdc2bb5",
+        "keyword": "TIM HORTONS",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b01",
+            "name": "Dining",
+            "color": "#1F76B5"
+        },
+        "position": 16
+    },
+    {
+        "id": "01a0eb35-bf38-726c-b453-319f845ad402",
+        "keyword": "MCDONALD",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b01",
+            "name": "Dining",
+            "color": "#1F76B5"
+        },
+        "position": 17
+    },
+    {
+        "id": "01a0eb35-bf38-7da7-a876-ddf37a7586b5",
+        "keyword": "STARBUCKS",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b01",
+            "name": "Dining",
+            "color": "#1F76B5"
+        },
+        "position": 18
+    },
+    {
+        "id": "01a0eb35-bf38-7fcf-9d01-81b0202a72f5",
+        "keyword": "HALIBUT HOUSE",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b01",
+            "name": "Dining",
+            "color": "#1F76B5"
+        },
+        "position": 19
+    },
+    {
+        "id": "01a0eb35-bf38-7186-bbc5-d7003dc15021",
+        "keyword": "DIVINO CHURRASCO",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b01",
+            "name": "Dining",
+            "color": "#1F76B5"
+        },
+        "position": 20
+    },
+    {
+        "id": "01a0eb35-bf38-7de1-adc9-6cab9fcef068",
+        "keyword": "SUSHI",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b01",
+            "name": "Dining",
+            "color": "#1F76B5"
+        },
+        "position": 21
+    },
+    {
+        "id": "01a0eb35-bf38-7913-831c-fa8d94264ce8",
+        "keyword": "SHANGHAI 360",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b01",
+            "name": "Dining",
+            "color": "#1F76B5"
+        },
+        "position": 22
+    },
+    {
+        "id": "01a0eb35-bf38-7a77-8ee6-23dd37b8f534",
+        "keyword": "FIVE GUYS",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b01",
+            "name": "Dining",
+            "color": "#1F76B5"
+        },
+        "position": 23
+    },
+    {
+        "id": "01a0eb35-bf38-71b2-8148-cb17e307bdb5",
+        "keyword": "A&W",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b01",
+            "name": "Dining",
+            "color": "#1F76B5"
+        },
+        "position": 24
+    },
+    {
+        "id": "01a0eb35-bf38-7aaa-a9f7-da20e58d70a1",
+        "keyword": "ARBYS",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b01",
+            "name": "Dining",
+            "color": "#1F76B5"
+        },
+        "position": 25
+    },
+    {
+        "id": "01a0eb35-bf38-7dd7-b866-b13ccaa50946",
+        "keyword": "RIO 40 DEGREES",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b01",
+            "name": "Dining",
+            "color": "#1F76B5"
+        },
+        "position": 26
+    },
+    {
+        "id": "01a0eb35-bf38-72d7-94cc-44c8df20d697",
+        "keyword": "FIREHOUSE",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b01",
+            "name": "Dining",
+            "color": "#1F76B5"
+        },
+        "position": 27
+    },
+    {
+        "id": "01a0eb35-bf38-7856-92be-93d512bd81e3",
+        "keyword": "SAMBA BRAZIL EATERY",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b01",
+            "name": "Dining",
+            "color": "#1F76B5"
+        },
+        "position": 28
+    },
+    {
+        "id": "01a0eb35-bf38-771d-b98f-0f34db167966",
+        "keyword": "POULET ROUGE",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b01",
+            "name": "Dining",
+            "color": "#1F76B5"
+        },
+        "position": 29
+    },
+    {
+        "id": "01a0eb35-bf38-7d05-bc6a-5a7bdd926941",
+        "keyword": "MONTANAS COOKHOUSE",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b01",
+            "name": "Dining",
+            "color": "#1F76B5"
+        },
+        "position": 30
+    },
+    {
+        "id": "01a0eb35-bf38-7df4-9cfa-b5d06e955cd0",
+        "keyword": "PUB",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b01",
+            "name": "Dining",
+            "color": "#1F76B5"
+        },
+        "position": 31
+    },
+    {
+        "id": "01a0eb35-bf38-74b1-8ef9-0844140a7607",
+        "keyword": "THE PLAYERS BENCH SPORTS",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b01",
+            "name": "Dining",
+            "color": "#1F76B5"
+        },
+        "position": 32
+    },
+    {
+        "id": "01a0eb35-bf38-76ec-8cef-08b5c5fd134b",
+        "keyword": "WYSE METER",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b0b",
+            "name": "Utilities",
+            "color": "#800080"
+        },
+        "position": 33
+    },
+    {
+        "id": "01a0eb35-bf38-7f45-807b-74a02a9e791d",
+        "keyword": "BELL",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b0b",
+            "name": "Utilities",
+            "color": "#800080"
+        },
+        "position": 34
+    },
+    {
+        "id": "01a0eb35-bf38-7188-abd3-31ccfac86cbd",
+        "keyword": "FIDO",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b0b",
+            "name": "Utilities",
+            "color": "#800080"
+        },
+        "position": 35
+    },
+    {
+        "id": "01a0eb35-bf38-7eaf-bef8-53abf6b1571a",
+        "keyword": "COINAMATIC",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b0b",
+            "name": "Utilities",
+            "color": "#800080"
+        },
+        "position": 36
+    },
+    {
+        "id": "01a0eb35-bf38-79dd-b9bf-25b5bd81ec8f",
+        "keyword": "VALIANT",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b07",
+            "name": "Rent",
+            "color": "#E277C3"
+        },
+        "position": 37
+    },
+    {
+        "id": "01a0eb35-bf38-7078-9f54-07450c860bf9",
+        "keyword": "PETSMART",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b06",
+            "name": "Pet",
+            "color": "#8C564B"
+        },
+        "position": 38
+    },
+    {
+        "id": "01a0eb35-bf38-708e-ba11-a02386884a90",
+        "keyword": "SIMCOE ST. N ANIMAL HOSPI OSHAWA",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b06",
+            "name": "Pet",
+            "color": "#8C564B"
+        },
+        "position": 39
+    },
+    {
+        "id": "01a0eb35-bf38-742f-8bc6-055441fef1a3",
+        "keyword": "PET VALU",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b06",
+            "name": "Pet",
+            "color": "#8C564B"
+        },
+        "position": 40
+    },
+    {
+        "id": "01a0eb35-bf38-7222-a373-d80b21fb67b5",
+        "keyword": "DEBIT TRUPANION",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b06",
+            "name": "Pet",
+            "color": "#8C564B"
+        },
+        "position": 41
+    },
+    {
+        "id": "01a0eb35-bf38-7293-b846-9fac2b4429b3",
+        "keyword": "UBER",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b0a",
+            "name": "Transportation",
+            "color": "#16BFCF"
+        },
+        "position": 42
+    },
+    {
+        "id": "01a0eb35-bf38-79d4-9cf5-e5a88a225112",
+        "keyword": "LYFT",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b0a",
+            "name": "Transportation",
+            "color": "#16BFCF"
+        },
+        "position": 43
+    },
+    {
+        "id": "01a0eb35-bf38-7916-833f-1cf4a201bbcc",
+        "keyword": "TAXI",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b0a",
+            "name": "Transportation",
+            "color": "#16BFCF"
+        },
+        "position": 44
+    },
+    {
+        "id": "01a0eb35-bf38-72a1-8bed-aff03cb4b04d",
+        "keyword": "PRESTO",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b0a",
+            "name": "Transportation",
+            "color": "#16BFCF"
+        },
+        "position": 45
+    },
+    {
+        "id": "01a0eb35-bf38-7d88-8a4f-704251bd93c0",
+        "keyword": "AMAZON",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b08",
+            "name": "Shopping",
+            "color": "#7F7E7E"
+        },
+        "position": 46
+    },
+    {
+        "id": "01a0eb35-bf38-7456-82c6-8c05b9187418",
+        "keyword": "WALMART",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b08",
+            "name": "Shopping",
+            "color": "#7F7E7E"
+        },
+        "position": 47
+    },
+    {
+        "id": "01a0eb35-bf39-73b5-a2b2-ff61a71a15a4",
+        "keyword": "SHOPPERS",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b08",
+            "name": "Shopping",
+            "color": "#7F7E7E"
+        },
+        "position": 48
+    },
+    {
+        "id": "01a0eb35-bf39-7e4d-8712-afbc90d56abd",
+        "keyword": "CANADIAN TIRE",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b08",
+            "name": "Shopping",
+            "color": "#7F7E7E"
+        },
+        "position": 49
+    },
+    {
+        "id": "01a0eb35-bf39-722a-890c-81ea95bafe46",
+        "keyword": "DOLLARAMA",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b08",
+            "name": "Shopping",
+            "color": "#7F7E7E"
+        },
+        "position": 50
+    },
+    {
+        "id": "01a0eb35-bf39-7bfd-b170-758886d777bc",
+        "keyword": "COSTCO",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b08",
+            "name": "Shopping",
+            "color": "#7F7E7E"
+        },
+        "position": 51
+    },
+    {
+        "id": "01a0eb35-bf39-7dc8-9803-285ad8fa10c7",
+        "keyword": "NEWEGG",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b08",
+            "name": "Shopping",
+            "color": "#7F7E7E"
+        },
+        "position": 52
+    },
+    {
+        "id": "01a0eb35-bf39-7c9a-a471-2c822486f3f8",
+        "keyword": "BEST BUY",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b08",
+            "name": "Shopping",
+            "color": "#7F7E7E"
+        },
+        "position": 53
+    },
+    {
+        "id": "01a0eb35-bf39-7da7-9089-fa2f2fc34459",
+        "keyword": "GAMESTOP",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b08",
+            "name": "Shopping",
+            "color": "#7F7E7E"
+        },
+        "position": 54
+    },
+    {
+        "id": "01a0eb35-bf39-7595-ae55-8e5b8b20ffe0",
+        "keyword": "WINNERS",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b08",
+            "name": "Shopping",
+            "color": "#7F7E7E"
+        },
+        "position": 55
+    },
+    {
+        "id": "01a0eb35-bf39-74f7-8094-7fe3776356b6",
+        "keyword": "HOT TOPIC",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b08",
+            "name": "Shopping",
+            "color": "#7F7E7E"
+        },
+        "position": 56
+    },
+    {
+        "id": "01a0eb35-bf39-76ae-be7d-0dc179d24d88",
+        "keyword": "VALUE VILLAGE",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b08",
+            "name": "Shopping",
+            "color": "#7F7E7E"
+        },
+        "position": 57
+    },
+    {
+        "id": "01a0eb35-bf39-764f-b1ff-5a7f32b4a651",
+        "keyword": "NOW AND THEN",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b08",
+            "name": "Shopping",
+            "color": "#7F7E7E"
+        },
+        "position": 58
+    },
+    {
+        "id": "01a0eb35-bf39-75f6-8ef4-9f3b61a1866d",
+        "keyword": "JYSK",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b08",
+            "name": "Shopping",
+            "color": "#7F7E7E"
+        },
+        "position": 59
+    },
+    {
+        "id": "01a0eb35-bf39-70de-8ec2-b1ec97ff6002",
+        "keyword": "SHOE COMPANY",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b08",
+            "name": "Shopping",
+            "color": "#7F7E7E"
+        },
+        "position": 60
+    },
+    {
+        "id": "01a0eb35-bf39-7fa9-90c4-53e2ba9f6d7e",
+        "keyword": "SPENCER GIFTS",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b08",
+            "name": "Shopping",
+            "color": "#7F7E7E"
+        },
+        "position": 61
+    },
+    {
+        "id": "01a0eb35-bf39-78ad-b083-cb99998ba7cb",
+        "keyword": "STEAMGAMES",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b02",
+            "name": "Entertainment",
+            "color": "#FF7E0F"
+        },
+        "position": 62
+    },
+    {
+        "id": "01a0eb35-bf39-7400-9a3b-5c5110a4308f",
+        "keyword": "TSO TORONTO",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b02",
+            "name": "Entertainment",
+            "color": "#FF7E0F"
+        },
+        "position": 63
+    },
+    {
+        "id": "01a0eb35-bf39-7930-aa60-b50d038ad8ac",
+        "keyword": "HYTTOOFO LOVENSE",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b02",
+            "name": "Entertainment",
+            "color": "#FF7E0F"
+        },
+        "position": 64
+    },
+    {
+        "id": "01a0eb35-bf39-7587-9912-1aeb45cb4eb0",
+        "keyword": "DENTISTRY ON RO",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b04",
+            "name": "Health",
+            "color": "#D72628"
+        },
+        "position": 65
+    },
+    {
+        "id": "01a0eb35-bf39-75c2-91f1-c81ed143f219",
+        "keyword": "LIFELABS",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b04",
+            "name": "Health",
+            "color": "#D72628"
+        },
+        "position": 66
+    },
+    {
+        "id": "01a0eb35-bf39-7da4-b268-581b9d1395c5",
+        "keyword": "LA FITNESS",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b04",
+            "name": "Health",
+            "color": "#D72628"
+        },
+        "position": 67
+    },
+    {
+        "id": "01a0eb35-bf39-7a3b-990e-38e03eac45da",
+        "keyword": "NETFLIX",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b09",
+            "name": "Subscriptions",
+            "color": "#BDBD23"
+        },
+        "position": 68
+    },
+    {
+        "id": "01a0eb35-bf39-7d4a-b17c-5e5fd30458e9",
+        "keyword": "SPOTIFY",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b09",
+            "name": "Subscriptions",
+            "color": "#BDBD23"
+        },
+        "position": 69
+    },
+    {
+        "id": "01a0eb35-bf39-7552-8d02-ece153ca991d",
+        "keyword": "DISNEY",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b09",
+            "name": "Subscriptions",
+            "color": "#BDBD23"
+        },
+        "position": 70
+    },
+    {
+        "id": "01a0eb35-bf39-77e5-8490-56ae37b5924f",
+        "keyword": "SUBSCRIPTION",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b09",
+            "name": "Subscriptions",
+            "color": "#BDBD23"
+        },
+        "position": 71
+    },
+    {
+        "id": "01a0eb35-bf39-7354-8af6-010b4cc85312",
+        "keyword": "GOOGLE ONE",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b09",
+            "name": "Subscriptions",
+            "color": "#BDBD23"
+        },
+        "position": 72
+    },
+    {
+        "id": "01a0eb35-c000-76d7-b801-be707484f958",
+        "keyword": "FARMER'S FRIDGE",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b03",
+            "name": "Groceries",
+            "color": "#2CA12D"
+        },
+        "position": 73
+    },
+    {
+        "id": "01a0eb35-c001-7829-9aea-8acd86d01cfc",
+        "keyword": "NO FRILLS",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b03",
+            "name": "Groceries",
+            "color": "#2CA12D"
+        },
+        "position": 74
+    },
+    {
+        "id": "01a0eb35-c001-77c1-97d0-f79d84738f30",
+        "keyword": "SAFEWAY",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b03",
+            "name": "Groceries",
+            "color": "#2CA12D"
+        },
+        "position": 75
+    },
+    {
+        "id": "01a0eb35-c001-7505-9550-95d68540ec17",
+        "keyword": "SAVE ON FOODS",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b03",
+            "name": "Groceries",
+            "color": "#2CA12D"
+        },
+        "position": 76
+    },
+    {
+        "id": "01a0eb35-c001-7bde-8161-de39ca961161",
+        "keyword": "SUPERSTORE",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b03",
+            "name": "Groceries",
+            "color": "#2CA12D"
+        },
+        "position": 77
+    },
+    {
+        "id": "01a0eb35-c001-7917-b8f7-e143efd17ddf",
+        "keyword": "KOJI KATSU",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b01",
+            "name": "Dining",
+            "color": "#1F76B5"
+        },
+        "position": 78
+    },
+    {
+        "id": "01a0eb35-c001-7c46-bcb4-e8d15167e5b7",
+        "keyword": "CUPBOP",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b01",
+            "name": "Dining",
+            "color": "#1F76B5"
+        },
+        "position": 79
+    },
+    {
+        "id": "01a0eb35-c001-774a-bec7-e5dd032121d1",
+        "keyword": "OLLY FRESCO",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b01",
+            "name": "Dining",
+            "color": "#1F76B5"
+        },
+        "position": 80
+    },
+    {
+        "id": "01a0eb35-c001-735d-b2e2-232755a7be15",
+        "keyword": "CAFFE",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b01",
+            "name": "Dining",
+            "color": "#1F76B5"
+        },
+        "position": 81
+    },
+    {
+        "id": "01a0eb35-c001-79df-8bd7-d637f602c37c",
+        "keyword": "APPLE EATERY",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b01",
+            "name": "Dining",
+            "color": "#1F76B5"
+        },
+        "position": 82
+    },
+    {
+        "id": "01a0eb35-c001-75a1-ad14-02ce2a4fdf1c",
+        "keyword": "MINAS BRAZILIAN",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b01",
+            "name": "Dining",
+            "color": "#1F76B5"
+        },
+        "position": 83
+    },
+    {
+        "id": "01a0eb35-c001-78d1-a560-9b30f2bd7c8e",
+        "keyword": "ARAMARK",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b01",
+            "name": "Dining",
+            "color": "#1F76B5"
+        },
+        "position": 84
+    },
+    {
+        "id": "01a0eb35-c001-70ee-834d-0ee2a9b74bb2",
+        "keyword": "REXALL",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b04",
+            "name": "Health",
+            "color": "#D72628"
+        },
+        "position": 85
+    },
+    {
+        "id": "01a0eb35-c001-7815-9d61-ca0770f2fa96",
+        "keyword": "PHARMAC",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b04",
+            "name": "Health",
+            "color": "#D72628"
+        },
+        "position": 86
+    },
+    {
+        "id": "01a0eb35-c001-7e9f-aaf3-533e47ab89a2",
+        "keyword": "ANYTIME FITNE",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b04",
+            "name": "Health",
+            "color": "#D72628"
+        },
+        "position": 87
+    },
+    {
+        "id": "01a0eb35-c001-73b2-930a-8615e69f045c",
+        "keyword": "EYECARE",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b04",
+            "name": "Health",
+            "color": "#D72628"
+        },
+        "position": 88
+    },
+    {
+        "id": "01a0eb35-c001-702f-8e86-e61e28d31ffb",
+        "keyword": "TRUPANION",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b06",
+            "name": "Pet",
+            "color": "#8C564B"
+        },
+        "position": 89
+    },
+    {
+        "id": "01a0eb35-c001-7ed1-b5e9-0e63758ac9a4",
+        "keyword": "ENMAX",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b0b",
+            "name": "Utilities",
+            "color": "#800080"
+        },
+        "position": 90
+    },
+    {
+        "id": "01a0eb35-c001-76d8-ad7e-f4bc4d0bfc77",
+        "keyword": "TELUS",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b0b",
+            "name": "Utilities",
+            "color": "#800080"
+        },
+        "position": 91
+    },
+    {
+        "id": "01a0eb35-c001-7b45-8a12-db0c4ecbfa97",
+        "keyword": "AIR CAN",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b0a",
+            "name": "Transportation",
+            "color": "#16BFCF"
+        },
+        "position": 92
+    },
+    {
+        "id": "01a0eb35-c001-7170-b52e-5793eafc2b97",
+        "keyword": "WESTJET",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b0a",
+            "name": "Transportation",
+            "color": "#16BFCF"
+        },
+        "position": 93
+    },
+    {
+        "id": "01a0eb35-c001-7d43-9511-b033a325f14b",
+        "keyword": "AIR TRANSAT",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b0a",
+            "name": "Transportation",
+            "color": "#16BFCF"
+        },
+        "position": 94
+    },
+    {
+        "id": "01a0eb35-c001-7b52-8c69-428d6ea7f708",
+        "keyword": "PORTER AIRLINES",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b0a",
+            "name": "Transportation",
+            "color": "#16BFCF"
+        },
+        "position": 95
+    },
+    {
+        "id": "01a0eb35-c001-778d-b1db-a9ae98dd1e47",
+        "keyword": "FLAIR AIRLINES",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b0a",
+            "name": "Transportation",
+            "color": "#16BFCF"
+        },
+        "position": 96
+    },
+    {
+        "id": "01a0eb35-c001-7a26-9c2a-98272727b124",
+        "keyword": "ANTHROPIC",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b09",
+            "name": "Subscriptions",
+            "color": "#BDBD23"
+        },
+        "position": 97
+    },
+    {
+        "id": "01a0eb35-c001-757f-8c46-113dbefe9505",
+        "keyword": "TASTEOFCALGARY",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b02",
+            "name": "Entertainment",
+            "color": "#FF7E0F"
+        },
+        "position": 98
+    },
+    {
+        "id": "01a0eb35-c001-7a94-805d-178fb7175c81",
+        "keyword": "MINISO",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b08",
+            "name": "Shopping",
+            "color": "#7F7E7E"
+        },
+        "position": 99
+    },
+    {
+        "id": "01a0eb35-c001-7ae8-8d70-1a07f8f855b9",
+        "keyword": "SAMSUNG",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b08",
+            "name": "Shopping",
+            "color": "#7F7E7E"
+        },
+        "position": 100
+    },
+    {
+        "id": "01a0eb35-c001-7883-80f2-725280488092",
+        "keyword": "SIMONS",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b08",
+            "name": "Shopping",
+            "color": "#7F7E7E"
+        },
+        "position": 101
+    },
+    {
+        "id": "01a0eb35-c001-7547-ba75-b4cc1090b380",
+        "keyword": "TREEHOUSE TOYS",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b08",
+            "name": "Shopping",
+            "color": "#7F7E7E"
+        },
+        "position": 102
+    }
+]

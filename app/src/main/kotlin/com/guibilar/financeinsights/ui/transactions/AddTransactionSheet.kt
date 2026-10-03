@@ -44,6 +44,7 @@ import com.guibilar.financeinsights.core.logic.TextLimits
 import com.guibilar.financeinsights.core.logic.amountError
 import com.guibilar.financeinsights.core.logic.flowsFor
 import com.guibilar.financeinsights.core.logic.parseAmount
+import com.guibilar.financeinsights.core.logic.accountTypeLabel
 import com.guibilar.financeinsights.core.model.Account
 import com.guibilar.financeinsights.core.model.CategoryReference
 import com.guibilar.financeinsights.core.model.Flow

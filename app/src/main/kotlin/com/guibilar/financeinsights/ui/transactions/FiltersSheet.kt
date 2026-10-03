@@ -37,13 +37,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.guibilar.financeinsights.core.logic.DateChoice
+import com.guibilar.financeinsights.core.logic.accountTypeLabel
 import com.guibilar.financeinsights.core.logic.DatePreset
 import com.guibilar.financeinsights.core.logic.DateRange
 import com.guibilar.financeinsights.core.logic.dateRange
 import com.guibilar.financeinsights.core.logic.describeRange
 import com.guibilar.financeinsights.core.logic.matchDatePreset
 import com.guibilar.financeinsights.core.model.Account
-import com.guibilar.financeinsights.core.model.AccountType
 import com.guibilar.financeinsights.core.model.Category
 import com.guibilar.financeinsights.core.model.Flow
 import com.guibilar.financeinsights.ui.common.ColorDot
@@ -138,12 +138,6 @@ fun FiltersSheet(
             },
         )
     }
-}
-
-fun accountTypeLabel(type: AccountType) = when (type) {
-    AccountType.Chequing -> "Chequing"
-    AccountType.Savings -> "Savings"
-    AccountType.CreditCard -> "Credit card"
 }
 
 @Composable

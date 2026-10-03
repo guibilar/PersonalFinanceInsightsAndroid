@@ -1,0 +1,42 @@
+[
+    {
+        "id": "01a0eb35-bf8e-72a8-a896-75901c089d47",
+        "keyword": "DEEL CANADA",
+        "flow": "Income"
+    },
+    {
+        "id": "01a0eb35-bf8e-7d50-aa3f-bd95a524b760",
+        "keyword": "DEPOSIT TRUPCAN",
+        "flow": "Income"
+    },
+    {
+        "id": "01a0eb35-bf8e-70b4-a840-623f9ef15e95",
+        "keyword": "INTERNET BANKING FULFILL REQUEST",
+        "flow": "Transfer"
+    },
+    {
+        "id": "01a0eb35-bf81-715f-b06c-858a8f0f94ca",
+        "keyword": "INTERNET BANKING INTERNET TRANSFER",
+        "flow": "Transfer"
+    },
+    {
+        "id": "01a0eb35-bf8e-71cf-b14f-76b4647180d7",
+        "keyword": "PAIEMENT MERCI",
+        "flow": "Transfer"
+    },
+    {
+        "id": "01a0eb35-c001-788d-9816-c81ac23ee521",
+        "keyword": "PAYMENT RECEIVED - THANK YOU",
+        "flow": "Transfer"
+    },
+    {
+        "id": "01a0eb35-bf8e-77a5-927f-75b1c932f7b2",
+        "keyword": "PAYMENT THANK YOU",
+        "flow": "Transfer"
+    },
+    {
+        "id": "01a0eb35-bf8e-7888-b698-ce6ed3b05663",
+        "keyword": "UBER* PENDING",
+        "flow": "Ignored"
+    }
+]

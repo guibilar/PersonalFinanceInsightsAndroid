@@ -15,7 +15,15 @@ import com.guibilar.financeinsights.core.model.MerchantsInput
 import com.guibilar.financeinsights.core.model.Page
 import com.guibilar.financeinsights.core.model.Transaction
 import com.guibilar.financeinsights.core.model.TransactionFilter
+import com.guibilar.financeinsights.core.model.AccountInput
+import com.guibilar.financeinsights.core.model.AccountUpdate
 import com.guibilar.financeinsights.core.model.BudgetInput
+import com.guibilar.financeinsights.core.model.CategoryInput
+import com.guibilar.financeinsights.core.model.CategoryRuleMove
+import com.guibilar.financeinsights.core.model.ChangePasswordInput
+import com.guibilar.financeinsights.core.model.FlowRule
+import com.guibilar.financeinsights.core.model.FlowRuleInput
+import com.guibilar.financeinsights.core.model.SignedOutSessions
 import com.guibilar.financeinsights.core.model.CategoryRule
 import com.guibilar.financeinsights.core.model.CategoryRuleInput
 import com.guibilar.financeinsights.core.model.CategoryRulePreview
@@ -35,6 +43,7 @@ import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Part
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 /** The backend's REST API, under `<server>/api/`. Every call but [login] needs the session cookie [login] sets. */
 interface FinanceApi {
@@ -130,4 +139,60 @@ interface FinanceApi {
     /** Its linked transactions stay, unlinked. */
     @DELETE("Budget/{id}")
     suspend fun deleteBudget(@Path("id") id: String)
+
+    /** Every category rule, in the order they are checked (position 0 first). */
+    @GET("CategoryRules")
+    suspend fun categoryRules(): List<CategoryRule>
+
+    @PUT("CategoryRules/{id}")
+    suspend fun updateCategoryRule(@Path("id") id: String, @Body rule: CategoryRuleInput): CategoryRule
+
+    @DELETE("CategoryRules/{id}")
+    suspend fun deleteCategoryRule(@Path("id") id: String)
+
+    /** Moves a rule to another position; answers with every rule in the new order. */
+    @POST("CategoryRules/{id}/Move")
+    suspend fun moveCategoryRule(@Path("id") id: String, @Body move: CategoryRuleMove): List<CategoryRule>
+
+    /** Every flow rule, by keyword: the longest keyword in a description wins. */
+    @GET("FlowRules")
+    suspend fun flowRules(): List<FlowRule>
+
+    @POST("FlowRules")
+    suspend fun addFlowRule(@Body rule: FlowRuleInput): FlowRule
+
+    @PUT("FlowRules/{id}")
+    suspend fun updateFlowRule(@Path("id") id: String, @Body rule: FlowRuleInput): FlowRule
+
+    @DELETE("FlowRules/{id}")
+    suspend fun deleteFlowRule(@Path("id") id: String)
+
+    @POST("Categories")
+    suspend fun addCategory(@Body category: CategoryInput): Category
+
+    /** Renames and/or recolours it; everything using it follows. */
+    @PUT("Categories/{id}")
+    suspend fun updateCategory(@Path("id") id: String, @Body category: CategoryInput): Category
+
+    /** Deletes it after moving its transactions and rules to [moveTo] (Other when null); built-in ones are a 409. */
+    @DELETE("Categories/{id}")
+    suspend fun deleteCategory(@Path("id") id: String, @Query("moveTo") moveTo: String?)
+
+    @POST("Accounts")
+    suspend fun addAccount(@Body account: AccountInput): Account
+
+    @PUT("Accounts/{id}")
+    suspend fun updateAccount(@Path("id") id: String, @Body account: AccountUpdate): Account
+
+    /** Only an account without transactions (deleted ones included) can be deleted; otherwise a 409. */
+    @DELETE("Accounts/{id}")
+    suspend fun deleteAccount(@Path("id") id: String)
+
+    /** Every other session ends; this one goes on. A wrong current password is a 400 on currentPassword. */
+    @POST("Auth/change-password")
+    suspend fun changePassword(@Body change: ChangePasswordInput)
+
+    /** Ends every other session of this account (other phones and browsers); this one stays. */
+    @POST("Auth/sign-out-others")
+    suspend fun signOutOthers(): SignedOutSessions
 }

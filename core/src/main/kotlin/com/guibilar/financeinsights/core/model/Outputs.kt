@@ -208,3 +208,6 @@ data class CategoryRulePreview(
     /** Up to five of their descriptions. */
     val examples: List<String> = emptyList(),
 )
+
+@Serializable
+data class FlowRule(val id: String, val keyword: String, val flow: Flow)

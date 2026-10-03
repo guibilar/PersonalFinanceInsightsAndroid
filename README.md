@@ -23,7 +23,9 @@ account and data as the web app, on your phone.
 - **Budgets:** search and filter by status; add, edit and delete budgets: total, monthly, yearly or custom dates,
   counting linked transactions, some categories, or a merchant.
 
-Coming next: rules, categories, accounts and account settings.
+- **More:** the rules (category rules in order, with search and moving up and down; flow rules), categories
+  (names and colours; deleting one moves what used it), accounts (type, statement format; deleting empty ones), and
+  your account (change the password, sign out everywhere else, sign out).
 
 ## Reaching the server
 
