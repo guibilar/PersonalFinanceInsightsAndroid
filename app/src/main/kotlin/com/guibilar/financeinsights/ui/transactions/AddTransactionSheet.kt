@@ -30,6 +30,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,10 +42,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.guibilar.financeinsights.core.logic.TextLimits
+import com.guibilar.financeinsights.core.logic.accountTypeLabel
 import com.guibilar.financeinsights.core.logic.amountError
 import com.guibilar.financeinsights.core.logic.flowsFor
 import com.guibilar.financeinsights.core.logic.parseAmount
-import com.guibilar.financeinsights.core.logic.accountTypeLabel
 import com.guibilar.financeinsights.core.model.Account
 import com.guibilar.financeinsights.core.model.CategoryReference
 import com.guibilar.financeinsights.core.model.Flow
@@ -69,6 +70,10 @@ fun AddTransactionSheet(state: TransactionsState, model: TransactionsViewModel, 
     val previous = state.lastAdded
     var accountId by rememberSaveable {
         mutableStateOf(previous?.second ?: state.accounts.firstOrNull { it.format == StatementFormat.Manual }?.id)
+    }
+    // The accounts may arrive after the sheet opened.
+    LaunchedEffect(state.accounts) {
+        if (accountId == null) accountId = state.accounts.firstOrNull { it.format == StatementFormat.Manual }?.id
     }
     var date by rememberSaveable { mutableStateOf(previous?.first ?: state.today) }
     var description by rememberSaveable { mutableStateOf("") }

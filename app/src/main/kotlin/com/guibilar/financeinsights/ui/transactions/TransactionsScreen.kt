@@ -1,5 +1,6 @@
 package com.guibilar.financeinsights.ui.transactions
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,32 +19,33 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Sort
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.DeleteOutline
-import androidx.compose.material.icons.outlined.FileUpload
-import androidx.compose.material.icons.outlined.MoreVert
-import androidx.compose.material.icons.outlined.Rule
 import androidx.compose.material.icons.outlined.ArrowDownward
 import androidx.compose.material.icons.outlined.ArrowUpward
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material.icons.outlined.FilterList
+import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.Rule
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
-import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.InputChip
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -55,12 +57,14 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.guibilar.financeinsights.core.logic.DateChoice
 import com.guibilar.financeinsights.core.logic.DateRange
@@ -123,6 +127,16 @@ fun TransactionsScreen(
         }
     }
     LaunchedEffect(nearEnd, state.list.items.size) { if (nearEnd) model.loadMore() }
+
+    // New filters, order or view start the list from its top (not part-way down the old one); not on first show,
+    // so coming back to the tab keeps the place.
+    var listedFor by rememberSaveable { mutableStateOf<String?>(null) }
+    val listKey = "${state.criteria}|${state.sortBy}|${state.sortDirection}|${state.showDeleted}"
+    LaunchedEffect(listKey) {
+        if (listedFor != null && listedFor != listKey) listState.scrollToItem(0)
+        listedFor = listKey
+    }
+    BackHandler(enabled = state.showDeleted, onBack = model::toggleDeleted)
 
     Box(Modifier.fillMaxSize().padding(bottom = contentPadding.calculateBottomPadding())) {
         Column(Modifier.fillMaxSize()) {
@@ -210,9 +224,13 @@ fun TransactionsScreen(
                             }
                         }
                         else -> {
+                            // The old rows while the new ones load: dimmed, and not opened (they may not match any more).
+                            val stale = list.loading && !state.refreshing
                             items(list.items, key = { it.id }) { transaction ->
-                                TransactionRow(transaction, onClick = { opened = transaction })
-                                HorizontalDivider(Modifier.padding(start = 64.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                                Column(Modifier.alpha(if (stale) 0.5f else 1f)) {
+                                    TransactionRow(transaction, onClick = { if (!stale) opened = transaction })
+                                    HorizontalDivider(Modifier.padding(start = 64.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                                }
                             }
                             item {
                                 Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
@@ -230,6 +248,9 @@ fun TransactionsScreen(
                             }
                         }
                     }
+                }
+                if (state.list.loading && state.list.items.isNotEmpty() && !state.refreshing) {
+                    LinearProgressIndicator(Modifier.fillMaxWidth().align(Alignment.TopCenter))
                 }
             }
         }

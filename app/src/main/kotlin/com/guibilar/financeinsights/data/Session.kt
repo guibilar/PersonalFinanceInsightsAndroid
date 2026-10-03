@@ -18,6 +18,8 @@ sealed interface AuthState {
         /** Why, when it wasn't the person's choice ("Your session ended"). */
         val reason: String? = null,
     ) : AuthState
+    /** The stored session couldn't be checked (Tailscale off, server down): kept, to try again. */
+    data class Unreachable(val message: String) : AuthState
     data class SignedIn(val username: String, val api: FinanceApi) : AuthState
 }
 
@@ -38,7 +40,10 @@ class Session(
 
     private fun api(server: String) = createApi(server, jar) { sessionEnded() }
 
-    /** At launch: a stored session that the server still accepts signs in without asking. */
+    /**
+     * At launch (and on Retry): a stored session that the server still accepts signs in without asking. An unreachable
+     * server isn't signed out — the cookie is kept and the person can try again once Tailscale is on.
+     */
     suspend fun resume() {
         val server = store.server
         if (server == null || jar.isEmpty) {
@@ -50,11 +55,19 @@ class Session(
         _state.value = me.fold(
             onSuccess = { AuthState.SignedIn(it.username, api) },
             onFailure = { error ->
-                // Unreachable (Tailscale off) isn't signed out: try again on the next launch, with the cookie kept.
-                if ((error as ApiError).isUnauthorized) jar.clear()
-                AuthState.SignedOut(if (error.isUnauthorized) "Your session ended. Please sign in again." else error.message)
+                if ((error as ApiError).isUnauthorized) {
+                    jar.clear()
+                    AuthState.SignedOut("Your session ended. Please sign in again.")
+                } else {
+                    AuthState.Unreachable(error.message ?: "Could not reach the server.")
+                }
             },
         )
+    }
+
+    /** From the unreachable screen: sign in by hand instead (another server, or another account). */
+    fun signInInstead() {
+        if (_state.value is AuthState.Unreachable) _state.value = AuthState.SignedOut()
     }
 
     /** Signs in; the failure's message says why (wrong password, too many attempts, unreachable). */

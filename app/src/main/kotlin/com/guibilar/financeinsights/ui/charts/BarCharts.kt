@@ -1,10 +1,16 @@
 package com.guibilar.financeinsights.ui.charts
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -14,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -45,6 +52,7 @@ fun StackedBarChart(
     val positive = labels.indices.map { i -> series.sumOf { it.values.getOrElse(i) { 0.0 }.coerceAtLeast(0.0) } }
     val negative = labels.indices.map { i -> series.sumOf { it.values.getOrElse(i) { 0.0 }.coerceAtMost(0.0) } }
     val scale = ValueScale.of(negative.minOrNull() ?: 0.0, maxOf(positive.maxOrNull() ?: 0.0, average ?: 0.0))
+    val grow = growIn(series.map { it.values })
     Canvas(
         modifier
             .fillMaxWidth()
@@ -58,7 +66,7 @@ fun StackedBarChart(
                 }
             },
     ) {
-        val plot = plotArea()
+        val plot = plotArea(measurer, colors)
         drawValueAxis(plot, scale, colors, measurer)
         val slot = plot.width / labels.size.coerceAtLeast(1)
         val barWidth = min(slot * 0.55f, 28.dp.toPx())
@@ -71,7 +79,7 @@ fun StackedBarChart(
             var down = zero
             series.forEach { s ->
                 val value = s.values.getOrElse(i) { 0.0 }
-                val length = (kotlin.math.abs(value) / (scale.max - scale.min) * plot.height).toFloat()
+                val length = (kotlin.math.abs(value) / (scale.max - scale.min) * plot.height).toFloat() * grow.value
                 if (length < 0.5f) return@forEach
                 if (value > 0) {
                     roundedBar(s.color.copy(alpha = alpha), left, up - length + gap, barWidth, length - gap)
@@ -102,6 +110,7 @@ fun GroupedBarChart(
     val measurer = rememberTextMeasurer()
     val values = series.flatMap { it.values }
     val scale = ValueScale.of(values.minOrNull() ?: 0.0, values.maxOrNull() ?: 0.0)
+    val grow = growIn(series.map { it.values })
     Canvas(
         modifier
             .fillMaxWidth()
@@ -115,7 +124,7 @@ fun GroupedBarChart(
                 }
             },
     ) {
-        val plot = plotArea()
+        val plot = plotArea(measurer, colors)
         drawValueAxis(plot, scale, colors, measurer)
         val slot = plot.width / labels.size.coerceAtLeast(1)
         val groupWidth = slot * 0.8f
@@ -127,7 +136,7 @@ fun GroupedBarChart(
             var left = plot.left + slot * i + (slot - used) / 2
             series.forEach { s ->
                 val value = s.values.getOrElse(i) { 0.0 }
-                val y = plot.bottom - scale.fraction(value) * plot.height
+                val y = plot.bottom - scale.fraction(value * grow.value) * plot.height
                 val top = min(y, zero)
                 val length = kotlin.math.abs(zero - y)
                 if (length >= 0.5f) roundedBar(s.color.copy(alpha = alpha), left, top, barWidth, length)
@@ -167,13 +176,14 @@ fun PeriodCharts(
         height = 180.dp,
     )
     val lineScale = ValueScale.of(cumulative.minOrNull() ?: 0.0, cumulative.maxOrNull() ?: 0.0, targetTicks = 3)
+    val draw = growIn(listOf(cumulative))
     Canvas(
         Modifier
             .fillMaxWidth()
             .height(120.dp)
             .semantics { contentDescription = "Running total" },
     ) {
-        val plot = plotArea(withXLabels = false)
+        val plot = plotArea(measurer, colors, withXLabels = false)
         drawValueAxis(plot, lineScale, colors, measurer)
         if (cumulative.isEmpty()) return@Canvas
         val slot = plot.width / cumulative.size
@@ -184,12 +194,27 @@ fun PeriodCharts(
             moveTo(points.first().x, points.first().y)
             points.drop(1).forEach { lineTo(it.x, it.y) }
         }
-        drawPath(path, color, style = Stroke(width = 2.dp.toPx()))
+        // Drawn from left to right as it appears.
+        clipRect(right = plot.left + (plot.width + 8.dp.toPx()) * draw.value) {
+            drawPath(path, color, style = Stroke(width = 2.dp.toPx()))
+        }
         points.forEachIndexed { i, point ->
+            if (point.x > plot.left + plot.width * draw.value + 1f) return@forEachIndexed
             val radius = if (i == selected) 4.5.dp.toPx() else 2.5.dp.toPx()
             drawCircle(color, radius, point)
         }
     }
+}
+
+/** 0 to 1 as new data arrives: the bars grow from the axis instead of appearing at once. */
+@Composable
+private fun growIn(data: Any): Animatable<Float, AnimationVector1D> {
+    val progress = remember { Animatable(0f) }
+    LaunchedEffect(data) {
+        progress.snapTo(0f)
+        progress.animateTo(1f, tween(durationMillis = 650, easing = FastOutSlowInEasing))
+    }
+    return progress
 }
 
 /** A bar with rounded corners, a little rounder at the ends that show. */

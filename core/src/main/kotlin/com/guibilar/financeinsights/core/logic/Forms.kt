@@ -22,21 +22,37 @@ object TextLimits {
 }
 
 /**
- * An amount as typed: "12.5", "1,234.56", "$40". Null when it isn't a number, or isn't in whole cents
- * (12.505), which the API refuses.
+ * An amount as typed, with a point or a comma for decimals as the keyboard's language has it: "12.5", "12,50",
+ * "1,234.56", "1.234,56", "1 234,56", "$40". The last separator is the decimal one when 1 or 2 digits (or none)
+ * follow it, as in any locale; otherwise it groups thousands ("1,234").
  */
+private fun normalizeAmount(text: String): String? {
+    val cleaned = text.trim().removePrefix("$").replace(Regex("""[\s\u00A0\u202F]"""), "")
+    if (cleaned.isEmpty() || !cleaned.matches(Regex("""[\d.,]+"""))) return null
+    val last = maxOf(cleaned.lastIndexOf('.'), cleaned.lastIndexOf(','))
+    if (last < 0) return cleaned
+    val separator = cleaned[last]
+    val digitsAfter = cleaned.length - last - 1
+    val bothKinds = '.' in cleaned && ',' in cleaned
+    val repeated = cleaned.count { it == separator } > 1
+    // With both kinds, the last is the decimal one ("1.234,56", "1,234.56"). With one kind: repeated, it groups
+    // thousands ("1,234,567"); alone, a comma before exactly three digits groups thousands as in English ("1,234"),
+    // and anything else is decimals ("12,50", "12.505").
+    val isDecimal = bothKinds || (!repeated && !(separator == ',' && digitsAfter == 3))
+    val integer = cleaned.substring(0, last).replace(".", "").replace(",", "")
+    return if (isDecimal) "$integer.${cleaned.substring(last + 1)}" else cleaned.replace(".", "").replace(",", "")
+}
+
+/** An amount as typed (see [normalizeAmount]); null when it isn't one, or isn't in whole cents (12.505). */
 fun parseAmount(text: String): Double? {
-    val cleaned = text.trim().removePrefix("$").replace(",", "").trim()
-    if (cleaned.isEmpty() || !cleaned.matches(Regex("""\d*\.?\d*"""))) return null
-    val value = cleaned.toDoubleOrNull() ?: return null
-    return if (abs(round(value * 100) - value * 100) < 1e-6) value else null
+    val value = normalizeAmount(text)?.let { if (it.endsWith(".")) it.dropLast(1) else it }?.toDoubleOrNull() ?: return null
+    return if (value >= 0 && abs(round(value * 100) - value * 100) < 1e-6) value else null
 }
 
 /** Why an amount can't be used, or null when it can. */
 fun amountError(text: String): String? {
     if (text.isBlank()) return "Enter an amount."
-    val cleaned = text.trim().removePrefix("$").replace(",", "")
-    val value = cleaned.toDoubleOrNull() ?: return "Enter a number, like 12.50."
+    val value = normalizeAmount(text)?.trimEnd('.')?.toDoubleOrNull() ?: return "Enter a number, like 12.50."
     if (value < 0.01) return "The amount must be more than zero."
     return if (parseAmount(text) == null) "Use whole cents: at most 2 decimal places." else null
 }

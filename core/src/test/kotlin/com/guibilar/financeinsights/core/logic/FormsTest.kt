@@ -63,3 +63,14 @@ class SettingsFormsTest {
         assertEquals(mapOf("other" to "Could not change the password. Try again."), passwordErrors(other))
     }
 }
+
+class DecimalCommaTest {
+    @Test
+    fun `a decimal comma, as French and Portuguese keyboards type it, is a decimal point`() {
+        assertEquals(listOf(12.5, 12.0, 1234.56, 1234.56, 1234.0), listOf("12,50", "12,", "1.234,56", "1 234,56", "1,234").map(::parseAmount))
+        assertNull(amountError("12,5"))
+        // Three digits after a lone comma group thousands, as in English: twelve thousand five hundred and five.
+        assertEquals(12505.0, parseAmount("12,505")!!, 0.0)
+        assertEquals("Use whole cents: at most 2 decimal places.", amountError("1.234,567"))
+    }
+}

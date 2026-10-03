@@ -170,7 +170,8 @@ class TransactionsViewModel(
     /** Lists the deleted transactions instead (to restore one), or back. */
     fun toggleDeleted() {
         _state.update { it.copy(showDeleted = !it.showDeleted) }
-        reloadList()
+        // The other view's rows mustn't linger meanwhile: tapping one would offer to restore a transaction that isn't deleted.
+        reloadList(clear = true)
         reloadBreakdown()
     }
 
@@ -394,9 +395,12 @@ class TransactionsViewModel(
         reloadBreakdown()
     }
 
-    private fun reloadList() {
+    /** The first page again; the old rows stay (dimmed in the UI) until it arrives, unless [clear]. */
+    private fun reloadList(clear: Boolean = false) {
         listJob?.cancel()
-        _state.update { it.copy(list = it.list.copy(loading = true, error = null, moreFailed = false, loadingMore = false)) }
+        _state.update {
+            it.copy(list = if (clear) ListState() else it.list.copy(loading = true, error = null, moreFailed = false, loadingMore = false))
+        }
         listJob = viewModelScope.launch {
             val current = _state.value
             val result = apiCall { api.transactions(filter(current, page = 1)) }
