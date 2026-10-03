@@ -277,9 +277,9 @@ fun TransactionsScreen(
                                             onDelete = { model.delete(transaction) },
                                             onRestore = { model.restore(transaction) },
                                             onCategorise = { opened = transaction },
-                                        ) {
+                                        ) { actions ->
                                             // Opaque, so the swipe's colour shows only beside it.
-                                            Surface { TransactionRow(transaction, onClick = { if (!stale) opened = transaction }) }
+                                            Surface { TransactionRow(transaction, onClick = { if (!stale) opened = transaction }, actions = actions) }
                                         }
                                         HorizontalDivider(Modifier.padding(start = 64.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                                     }

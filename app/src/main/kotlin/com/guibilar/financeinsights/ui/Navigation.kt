@@ -25,6 +25,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -122,6 +123,9 @@ fun FinanceRoot(
     val state by session.state.collectAsState()
     val locked = lock?.locked?.collectAsState()?.value == true
     val activity = LocalActivity.current as? FragmentActivity
+    // The signed-in screens' saved state (tab, back stack, scroll, sheets and what was typed) is kept while the app
+    // is locked, so unlocking returns to the same place; it is dropped on signing out.
+    val saved = rememberSaveableStateHolder()
     when (val current = state) {
         AuthState.Checking -> {
             LaunchedEffect(Unit) { session.resume() }
@@ -133,15 +137,20 @@ fun FinanceRoot(
             onRetry = { session.resume() },
             onSignInInstead = session::signInInstead,
         )
-        is AuthState.SignedOut -> SignInScreen(
-            initialServer = session.server,
-            initialUsername = session.lastUsername,
-            initialMessage = current.reason,
-            signIn = session::signIn,
-        )
+        is AuthState.SignedOut -> {
+            LaunchedEffect(Unit) { saved.removeState(SIGNED_IN_KEY) }
+            SignInScreen(
+                initialServer = session.server,
+                initialUsername = session.lastUsername,
+                initialMessage = current.reason,
+                signIn = session::signIn,
+            )
+        }
         // Locked, nothing of the account shows; signed out or unreachable shows none anyway.
-        is AuthState.SignedIn -> if (locked && lock != null && activity != null) {
+        // Without an activity that can ask for a fingerprint, it stays locked rather than showing the account.
+        is AuthState.SignedIn -> if (locked && lock != null) {
             LockScreen(onUnlock = {
+                if (activity == null) return@LockScreen
                 if (canAuthenticate(activity)) {
                     authenticate(activity, "Unlock Finance Insights") { ok -> if (ok) lock.unlocked() }
                 } else {
@@ -152,21 +161,25 @@ fun FinanceRoot(
                 }
             })
         } else {
-            MainScreen(
-                api = current.api,
-                account = AccountInfo(current.username, session.server.orEmpty()),
-                onSignOut = { session.signOut() },
-                sharedStatement = sharedStatement,
-                quickAction = quickAction,
-                preferences = preferences,
-                lock = lock,
-            )
+            saved.SaveableStateProvider(SIGNED_IN_KEY) {
+                MainScreen(
+                    api = current.api,
+                    account = AccountInfo(current.username, session.server.orEmpty()),
+                    onSignOut = { session.signOut() },
+                    sharedStatement = sharedStatement,
+                    quickAction = quickAction,
+                    preferences = preferences,
+                    lock = lock,
+                )
+            }
         }
     }
 }
 
 /** Who is signed in where, for the account menu. */
 data class AccountInfo(val username: String, val server: String)
+
+private const val SIGNED_IN_KEY = "signed-in"
 
 /** From this width (dp) on, the tabs are a rail at the side. */
 private const val RAIL_FROM_WIDTH = 600
