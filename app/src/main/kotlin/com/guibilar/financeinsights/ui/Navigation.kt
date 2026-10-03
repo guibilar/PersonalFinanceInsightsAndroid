@@ -50,6 +50,7 @@ import com.guibilar.financeinsights.data.AuthState
 import com.guibilar.financeinsights.data.Session
 import com.guibilar.financeinsights.security.AppLock
 import com.guibilar.financeinsights.security.authenticate
+import com.guibilar.financeinsights.security.canAuthenticate
 import com.guibilar.financeinsights.ui.budgets.BudgetsScreen
 import com.guibilar.financeinsights.ui.budgets.BudgetsViewModel
 import com.guibilar.financeinsights.ui.dashboard.DashboardScreen
@@ -141,7 +142,14 @@ fun FinanceRoot(
         // Locked, nothing of the account shows; signed out or unreachable shows none anyway.
         is AuthState.SignedIn -> if (locked && lock != null && activity != null) {
             LockScreen(onUnlock = {
-                authenticate(activity, "Unlock Finance Insights") { ok -> if (ok) lock.unlocked() }
+                if (canAuthenticate(activity)) {
+                    authenticate(activity, "Unlock Finance Insights") { ok -> if (ok) lock.unlocked() }
+                } else {
+                    // The phone's screen lock was removed: nothing can confirm the owner, and the prompt would fail
+                    // for good. The app lock goes off rather than locking its owner out.
+                    preferences?.setLock(false)
+                    lock.enabledChanged(false)
+                }
             })
         } else {
             MainScreen(

@@ -2,6 +2,7 @@ package com.guibilar.financeinsights.ui
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.Surface
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -44,6 +45,17 @@ class GesturesTest {
         compose.onNode(hasContentDescription("NO FRILLS #3121", substring = true)).performTouchInput { swipeLeft() }
         compose.waitForIdle()
         assertTrue(api.sent.any { it.first == "deleteTransaction" })
+    }
+
+    @Test
+    fun `a swiped-away row whose delete fails comes back`() {
+        api.failing += "deleteTransaction"
+        transactions()
+        val row = hasContentDescription("NO FRILLS #3121", substring = true)
+        compose.onNode(row).performTouchInput { swipeLeft() }
+        compose.mainClock.advanceTimeBy(4_000)
+        compose.waitForIdle()
+        compose.onNode(row).assertIsDisplayed()
     }
 
     @Test

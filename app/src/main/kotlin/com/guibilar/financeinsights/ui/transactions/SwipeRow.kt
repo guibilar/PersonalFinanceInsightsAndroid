@@ -31,6 +31,7 @@ import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.guibilar.financeinsights.core.model.Transaction
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -69,8 +70,12 @@ fun SwipeRow(
                 SwipeToDismissBoxValue.EndToStart -> left?.action?.invoke()
                 SwipeToDismissBoxValue.Settled -> {}
             }
-            // Back in place: a deleted row leaves with the reload, and an edited one stays.
-            scope.launch { state.reset() }
+            scope.launch {
+                // Deleted (or restored), the row leaves with the reload: snapping back first looked like it failed.
+                // It comes back only if it is still here a moment later (the delete failed).
+                if (value == SwipeToDismissBoxValue.EndToStart || deletedList) delay(LEAVE_MS)
+                state.reset()
+            }
         },
         modifier = Modifier.semantics {
             customActions = listOfNotNull(right, left).map { CustomAccessibilityAction(it.label) { it.action(); true } }
@@ -95,5 +100,8 @@ fun SwipeRow(
         },
     ) { content() }
 }
+
+/** How long a swiped-away row waits for the list to drop it before coming back. */
+private const val LEAVE_MS = 3_000L
 
 private class SwipeAction(val label: String, val icon: ImageVector, val background: Color, val foreground: Color, val action: () -> Unit)

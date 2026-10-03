@@ -61,10 +61,12 @@ object BudgetAlerts {
         context.getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }
 
-    fun canNotify(context: Context) = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
-        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+    /** Allowed (Android 13's permission) and not turned off for the app in the phone's settings. */
+    fun canNotify(context: Context) = NotificationManagerCompat.from(context).areNotificationsEnabled() &&
+        (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)
 
-    internal fun notify(context: Context, alert: BudgetAlert) {
+    internal fun notify(context: Context, alert: BudgetAlert, private: Boolean = false) {
         if (!canNotify(context)) return
         val open = PendingIntent.getActivity(
             context,
@@ -79,6 +81,19 @@ object BudgetAlerts {
             .setStyle(NotificationCompat.BigTextStyle().bigText(alert.text))
             .setContentIntent(open)
             .setAutoCancel(true)
+            .apply {
+                // With the app lock on, the phone's lock screen shows that a budget needs a look, not the amounts.
+                if (private) {
+                    setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+                    setPublicVersion(
+                        NotificationCompat.Builder(context, CHANNEL)
+                            .setSmallIcon(R.drawable.ic_stat_wallet)
+                            .setContentTitle("A budget needs a look")
+                            .setContentIntent(open)
+                            .build(),
+                    )
+                }
+            }
             .build()
         // One notification per budget: a later alert replaces the earlier one.
         @Suppress("MissingPermission")
@@ -109,7 +124,7 @@ class BudgetAlertWorker(context: Context, params: WorkerParameters) : CoroutineW
             ?: return Result.retry()
         val sent = SentAlerts(applicationContext)
         budgetAlerts(budgets.items, LocalDate.now(), sent.all()).forEach { alert ->
-            BudgetAlerts.notify(applicationContext, alert)
+            BudgetAlerts.notify(applicationContext, alert, private = app.preferences.lock.value)
             sent.record(alert)
         }
         return Result.success()

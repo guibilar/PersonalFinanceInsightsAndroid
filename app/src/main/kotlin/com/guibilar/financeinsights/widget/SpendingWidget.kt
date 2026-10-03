@@ -46,6 +46,8 @@ import java.util.Locale
 sealed interface WidgetData {
     data class Loaded(val month: String, val spent: Double, val budgets: List<Budget>) : WidgetData
     data object SignedOut : WidgetData
+    /** The app lock is on: the home screen shows no amounts, as anyone can see it. */
+    data object Locked : WidgetData
     data object Failed : WidgetData
 }
 
@@ -57,7 +59,9 @@ class SpendingWidget : GlanceAppWidget() {
     }
 
     private suspend fun load(context: Context): WidgetData {
-        val api = (context.applicationContext as FinanceApp).session.backgroundApi() ?: return WidgetData.SignedOut
+        val app = context.applicationContext as FinanceApp
+        if (app.preferences.lock.value) return WidgetData.Locked
+        val api = app.session.backgroundApi() ?: return WidgetData.SignedOut
         val month = apiCall { api.monthReport() }.getOrNull() ?: return WidgetData.Failed
         val budgets = apiCall { api.budgets(BudgetFilter(status = Status.Active, page = 1, pageSize = 1000)) }.getOrNull()
         return WidgetData.Loaded(
@@ -88,6 +92,10 @@ internal fun Content(data: WidgetData) {
     ) {
         when (data) {
             WidgetData.SignedOut -> Text("Open Finance Insights to sign in.", style = TextStyle(color = GlanceTheme.colors.onSurface))
+            WidgetData.Locked -> {
+                Text("Finance Insights", style = muted)
+                Text("Locked. Tap to open.", style = TextStyle(color = GlanceTheme.colors.onSurface))
+            }
             WidgetData.Failed -> {
                 Text("Spent this month", style = muted)
                 Text("Couldn't load. Tap to open the app.", style = TextStyle(color = GlanceTheme.colors.onSurface))

@@ -38,6 +38,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.guibilar.financeinsights.alerts.BudgetAlerts
 import com.guibilar.financeinsights.data.AppPreferences
 import com.guibilar.financeinsights.data.ThemeChoice
@@ -55,7 +56,12 @@ fun AppSettingsScreen(preferences: AppPreferences, lock: AppLock?, contentPaddin
     val dynamicColor by preferences.dynamicColor.collectAsState()
     val locking by preferences.lock.collectAsState()
     val alerts by preferences.budgetAlerts.collectAsState()
-    val lockAvailable = remember { canAuthenticate(context) }
+    // Checked again on coming back, a screen lock just set up in the phone's settings.
+    var lockAvailable by remember { mutableStateOf(canAuthenticate(context)) }
+    LifecycleResumeEffect(Unit) {
+        lockAvailable = canAuthenticate(context)
+        onPauseOrDispose {}
+    }
     var alertsNote by remember { mutableStateOf<String?>(null) }
 
     fun setAlerts(on: Boolean) {

@@ -31,4 +31,11 @@ class SpendingWidgetTest {
         provideComposable { Content(WidgetData.SignedOut) }
         onNode(hasText("Open Finance Insights to sign in.")).assertExists()
     }
+
+    @Test
+    fun `with the app lock on, no amounts show`() = runGlanceAppWidgetUnitTest {
+        setContext(ApplicationProvider.getApplicationContext())
+        provideComposable { Content(WidgetData.Locked) }
+        onNode(hasText("Locked. Tap to open.")).assertExists()
+    }
 }
