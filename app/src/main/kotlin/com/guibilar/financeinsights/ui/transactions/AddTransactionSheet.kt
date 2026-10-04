@@ -24,6 +24,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -82,6 +83,7 @@ fun AddTransactionSheet(state: TransactionsState, model: TransactionsViewModel, 
     var direction by rememberSaveable { mutableStateOf(TransactionType.Debit) }
     var categoryId by rememberSaveable { mutableStateOf<String?>(null) }
     var flow by rememberSaveable { mutableStateOf<Flow?>(null) }
+    var note by rememberSaveable { mutableStateOf("") }
     var tried by remember { mutableStateOf(false) }
     var saving by remember { mutableStateOf(false) }
     var duplicate by remember { mutableStateOf<String?>(null) }
@@ -93,7 +95,8 @@ fun AddTransactionSheet(state: TransactionsState, model: TransactionsViewModel, 
         else -> null
     }
     val amountProblem = amountError(amount)
-    val valid = accountId != null && descriptionError == null && amountProblem == null
+    val noteError = if (note.trim().length > TextLimits.TRANSACTION_NOTE) "At most ${TextLimits.TRANSACTION_NOTE} characters." else null
+    val valid = accountId != null && descriptionError == null && amountProblem == null && noteError == null
 
     fun submit(allowDuplicate: Boolean) {
         tried = true
@@ -109,6 +112,7 @@ fun AddTransactionSheet(state: TransactionsState, model: TransactionsViewModel, 
                 accountId = accountId!!,
                 categoryId = categoryId,
                 flow = flow,
+                note = note.trim().ifEmpty { null },
                 allowDuplicate = allowDuplicate,
             )
             when (val outcome = model.add(input)) {
@@ -205,6 +209,16 @@ fun AddTransactionSheet(state: TransactionsState, model: TransactionsViewModel, 
                     FilterChip(flow == option, onClick = { flow = option }, label = { Text(option.label) })
                 }
             }
+            OutlinedTextField(
+                value = note,
+                onValueChange = { note = it },
+                label = { Text("Note (optional)") },
+                isError = noteError != null,
+                supportingText = noteError?.let { { Text(it) } },
+                maxLines = 4,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+                modifier = Modifier.fillMaxWidth(),
+            )
             if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error)
             if (duplicate != null) {
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)) {

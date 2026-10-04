@@ -2,6 +2,13 @@ package com.guibilar.financeinsights.ui.transactions
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.onLongClick
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.StickyNote2
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +31,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -55,6 +63,10 @@ fun TransactionRow(
     onClick: (() -> Unit)? = null,
     /** More than opening it (deleting, restoring), for TalkBack. */
     actions: List<CustomAccessibilityAction> = emptyList(),
+    /** Selecting it (for a change to many at once). */
+    onLongClick: (() -> Unit)? = null,
+    /** Ticked for a change to many: a tick instead of the category's letter. */
+    selected: Boolean? = null,
 ) {
     val colors = LocalChartColors.current
     val category = parseHexColor(transaction.category.color)
@@ -68,28 +80,44 @@ fun TransactionRow(
     Row(
         modifier
             .fillMaxWidth()
-            .let { if (onClick != null) it.clickable(onClick = onClick) else it }
+            .let {
+                when {
+                    onLongClick != null -> it.combinedClickable(onClick = { onClick?.invoke() }, onLongClick = onLongClick)
+                    onClick != null -> it.clickable(onClick = onClick)
+                    else -> it
+                }
+            }
+            .let { if (selected == true) it.background(MaterialTheme.colorScheme.secondaryContainer) else it }
             .padding(horizontal = horizontalPadding, vertical = 10.dp)
             .clearAndSetSemantics {
                 contentDescription = listOfNotNull(
                     transaction.description, signedAmount(transaction), date, transaction.category.name,
                     transaction.accountName, flowNote, transaction.budget?.let { "Budget ${it.name}" },
+                    transaction.tags.takeIf { it.isNotEmpty() }?.let { tags -> "Tagged " + tags.joinToString(", ") { it.name } },
+                    transaction.note?.let { "Note: $it" },
                 ).joinToString(", ")
-                if (onClick != null) onClick(label = "Open") { onClick(); true }
+                if (selected != null) this.selected = selected
+                if (onClick != null) onClick(label = if (selected != null) "Select" else "Open") { onClick(); true }
+                if (onLongClick != null) onLongClick(label = "Select several") { onLongClick(); true }
                 if (actions.isNotEmpty()) customActions = actions
             },
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            Modifier.size(36.dp).clip(CircleShape).background(category.copy(alpha = 0.18f)),
+            Modifier.size(36.dp).clip(CircleShape)
+                .background(if (selected == true) MaterialTheme.colorScheme.primary else category.copy(alpha = 0.18f)),
             contentAlignment = Alignment.Center,
         ) {
-            Text(
-                transaction.category.name.take(1).uppercase(),
-                color = category,
-                fontWeight = FontWeight.SemiBold,
-                style = MaterialTheme.typography.titleSmall,
-            )
+            if (selected == true) {
+                Icon(Icons.Outlined.Check, null, tint = MaterialTheme.colorScheme.onPrimary)
+            } else {
+                Text(
+                    transaction.category.name.take(1).uppercase(),
+                    color = category,
+                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.titleSmall,
+                )
+            }
         }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -101,6 +129,24 @@ fun TransactionRow(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            // Tags, or the note when there are none; the note icon says there is one either way.
+            val note = transaction.note
+            if (transaction.tags.isNotEmpty() || note != null) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (note != null) {
+                        Icon(Icons.AutoMirrored.Outlined.StickyNote2, null, Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(Modifier.width(4.dp))
+                    }
+                    Text(
+                        if (transaction.tags.isNotEmpty()) transaction.tags.joinToString("  ") { "#${it.name}" } else note.orEmpty(),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontStyle = if (transaction.tags.isEmpty()) FontStyle.Italic else FontStyle.Normal,
+                        color = if (transaction.tags.isNotEmpty()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
         }
         Spacer(Modifier.width(8.dp))
         Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {

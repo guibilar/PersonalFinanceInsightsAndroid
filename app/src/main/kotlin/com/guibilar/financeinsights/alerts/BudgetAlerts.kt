@@ -25,6 +25,10 @@ import com.guibilar.financeinsights.R
 import com.guibilar.financeinsights.core.api.apiCall
 import com.guibilar.financeinsights.core.logic.BudgetAlert
 import com.guibilar.financeinsights.core.logic.budgetAlerts
+import com.guibilar.financeinsights.core.logic.priceAlerts
+import com.guibilar.financeinsights.core.logic.reviewAlert
+import com.guibilar.financeinsights.core.logic.reviewKey
+import com.guibilar.financeinsights.data.AppPreferences
 import com.guibilar.financeinsights.core.model.BudgetFilter
 import com.guibilar.financeinsights.core.model.Status
 import com.guibilar.financeinsights.widget.SpendingWidget
@@ -52,13 +56,61 @@ object BudgetAlerts {
         WorkManager.getInstance(context).cancelUniqueWork(WORK)
     }
 
-    /** The "Budgets" channel, in the phone's notification settings. */
+    /** Checks in the background while any notification is on (budgets, price changes, the monthly review). */
+    fun reschedule(context: Context, preferences: AppPreferences) {
+        if (preferences.anyAlerts) schedule(context) else cancel(context)
+    }
+
+    /** Price changes and the monthly review, apart from the budgets in the phone's notification settings. */
+    const val INSIGHTS_CHANNEL = "insights"
+
+    /** The "Budgets" and "Subscriptions and reviews" channels, in the phone's notification settings. */
     fun createChannel(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-        val channel = NotificationChannel(CHANNEL, "Budgets", NotificationManager.IMPORTANCE_DEFAULT).apply {
-            description = "When a budget is nearly or fully used up"
-        }
-        context.getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
+        val manager = context.getSystemService(NotificationManager::class.java)
+        manager.createNotificationChannel(
+            NotificationChannel(CHANNEL, "Budgets", NotificationManager.IMPORTANCE_DEFAULT).apply {
+                description = "When a budget is nearly or fully used up"
+            },
+        )
+        manager.createNotificationChannel(
+            NotificationChannel(INSIGHTS_CHANNEL, "Subscriptions and reviews", NotificationManager.IMPORTANCE_DEFAULT).apply {
+                description = "When a subscription's price changes, and the month before in review"
+            },
+        )
+    }
+
+    /** A notification on the insights channel that opens [action]'s screen; [id] replaces an earlier one of it. */
+    internal fun notifyInsight(context: Context, id: Int, action: String, title: String, text: String, private: Boolean, publicTitle: String) {
+        if (!canNotify(context)) return
+        val open = PendingIntent.getActivity(
+            context,
+            id,
+            Intent(context, MainActivity::class.java).setAction(action).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        val notification = NotificationCompat.Builder(context, INSIGHTS_CHANNEL)
+            .setSmallIcon(R.drawable.ic_stat_wallet)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setContentIntent(open)
+            .setAutoCancel(true)
+            .apply {
+                if (private) {
+                    setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+                    setPublicVersion(
+                        NotificationCompat.Builder(context, INSIGHTS_CHANNEL)
+                            .setSmallIcon(R.drawable.ic_stat_wallet)
+                            .setContentTitle(publicTitle)
+                            .setContentIntent(open)
+                            .build(),
+                    )
+                }
+            }
+            .build()
+        @Suppress("MissingPermission")
+        NotificationManagerCompat.from(context).notify(id, notification)
     }
 
     /** Allowed (Android 13's permission) and not turned off for the app in the phone's settings. */
@@ -107,26 +159,61 @@ internal class SentAlerts(context: Context) {
 
     fun all(): Map<String, Int> = prefs.all.mapNotNull { (key, value) -> (value as? Int)?.let { key to it } }.toMap()
 
-    fun record(alert: BudgetAlert) {
-        prefs.edit().putInt(alert.key, alert.level).apply()
+    fun record(alert: BudgetAlert) = record(alert.key, alert.level)
+
+    fun record(key: String, level: Int) {
+        prefs.edit().putInt(key, level).apply()
     }
 }
 
 class BudgetAlertWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         val app = applicationContext as FinanceApp
+        val preferences = app.preferences
         // The widget refreshes on the same schedule, alerts or not.
         SpendingWidget.refresh(applicationContext)
         // Without permission to notify, nothing is marked sent: they show once it is given.
-        if (!app.preferences.budgetAlerts.value || !BudgetAlerts.canNotify(applicationContext)) return Result.success()
+        if (!preferences.anyAlerts || !BudgetAlerts.canNotify(applicationContext)) return Result.success()
         val api = app.session.backgroundApi() ?: return Result.success()
-        val budgets = apiCall { api.budgets(BudgetFilter(status = Status.Active, page = 1, pageSize = 1000)) }.getOrNull()
-            ?: return Result.retry()
         val sent = SentAlerts(applicationContext)
-        budgetAlerts(budgets.items, LocalDate.now(), sent.all()).forEach { alert ->
-            BudgetAlerts.notify(applicationContext, alert, private = app.preferences.lock.value)
-            sent.record(alert)
+        val private = preferences.lock.value
+        val today = LocalDate.now()
+        var retry = false
+
+        if (preferences.budgetAlerts.value) {
+            val budgets = apiCall { api.budgets(BudgetFilter(status = Status.Active, page = 1, pageSize = 1000)) }.getOrNull()
+            if (budgets == null) retry = true
+            else budgetAlerts(budgets.items, today, sent.all()).forEach { alert ->
+                BudgetAlerts.notify(applicationContext, alert, private)
+                sent.record(alert)
+            }
         }
-        return Result.success()
+        if (preferences.priceAlerts.value) {
+            val recurring = apiCall { api.recurring() }.getOrNull()
+            if (recurring == null) retry = true
+            else priceAlerts(recurring, today, sent.all()).forEach { alert ->
+                BudgetAlerts.notifyInsight(
+                    applicationContext, alert.key.hashCode(), MainActivity.ACTION_SUBSCRIPTIONS, alert.title, alert.text, private,
+                    "A subscription's price changed",
+                )
+                sent.record(alert.key, 1)
+            }
+        }
+        if (preferences.monthlyReview.value) {
+            val key = reviewKey(today)
+            if (key != null && sent.all()[key] == null) {
+                val review = apiCall { api.review() }.getOrNull()
+                if (review == null) retry = true
+                else {
+                    val alert = reviewAlert(review)
+                    BudgetAlerts.notifyInsight(
+                        applicationContext, key.hashCode(), MainActivity.ACTION_REVIEW, alert.first, alert.second, private,
+                        "Last month in review",
+                    )
+                    sent.record(key, 1)
+                }
+            }
+        }
+        return if (retry) Result.retry() else Result.success()
     }
 }

@@ -2,6 +2,12 @@ package com.guibilar.financeinsights
 
 import com.guibilar.financeinsights.core.api.ApiJson
 import com.guibilar.financeinsights.core.api.FinanceApi
+import com.guibilar.financeinsights.core.model.BulkUpdateResult
+import com.guibilar.financeinsights.core.model.RecurringReport
+import com.guibilar.financeinsights.core.model.ReviewReport
+import com.guibilar.financeinsights.core.model.SpendingForecast
+import com.guibilar.financeinsights.core.model.TransactionBulkUpdate
+import com.guibilar.financeinsights.core.model.UncategorisedReport
 import com.guibilar.financeinsights.core.model.Account
 import com.guibilar.financeinsights.core.model.Breakdown
 import com.guibilar.financeinsights.core.model.BreakdownInput
@@ -15,6 +21,8 @@ import com.guibilar.financeinsights.core.model.LoginInput
 import com.guibilar.financeinsights.core.model.MerchantTotal
 import com.guibilar.financeinsights.core.model.MerchantsInput
 import com.guibilar.financeinsights.core.model.Page
+import com.guibilar.financeinsights.core.model.Tag
+import com.guibilar.financeinsights.core.model.TagInput
 import com.guibilar.financeinsights.core.model.Transaction
 import com.guibilar.financeinsights.core.model.TransactionFilter
 import com.guibilar.financeinsights.core.api.ApiError
@@ -48,6 +56,8 @@ import java.io.IOException
  */
 class FakeFinanceApi : FinanceApi {
     val transactionFilters = mutableListOf<TransactionFilter>()
+    /** Changes the listed transactions (to give some a note and tags, say). */
+    var decorate: (Transaction) -> Transaction = { it }
     val breakdownInputs = mutableListOf<BreakdownInput>()
     val merchantInputs = mutableListOf<MerchantsInput>()
     /** Calls (by name) that fail as if the server were unreachable. */
@@ -112,9 +122,23 @@ class FakeFinanceApi : FinanceApi {
         if (filter.pageSize <= 5) return fixture("recent")
         // Two pages of the recorded 50, so paging can be seen.
         val half = all.items.size / 2
-        val items = if (filter.page == 1) all.items.take(half) else all.items.drop(half)
+        val items = (if (filter.page == 1) all.items.take(half) else all.items.drop(half)).map(decorate)
         return Page(items, filter.page, half, totalCount = all.items.size, totalPages = 2, hasNextPage = filter.page == 1)
     }
+
+    override suspend fun recurring(): RecurringReport = check("recurring").let { fixture("recurring") }
+    override suspend fun forecast(): SpendingForecast = check("forecast").let { fixture("forecast") }
+    override suspend fun uncategorised(): UncategorisedReport = check("uncategorised").let { uncategorisedReport ?: fixture("uncategorised") }
+    /** What the uncategorised report gives instead of the recorded one. */
+    var uncategorisedReport: UncategorisedReport? = null
+    /** The reviews asked for, as (year, month). */
+    val reviewRequests = mutableListOf<Pair<Int?, Int?>>()
+    override suspend fun review(year: Int?, month: Int?): ReviewReport {
+        reviewRequests += year to month
+        check("review")
+        return if (year != null && month == null) fixture("review-year") else fixture("review-month")
+    }
+    override suspend fun bulkUpdate(update: TransactionBulkUpdate) = write("bulkUpdate", update) { BulkUpdateResult(update.transactionIds.size) }
 
     override suspend fun budgets(filter: BudgetFilter): Page<Budget> {
         check("budgets")
@@ -179,6 +203,12 @@ class FakeFinanceApi : FinanceApi {
     override suspend fun addAccount(account: AccountInput) = write("addAccount", account) { fixture<List<Account>>("accounts").first() }
     override suspend fun updateAccount(id: String, account: AccountUpdate) = write("updateAccount", id to account) { fixture<List<Account>>("accounts").first { it.id == id } }
     override suspend fun deleteAccount(id: String) = write("deleteAccount", id) {}
+    override suspend fun tags(): List<Tag> = check("tags").let { fixture<List<Tag>>("tags") }
+    override suspend fun addTag(tag: TagInput) = write("addTag", tag) { Tag("new-tag", tag.name) }
+    override suspend fun renameTag(id: String, tag: TagInput) = write("renameTag", id to tag) {
+        fixture<List<Tag>>("tags").first { it.id == id }.copy(name = tag.name)
+    }
+    override suspend fun deleteTag(id: String) = write("deleteTag", id) {}
     override suspend fun changePassword(change: ChangePasswordInput) = write("changePassword", change) {}
     override suspend fun signOutOthers() = write("signOutOthers", null) { SignedOutSessions(2) }
 }

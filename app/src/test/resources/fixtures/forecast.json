@@ -1,0 +1,42 @@
+{
+    "month": "October 2026",
+    "daysInMonth": 31,
+    "daysLeft": 28,
+    "spent": 205.88,
+    "projected": 2065.19,
+    "usual": 2075.36,
+    "usualMonths": 3,
+    "dailyRate": 63.03,
+    "upcoming": [
+        {
+            "name": "SPOTIFY",
+            "amount": 11.99,
+            "date": "2026-10-12T00:00:00Z"
+        },
+        {
+            "name": "ENMAX",
+            "amount": 82.36,
+            "date": "2026-10-18T00:00:00Z"
+        }
+    ],
+    "budgets": [
+        {
+            "budgetId": "01a0ff22-6875-7776-ac54-351f8a551d7e",
+            "name": "Groceries",
+            "period": "Monthly",
+            "amount": 150,
+            "spent": 126.29,
+            "projected": 460.81,
+            "projectedPercentage": 307.2
+        },
+        {
+            "budgetId": "01a0eb71-be0a-77a4-941e-56591133b8a1",
+            "name": "Eating out",
+            "period": "Monthly",
+            "amount": 100,
+            "spent": 6.45,
+            "projected": 162.32,
+            "projectedPercentage": 162.3
+        }
+    ]
+}

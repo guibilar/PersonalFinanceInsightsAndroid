@@ -1,0 +1,32 @@
+{
+    "merchants": [
+        {
+            "keyword": "FARMERS FRIDGE LUNCH",
+            "count": 2,
+            "spending": 25.0,
+            "examples": [
+                "Farmers Fridge lunch"
+            ],
+            "lastDate": "2026-09-29T00:00:00Z"
+        },
+        {
+            "keyword": "SS CALGARY",
+            "count": 1,
+            "spending": 15.35,
+            "examples": [
+                "SS CALGARY 6TH AVENUE CALGARY CAN"
+            ],
+            "lastDate": "2026-08-21T00:00:00Z"
+        },
+        {
+            "keyword": "LIVE TEST IMPORT ROW",
+            "count": 1,
+            "spending": 1.23,
+            "examples": [
+                "LIVE TEST IMPORT ROW"
+            ],
+            "lastDate": "2026-09-30T00:00:00Z"
+        }
+    ],
+    "transactionCount": 4
+}

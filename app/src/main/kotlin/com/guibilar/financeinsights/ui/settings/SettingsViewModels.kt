@@ -18,6 +18,9 @@ import com.guibilar.financeinsights.core.model.CategoryRuleMove
 import com.guibilar.financeinsights.core.model.ChangePasswordInput
 import com.guibilar.financeinsights.core.model.FlowRule
 import com.guibilar.financeinsights.core.model.FlowRuleInput
+import com.guibilar.financeinsights.core.model.Tag
+import com.guibilar.financeinsights.core.model.TagInput
+import com.guibilar.financeinsights.core.model.UncategorisedReport
 import com.guibilar.financeinsights.ui.common.LoadState
 import com.guibilar.financeinsights.ui.common.UiMessage
 import com.guibilar.financeinsights.ui.common.load
@@ -56,6 +59,8 @@ data class RulesState(
     val categories: List<Category> = emptyList(),
     /** A move is on its way: positions are about to change, so the move buttons wait. */
     val moving: Boolean = false,
+    /** The merchants left in Other because no rule names them; null while unknown. */
+    val uncategorised: UncategorisedReport? = null,
 )
 
 /**
@@ -82,6 +87,27 @@ class RulesViewModel(private val api: FinanceApi) : SettingsViewModel() {
         viewModelScope.launch {
             apiCall { api.categories() }.getOrNull()?.let { categories -> _state.update { it.copy(categories = categories) } }
         }
+        viewModelScope.launch {
+            apiCall { api.uncategorised() }.getOrNull()?.let { report -> _state.update { it.copy(uncategorised = report) } }
+        }
+    }
+
+    /**
+     * A merchant left in Other sorted at once: a rule for [keyword] into [category], then the rules applied. Null when
+     * done (with a message saying how many moved), or why not.
+     */
+    suspend fun sortMerchant(keyword: String, category: Category): String? {
+        val trimmed = keyword.trim().uppercase()
+        if (trimmed.isEmpty()) return "Enter a keyword."
+        val added = apiCall { api.addCategoryRule(CategoryRuleInput(trimmed, category.id)) }
+        added.apiError?.let { return it.conflictOr(it.validationOr(it.loadMessage("Could not add the rule."))) }
+        val applied = apiCall { api.applyRules() }.getOrNull()
+        say(
+            if (applied == null) "Rule “$trimmed” added, but the rules could not be applied."
+            else "Rule “$trimmed” added: ${applied.updated} ${if (applied.updated == 1) "transaction" else "transactions"} now in ${category.name}",
+        )
+        reload()
+        return null
     }
 
     /**
@@ -243,5 +269,41 @@ class AccountSettingsViewModel(private val api: FinanceApi) : SettingsViewModel(
                 if (count == 0) "You weren't signed in anywhere else." else "Signed out $count other ${if (count == 1) "session" else "sessions"}."
             } ?: result.apiError!!.loadMessage("Could not sign out the other sessions."),
         )
+    }
+}
+
+/** Free labels across categories: add, rename, delete (taking it off every transaction). */
+class TagsViewModel(private val api: FinanceApi) : SettingsViewModel() {
+    private val _state = MutableStateFlow<LoadState<List<Tag>>>(LoadState.Loading)
+    val state: StateFlow<LoadState<List<Tag>>> = _state.asStateFlow()
+
+    init {
+        reload()
+    }
+
+    fun reload() {
+        viewModelScope.launch { _state.value = load("Could not load the tags.") { api.tags() } }
+    }
+
+    suspend fun save(editing: Tag?, name: String): String? {
+        val input = TagInput(name.trim())
+        return change(
+            if (editing == null) "Could not add the tag." else "Could not rename the tag.",
+            { if (editing == null) api.addTag(input) else api.renameTag(editing.id, input) },
+        ) {
+            reload()
+            say(if (editing == null) "Added “${input.name}”" else "Renamed to “${input.name}”")
+        }
+    }
+
+    fun delete(tag: Tag) = viewModelScope.launch {
+        val error = change("Could not delete “${tag.name}”.", { api.deleteTag(tag.id) }) {
+            reload()
+            say("Deleted “${tag.name}”")
+        }
+        if (error != null) {
+            reload()
+            say(error)
+        }
     }
 }

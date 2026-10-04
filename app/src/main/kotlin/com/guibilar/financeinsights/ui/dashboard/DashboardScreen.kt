@@ -1,6 +1,18 @@
 package com.guibilar.financeinsights.ui.dashboard
 
 import androidx.compose.foundation.clickable
+import kotlin.math.roundToInt
+import com.guibilar.financeinsights.ui.common.budgetWarningText
+import com.guibilar.financeinsights.core.model.SpendingForecast
+import com.guibilar.financeinsights.core.logic.shortDay
+import com.guibilar.financeinsights.core.logic.Change
+import androidx.compose.ui.draw.clip
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Card
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -108,6 +120,9 @@ fun DashboardScreen(
     contentPadding: PaddingValues,
     openTransactions: (TransactionsRoute) -> Unit,
     openBudgets: () -> Unit = {},
+    openRules: () -> Unit = {},
+    openReview: () -> Unit = {},
+    openSubscriptions: () -> Unit = {},
 ) {
     val state by model.state.collectAsState()
     // Back from the background on a new day: today moves on.
@@ -133,6 +148,24 @@ fun DashboardScreen(
                 modifier = Modifier.fillMaxSize(),
             ) {
                 item { HeadlineTiles(state) }
+                if (state.unsorted > 0) {
+                    item { UnsortedNudge(state.unsorted, openRules) }
+                }
+                item {
+                    SectionCard(
+                        "Where the month is heading",
+                        subtitle = "If $monthName goes as usual",
+                        action = {
+                            TextButton(onClick = openReview) {
+                                Text("Last month")
+                                Spacer(Modifier.width(4.dp))
+                                Icon(Icons.AutoMirrored.Outlined.ArrowForward, null)
+                            }
+                        },
+                    ) {
+                        Loaded(state.forecast, model::retryForecast) { forecast -> MonthForecast(forecast, openSubscriptions) }
+                    }
+                }
                 item {
                     SectionCard("Monthly spending", subtitle = "By category, this year") {
                         Loaded(state.year, model::retryYear, lines = 6) { report ->
@@ -594,4 +627,113 @@ private fun BudgetOverview(budgets: List<Budget>) {
 @Composable
 private fun RecentTransactions(transactions: List<Transaction>) {
     Column { transactions.forEach { TransactionRow(it, horizontalPadding = 0.dp) } }
+}
+
+/** "4 transactions are in Other…": a rule per merchant sorts them, under Rules. */
+@Composable
+private fun UnsortedNudge(count: Int, openRules: () -> Unit) {
+    Card(
+        onClick = openRules,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "$count ${if (count == 1) "transaction is" else "transactions are"} in Other because no rule names " +
+                    "${if (count == 1) "its merchant" else "their merchants"}.",
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(Modifier.width(8.dp))
+            Text("Sort them", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
+
+/** Where the month is heading: spent, the recurring payments still due, and usual day-to-day for the days left. */
+@Composable
+private fun MonthForecast(forecast: SpendingForecast, openSubscriptions: () -> Unit) {
+    val colors = LocalChartColors.current
+    Row(verticalAlignment = Alignment.Bottom) {
+        Text(Money.format(forecast.projected), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.width(8.dp))
+        Text("by the end of the month", style = MaterialTheme.typography.bodyMedium, color = colors.muted, modifier = Modifier.padding(bottom = 3.dp))
+    }
+    val usual = forecast.usual
+    val change = usual?.let { Change.of(forecast.projected, it) }
+    Text(
+        if (change == null || usual == null) "No complete month yet to compare with."
+        else "${change.than("usual")} (${Money.format(usual)}, the average of the last " +
+            "${if (forecast.usualMonths == 1) "month" else "${forecast.usualMonths} months"})",
+        style = MaterialTheme.typography.bodySmall,
+        color = when {
+            change == null -> colors.muted
+            change.up -> MaterialTheme.colorScheme.error
+            change.text == Change.SAME -> colors.muted
+            else -> colors.positive
+        },
+    )
+    Spacer(Modifier.height(10.dp))
+    val total = forecast.projected.coerceAtLeast(0.01)
+    val due = MaterialTheme.colorScheme.tertiary
+    Row(Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(50)).background(MaterialTheme.colorScheme.surfaceVariant)) {
+        listOf(forecast.spent to MaterialTheme.colorScheme.primary, forecast.upcomingTotal to due).forEach { (amount, color) ->
+            val fraction = (amount / total).toFloat().coerceIn(0f, 1f)
+            if (fraction > 0f) Box(Modifier.fillMaxHeight().weight(fraction).background(color))
+        }
+        val rest = (forecast.dayToDay / total).toFloat().coerceIn(0f, 1f)
+        if (rest > 0f) Spacer(Modifier.weight(rest))
+    }
+    Spacer(Modifier.height(8.dp))
+    ForecastKey(MaterialTheme.colorScheme.primary, "Spent", forecast.spent)
+    ForecastKey(due, "Recurring still due", forecast.upcomingTotal)
+    ForecastKey(
+        MaterialTheme.colorScheme.surfaceVariant,
+        "Day-to-day, ${forecast.daysLeft} ${if (forecast.daysLeft == 1) "day" else "days"} at ${Money.format(forecast.dailyRate)}",
+        forecast.dayToDay,
+    )
+    if (forecast.upcoming.isNotEmpty()) {
+        Spacer(Modifier.height(12.dp))
+        Text("Still to come", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+        forecast.upcoming.take(4).forEach { charge ->
+            Row(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
+                Text(charge.name, Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium)
+                Text("${shortDay(charge.date)}  ", style = MaterialTheme.typography.bodySmall, color = colors.muted)
+                Text(Money.format(charge.amount), style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+        if (forecast.upcoming.size > 4) {
+            TextButton(onClick = openSubscriptions) { Text("and ${forecast.upcoming.size - 4} more") }
+        }
+    }
+    if (forecast.budgets.isNotEmpty()) {
+        Spacer(Modifier.height(12.dp))
+        Text("Budgets at this pace", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+        forecast.budgets.forEach { budget ->
+            Row(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
+                Text(budget.name, Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    "${Money.format(budget.projected)} of ${Money.format(budget.amount)} (${budget.projectedPercentage.roundToInt()}%)",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = when {
+                        budget.projectedPercentage > 100 -> MaterialTheme.colorScheme.error
+                        budget.projectedPercentage > 90 -> budgetWarningText
+                        else -> MaterialTheme.colorScheme.onSurface
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ForecastKey(color: Color, label: String, amount: Double) {
+    Row(Modifier.padding(vertical = 1.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(10.dp).clip(RoundedCornerShape(2.dp)).background(color))
+        Spacer(Modifier.width(8.dp))
+        Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodySmall, color = LocalChartColors.current.muted)
+        Text(Money.format(amount), style = MaterialTheme.typography.bodySmall)
+    }
 }

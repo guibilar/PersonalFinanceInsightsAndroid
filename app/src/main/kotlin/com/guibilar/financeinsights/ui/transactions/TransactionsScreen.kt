@@ -95,6 +95,16 @@ import com.guibilar.financeinsights.ui.common.ShowMessages
 import com.guibilar.financeinsights.ui.common.Skeleton
 import com.guibilar.financeinsights.ui.common.rememberFabExpansion
 import com.guibilar.financeinsights.ui.common.rememberOpenItem
+import androidx.compose.material.icons.outlined.SelectAll
+import androidx.compose.material.icons.outlined.Sell
+import androidx.compose.material.icons.outlined.SwapHoriz
+import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.LinkOff
+import androidx.compose.material.icons.outlined.Tag
+import com.guibilar.financeinsights.core.model.TransactionBulkUpdate
+import com.guibilar.financeinsights.core.model.Flow
+import com.guibilar.financeinsights.ui.common.ColorDot
+import com.guibilar.financeinsights.ui.theme.parseHexColor
 
 private val SORT_LABELS = mapOf(
     TransactionSortField.Date to "Date",
@@ -168,6 +178,9 @@ fun TransactionsScreen(
         listedFor = listKey
     }
     BackHandler(enabled = state.showDeleted, onBack = model::toggleDeleted)
+    // Selecting: Back clears the ticks first.
+    val selecting = state.selected.isNotEmpty()
+    BackHandler(enabled = selecting, onBack = model::clearSelection)
 
     // The bar leaves as the list scrolls down and comes back on any scroll up.
     val barBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
@@ -178,7 +191,7 @@ fun TransactionsScreen(
         val fab = rememberFabExpansion()
         Box(Modifier.weight(1f).fillMaxHeight().nestedScroll(fab.connection)) {
             Column(Modifier.fillMaxSize().nestedScroll(barBehavior.nestedScrollConnection)) {
-                TopAppBar(
+                if (selecting) SelectionBar(state, model) else TopAppBar(
                     scrollBehavior = barBehavior,
                     title = { FitText(if (state.showDeleted) "Deleted transactions" else "Transactions", fontWeight = FontWeight.SemiBold, minFontSize = 14.sp) },
                     navigationIcon = {
@@ -212,7 +225,7 @@ fun TransactionsScreen(
                                 OutlinedTextField(
                                     value = state.search,
                                     onValueChange = model::search,
-                                    placeholder = { Placeholder("Search descriptions") },
+                                    placeholder = { Placeholder("Search descriptions and notes") },
                                     leadingIcon = { Icon(Icons.Outlined.Search, null) },
                                     trailingIcon = {
                                         if (state.search.isNotEmpty()) IconButton(onClick = model::clearSearch) { Icon(Icons.Outlined.Close, "Clear search") }
@@ -279,13 +292,27 @@ fun TransactionsScreen(
                                         SwipeRow(
                                             transaction = transaction,
                                             deletedList = state.showDeleted,
-                                            enabled = !stale,
+                                            enabled = !stale && !selecting,
                                             onDelete = { model.delete(transaction) },
                                             onRestore = { model.restore(transaction) },
                                             onCategorise = { opened = transaction },
                                         ) { actions ->
                                             // Opaque, so the swipe's colour shows only beside it.
-                                            Surface { TransactionRow(transaction, onClick = { if (!stale) opened = transaction }, actions = actions) }
+                                            Surface {
+                                                TransactionRow(
+                                                    transaction,
+                                                    onClick = {
+                                                        when {
+                                                            selecting -> model.toggleSelected(transaction.id)
+                                                            !stale -> opened = transaction
+                                                        }
+                                                    },
+                                                    actions = actions,
+                                                    // Long-pressed, it starts a change to several at once (not in the deleted list).
+                                                    onLongClick = if (state.showDeleted || stale) null else ({ model.toggleSelected(transaction.id) }),
+                                                    selected = if (selecting) transaction.id in state.selected else null,
+                                                )
+                                            }
                                         }
                                         HorizontalDivider(Modifier.padding(start = 64.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                                     }
@@ -313,7 +340,7 @@ fun TransactionsScreen(
                 }
             }
 
-            if (!state.showDeleted) {
+            if (!state.showDeleted && !selecting) {
                 ExtendedFloatingActionButton(
                     onClick = { adding = true },
                     icon = { Icon(Icons.Outlined.Add, null) },
@@ -342,6 +369,7 @@ fun TransactionsScreen(
                             model = model,
                             onClose = { opened = null },
                             modifier = Modifier.imePadding(),
+                            tags = state.tags,
                         )
                     }
                 }
@@ -360,6 +388,7 @@ fun TransactionsScreen(
                 budgets = state.budgets,
                 model = model,
                 onDismiss = { opened = null },
+                tags = state.tags,
             )
         }
     }
@@ -426,6 +455,9 @@ private fun filterChips(state: TransactionsState, model: TransactionsViewModel):
         criteria.categoryId?.let { id ->
             add(FilterChipModel("category", state.categories.firstOrNull { it.id == id }?.name ?: "Category") { model.setCategory(null) })
         }
+        criteria.tagId?.let { id ->
+            add(FilterChipModel("tag", "#" + (state.tags.firstOrNull { it.id == id }?.name ?: "Tag")) { model.setTag(null) })
+        }
         criteria.accountId?.let { id ->
             add(FilterChipModel("account", state.accounts.firstOrNull { it.id == id }?.name ?: "Account") { model.setAccount(null) })
         }
@@ -465,4 +497,99 @@ private fun SortMenu(field: TransactionSortField, direction: SortDirection, onSo
             )
         }
     }
+}
+
+/**
+ * The top bar while transactions are ticked: how many, ticking all that are loaded, and one change for them all (a
+ * category, what they count as, a budget to link to or unlinking, a tag to add or remove).
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SelectionBar(state: TransactionsState, model: TransactionsViewModel) {
+    var menu by remember { mutableStateOf<String?>(null) }
+    TopAppBar(
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+        navigationIcon = { IconButton(onClick = model::clearSelection) { Icon(Icons.Outlined.Close, "Stop selecting") } },
+        title = { FitText("${state.selected.size} selected", fontWeight = FontWeight.SemiBold, minFontSize = 14.sp) },
+        actions = {
+            IconButton(onClick = model::selectAll) { Icon(Icons.Outlined.SelectAll, "Select all loaded") }
+            Box {
+                IconButton(onClick = { menu = "category" }) { Icon(Icons.Outlined.Sell, "Set the category") }
+                DropdownMenu(expanded = menu == "category", onDismissRequest = { menu = null }) {
+                    state.categories.forEach { category ->
+                        DropdownMenuItem(
+                            text = { Text(category.name) },
+                            leadingIcon = { ColorDot(parseHexColor(category.color)) },
+                            onClick = {
+                                menu = null
+                                model.bulk(TransactionBulkUpdate(emptyList(), categoryId = category.id))
+                            },
+                        )
+                    }
+                }
+            }
+            Box {
+                IconButton(onClick = { menu = "flow" }) { Icon(Icons.Outlined.SwapHoriz, "Set what they count as") }
+                DropdownMenu(expanded = menu == "flow", onDismissRequest = { menu = null }) {
+                    Flow.entries.forEach { flow ->
+                        DropdownMenuItem(
+                            text = { Text(flow.label) },
+                            onClick = {
+                                menu = null
+                                model.bulk(TransactionBulkUpdate(emptyList(), flow = flow))
+                            },
+                        )
+                    }
+                }
+            }
+            Box {
+                IconButton(onClick = { menu = "budget" }) { Icon(Icons.Outlined.Link, "Link to a budget") }
+                DropdownMenu(expanded = menu == "budget", onDismissRequest = { menu = null }) {
+                    state.budgets.forEach { budget ->
+                        DropdownMenuItem(
+                            text = { Text("Link to ${budget.name}") },
+                            onClick = {
+                                menu = null
+                                model.bulk(TransactionBulkUpdate(emptyList(), budgetId = budget.id))
+                            },
+                        )
+                    }
+                    DropdownMenuItem(
+                        text = { Text("Unlink from budgets") },
+                        leadingIcon = { Icon(Icons.Outlined.LinkOff, null) },
+                        onClick = {
+                            menu = null
+                            model.bulk(TransactionBulkUpdate(emptyList(), unlinkBudget = true))
+                        },
+                    )
+                }
+            }
+            if (state.tags.isNotEmpty()) {
+                Box {
+                    IconButton(onClick = { menu = "tag" }) { Icon(Icons.Outlined.Tag, "Add or remove a tag") }
+                    DropdownMenu(expanded = menu == "tag", onDismissRequest = { menu = null }) {
+                        state.tags.forEach { tag ->
+                            DropdownMenuItem(
+                                text = { Text("Add #${tag.name}") },
+                                onClick = {
+                                    menu = null
+                                    model.bulk(TransactionBulkUpdate(emptyList(), addTagId = tag.id))
+                                },
+                            )
+                        }
+                        HorizontalDivider()
+                        state.tags.forEach { tag ->
+                            DropdownMenuItem(
+                                text = { Text("Remove #${tag.name}") },
+                                onClick = {
+                                    menu = null
+                                    model.bulk(TransactionBulkUpdate(emptyList(), removeTagId = tag.id))
+                                },
+                            )
+                        }
+                    }
+                }
+            }
+        },
+    )
 }

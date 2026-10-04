@@ -1,0 +1,70 @@
+{
+    "payments": [
+        {
+            "name": "ENMAX",
+            "cadence": "Monthly",
+            "status": "Active",
+            "amount": 82.36,
+            "variableAmount": true,
+            "firstDate": "2026-06-18T00:00:00Z",
+            "lastDate": "2026-09-18T00:00:00Z",
+            "lastAmount": 93.4,
+            "nextDate": "2026-10-18T00:00:00Z",
+            "count": 5,
+            "monthlyCost": 82.36,
+            "yearlyCost": 988.32,
+            "category": {
+                "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b0b",
+                "name": "Utilities",
+                "color": "#800080"
+            },
+            "priceChange": null
+        },
+        {
+            "name": "NETFLIX",
+            "cadence": "Monthly",
+            "status": "Active",
+            "amount": 18.99,
+            "variableAmount": false,
+            "firstDate": "2026-06-05T00:00:00Z",
+            "lastDate": "2026-10-03T00:00:00Z",
+            "lastAmount": 18.99,
+            "nextDate": "2026-11-03T00:00:00Z",
+            "count": 5,
+            "monthlyCost": 18.99,
+            "yearlyCost": 227.88,
+            "category": {
+                "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b09",
+                "name": "Subscriptions",
+                "color": "#BDBD23"
+            },
+            "priceChange": {
+                "from": 16.49,
+                "to": 18.99,
+                "since": "2026-10-03T00:00:00Z"
+            }
+        },
+        {
+            "name": "SPOTIFY",
+            "cadence": "Monthly",
+            "status": "Active",
+            "amount": 11.99,
+            "variableAmount": false,
+            "firstDate": "2026-06-12T00:00:00Z",
+            "lastDate": "2026-09-12T00:00:00Z",
+            "lastAmount": 11.99,
+            "nextDate": "2026-10-12T00:00:00Z",
+            "count": 4,
+            "monthlyCost": 11.99,
+            "yearlyCost": 143.88,
+            "category": {
+                "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b09",
+                "name": "Subscriptions",
+                "color": "#BDBD23"
+            },
+            "priceChange": null
+        }
+    ],
+    "monthlyTotal": 113.34,
+    "yearlyTotal": 1360.08
+}

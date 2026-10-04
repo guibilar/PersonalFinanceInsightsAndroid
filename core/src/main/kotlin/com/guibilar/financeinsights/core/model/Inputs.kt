@@ -15,6 +15,7 @@ data class LoginInput(
 data class TransactionCriteria(
     val description: String? = null,
     val categoryId: String? = null,
+    val tagId: String? = null,
     val accountId: String? = null,
     val flow: Flow? = null,
     /** Inclusive, "yyyy-MM-dd". */
@@ -29,6 +30,7 @@ data class TransactionCriteria(
 data class TransactionFilter(
     val description: String? = null,
     val categoryId: String? = null,
+    val tagId: String? = null,
     val accountId: String? = null,
     val flow: Flow? = null,
     val startDate: String? = null,
@@ -46,6 +48,7 @@ data class TransactionFilter(
             TransactionFilter(
                 description = criteria.description,
                 categoryId = criteria.categoryId,
+                tagId = criteria.tagId,
                 accountId = criteria.accountId,
                 flow = criteria.flow,
                 startDate = criteria.startDate,
@@ -71,6 +74,7 @@ data class BudgetFilter(
 data class BreakdownInput(
     val description: String? = null,
     val categoryId: String? = null,
+    val tagId: String? = null,
     val accountId: String? = null,
     val flow: Flow? = null,
     val startDate: String? = null,
@@ -79,7 +83,7 @@ data class BreakdownInput(
 ) {
     companion object {
         fun of(criteria: TransactionCriteria, interval: BreakdownInterval) = BreakdownInput(
-            criteria.description, criteria.categoryId, criteria.accountId, criteria.flow,
+            criteria.description, criteria.categoryId, criteria.tagId, criteria.accountId, criteria.flow,
             criteria.startDate, criteria.endDate, interval,
         )
     }
@@ -89,6 +93,7 @@ data class BreakdownInput(
 data class MerchantsInput(
     val description: String? = null,
     val categoryId: String? = null,
+    val tagId: String? = null,
     val accountId: String? = null,
     val flow: Flow? = null,
     val startDate: String? = null,
@@ -98,7 +103,7 @@ data class MerchantsInput(
 ) {
     companion object {
         fun of(criteria: TransactionCriteria, page: Int, pageSize: Int) = MerchantsInput(
-            criteria.description, criteria.categoryId, criteria.accountId, criteria.flow,
+            criteria.description, criteria.categoryId, criteria.tagId, criteria.accountId, criteria.flow,
             criteria.startDate, criteria.endDate, page, pageSize,
         )
     }
@@ -116,6 +121,7 @@ data class TransactionInput(
     val accountId: String,
     val categoryId: String? = null,
     val flow: Flow? = null,
+    val note: String? = null,
     /** Adds it although an identical one exists (two coffees at the same price on the same day). */
     val allowDuplicate: Boolean = false,
 )
@@ -127,7 +133,14 @@ data class TransactionUpdate(
     val categoryId: String,
     /** Sent only when changed. */
     val flow: Flow? = null,
+    /** Sent only when changed; empty clears it. */
+    val note: String? = null,
+    /** The full set, sent only when changed. */
+    val tagIds: List<String>? = null,
 )
+
+@Serializable
+data class TagInput(val name: String)
 
 @Serializable
 data class TransactionLink(val transactionId: String, val budgetId: String)
