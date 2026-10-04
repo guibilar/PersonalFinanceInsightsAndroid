@@ -7,6 +7,7 @@ import com.guibilar.financeinsights.core.api.apiCall
 import com.guibilar.financeinsights.core.api.apiError
 import com.guibilar.financeinsights.core.model.Budget
 import com.guibilar.financeinsights.core.model.BudgetFilter
+import com.guibilar.financeinsights.core.model.BudgetForecast
 import com.guibilar.financeinsights.core.model.BudgetInput
 import com.guibilar.financeinsights.core.model.CategoryReference
 import com.guibilar.financeinsights.core.model.Status
@@ -43,6 +44,8 @@ data class BudgetsState(
     val moreFailed: Boolean = false,
     val refreshing: Boolean = false,
     val categories: List<CategoryReference> = emptyList(),
+    /** Where each monthly and yearly budget should end at its usual pace, by id; none while unknown. */
+    val projections: Map<String, BudgetForecast> = emptyMap(),
 ) {
     val endReached get() = pagesLoaded > 0 && items.size >= totalCount
     val hasCriteria get() = name != null || status != null
@@ -70,6 +73,15 @@ class BudgetsViewModel(private val api: FinanceApi) : ViewModel() {
             .launchIn(viewModelScope)
         reload()
         loadCategories()
+    }
+
+    /** The projections follow every reload of the list: spending changes them. A failure keeps the last ones. */
+    private fun loadProjections() {
+        viewModelScope.launch {
+            apiCall { api.forecast() }.getOrNull()?.let { forecast ->
+                _state.update { it.copy(projections = forecast.budgets.associateBy { b -> b.budgetId }) }
+            }
+        }
     }
 
     private fun loadCategories() {
@@ -161,6 +173,7 @@ class BudgetsViewModel(private val api: FinanceApi) : ViewModel() {
 
     /** The first page again. [quiet] (back on the screen) keeps the list showing when the reload fails. */
     private fun reload(quiet: Boolean = false) {
+        loadProjections()
         listJob?.cancel()
         _state.update { it.copy(loading = true, error = null, loadingMore = false, moreFailed = false) }
         listJob = viewModelScope.launch {

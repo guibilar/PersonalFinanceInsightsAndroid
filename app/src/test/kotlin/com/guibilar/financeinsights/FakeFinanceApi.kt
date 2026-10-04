@@ -2,6 +2,12 @@ package com.guibilar.financeinsights
 
 import com.guibilar.financeinsights.core.api.ApiJson
 import com.guibilar.financeinsights.core.api.FinanceApi
+import com.guibilar.financeinsights.core.model.BulkUpdateResult
+import com.guibilar.financeinsights.core.model.RecurringReport
+import com.guibilar.financeinsights.core.model.ReviewReport
+import com.guibilar.financeinsights.core.model.SpendingForecast
+import com.guibilar.financeinsights.core.model.TransactionBulkUpdate
+import com.guibilar.financeinsights.core.model.UncategorisedReport
 import com.guibilar.financeinsights.core.model.Account
 import com.guibilar.financeinsights.core.model.Breakdown
 import com.guibilar.financeinsights.core.model.BreakdownInput
@@ -115,6 +121,20 @@ class FakeFinanceApi : FinanceApi {
         val items = if (filter.page == 1) all.items.take(half) else all.items.drop(half)
         return Page(items, filter.page, half, totalCount = all.items.size, totalPages = 2, hasNextPage = filter.page == 1)
     }
+
+    override suspend fun recurring(): RecurringReport = check("recurring").let { fixture("recurring") }
+    override suspend fun forecast(): SpendingForecast = check("forecast").let { fixture("forecast") }
+    override suspend fun uncategorised(): UncategorisedReport = check("uncategorised").let { uncategorisedReport ?: fixture("uncategorised") }
+    /** What the uncategorised report gives instead of the recorded one. */
+    var uncategorisedReport: UncategorisedReport? = null
+    /** The reviews asked for, as (year, month). */
+    val reviewRequests = mutableListOf<Pair<Int?, Int?>>()
+    override suspend fun review(year: Int?, month: Int?): ReviewReport {
+        reviewRequests += year to month
+        check("review")
+        return if (year != null && month == null) fixture("review-year") else fixture("review-month")
+    }
+    override suspend fun bulkUpdate(update: TransactionBulkUpdate) = write("bulkUpdate", update) { BulkUpdateResult(update.transactionIds.size) }
 
     override suspend fun budgets(filter: BudgetFilter): Page<Budget> {
         check("budgets")

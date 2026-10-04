@@ -56,6 +56,11 @@ import com.guibilar.financeinsights.ui.budgets.BudgetsScreen
 import com.guibilar.financeinsights.ui.budgets.BudgetsViewModel
 import com.guibilar.financeinsights.ui.dashboard.DashboardScreen
 import com.guibilar.financeinsights.ui.dashboard.DashboardViewModel
+import com.guibilar.financeinsights.ui.insights.RecurringScreen
+import com.guibilar.financeinsights.ui.insights.RecurringViewModel
+import com.guibilar.financeinsights.ui.insights.ReviewScreen
+import com.guibilar.financeinsights.ui.insights.ReviewViewModel
+import com.guibilar.financeinsights.core.logic.ReviewPeriod
 import com.guibilar.financeinsights.ui.settings.AccountSettingsScreen
 import com.guibilar.financeinsights.ui.settings.AccountSettingsViewModel
 import com.guibilar.financeinsights.ui.settings.AccountsScreen
@@ -99,16 +104,25 @@ data object AccountSettingsRoute
 @Serializable
 data object AppSettingsRoute
 
+@Serializable
+data object SubscriptionsRoute
+
+/** A month's review, or a year's without [month]; the last complete month without either. */
+@Serializable
+data class ReviewRoute(val year: Int? = null, val month: Int? = null)
+
 /** The transactions list, optionally opened on criteria (the dashboard's links) with its "Over time" chart. */
 @Serializable
 data class TransactionsRoute(
     val categoryId: String? = null,
+    /** Part of the description: a merchant's transactions. */
+    val description: String? = null,
     val startDate: String? = null,
     val endDate: String? = null,
     val overTime: Boolean = false,
     val interval: BreakdownInterval? = null,
 ) {
-    val criteria get() = TransactionCriteria(categoryId = categoryId, startDate = startDate, endDate = endDate)
+    val criteria get() = TransactionCriteria(description = description, categoryId = categoryId, startDate = startDate, endDate = endDate)
 }
 
 /** Signed in or not decides what shows; signing out (or the session ending) brings back the sign-in screen. */
@@ -192,7 +206,8 @@ private val tabs = listOf(
     Tab("Budgets", Icons.Outlined.AccountBalanceWallet, BudgetsRoute) { it.hasRoute<BudgetsRoute>() },
     Tab("More", Icons.Outlined.Menu, MoreRoute) {
         it.hasRoute<MoreRoute>() || it.hasRoute<RulesRoute>() || it.hasRoute<CategoriesRoute>() ||
-            it.hasRoute<AccountsRoute>() || it.hasRoute<AccountSettingsRoute>() || it.hasRoute<AppSettingsRoute>()
+            it.hasRoute<AccountsRoute>() || it.hasRoute<AccountSettingsRoute>() || it.hasRoute<AppSettingsRoute>() ||
+            it.hasRoute<SubscriptionsRoute>() || it.hasRoute<ReviewRoute>()
     },
 )
 
@@ -229,6 +244,9 @@ fun MainScreen(
                 launchSingleTop = true
                 restoreState = true
             }
+            // From a notification: the page, Back returning to the dashboard.
+            QuickAction.Subscriptions -> nav.navigate(SubscriptionsRoute) { popUpTo<DashboardRoute>() }
+            QuickAction.Review -> nav.navigate(ReviewRoute()) { popUpTo<DashboardRoute>() }
             null -> {}
         }
         quickAction.value = null
@@ -299,6 +317,9 @@ fun MainScreen(
                                 restoreState = true
                             }
                         },
+                        openRules = { nav.navigate(RulesRoute) },
+                        openReview = { nav.navigate(ReviewRoute()) },
+                        openSubscriptions = { nav.navigate(SubscriptionsRoute) },
                     )
                 }
                 composable<MoreRoute> {
@@ -311,7 +332,22 @@ fun MainScreen(
                         openAccounts = { nav.navigate(AccountsRoute) },
                         openAccount = { nav.navigate(AccountSettingsRoute) },
                         openSettings = { nav.navigate(AppSettingsRoute) },
+                        openSubscriptions = { nav.navigate(SubscriptionsRoute) },
+                        openReview = { nav.navigate(ReviewRoute()) },
                     )
+                }
+                composable<SubscriptionsRoute> {
+                    RecurringScreen(
+                        viewModel { RecurringViewModel(api) },
+                        padding,
+                        onBack = { nav.popBackStack() },
+                        openTransactions = { name -> nav.navigate(TransactionsRoute(description = name)) },
+                    )
+                }
+                composable<ReviewRoute> { backStack ->
+                    val route = backStack.toRoute<ReviewRoute>()
+                    val model = viewModel { ReviewViewModel(api, route.year?.let { ReviewPeriod(it, route.month) }) }
+                    ReviewScreen(model, padding, onBack = { nav.popBackStack() }, openSubscriptions = { nav.navigate(SubscriptionsRoute) })
                 }
                 composable<AppSettingsRoute> {
                     if (preferences != null) AppSettingsScreen(preferences, lock, padding, onBack = { nav.popBackStack() })

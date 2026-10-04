@@ -22,6 +22,7 @@ import com.guibilar.financeinsights.core.model.Status
 import com.guibilar.financeinsights.core.model.TransactionInput
 import com.guibilar.financeinsights.core.model.TransactionLink
 import com.guibilar.financeinsights.core.model.TransactionUpdate
+import com.guibilar.financeinsights.core.model.TransactionBulkUpdate
 import com.guibilar.financeinsights.core.model.Account
 import com.guibilar.financeinsights.core.model.Breakdown
 import com.guibilar.financeinsights.core.model.BreakdownInput
@@ -104,6 +105,8 @@ data class TransactionsState(
     val showDeleted: Boolean = false,
     /** The day and account of the transaction added by hand just before, which the next one starts on. */
     val lastAdded: Pair<LocalDate, String>? = null,
+    /** Ticked for a change to many at once; empty when not selecting. */
+    val selected: Set<String> = emptySet(),
     val today: LocalDate = LocalDate.now(),
 ) {
     val period get() = selectedPeriod?.let { breakdown.valueOrNull?.periods?.getOrNull(it) }
@@ -139,7 +142,8 @@ class TransactionsViewModel(
     private val _state = MutableStateFlow(
         TransactionsState(
             criteria = route.criteria,
-            search = "",
+            // A merchant's link (from Subscriptions) opens on its search.
+            search = route.criteria.description.orEmpty(),
             breakdownOpen = route.overTime,
             interval = route.interval ?: BreakdownInterval.Month,
             today = clock(),
@@ -151,7 +155,7 @@ class TransactionsViewModel(
     private val _messages = Channel<UiMessage>(Channel.BUFFERED)
     val messages: kotlinx.coroutines.flow.Flow<UiMessage> = _messages.receiveAsFlow()
 
-    private val searchText = MutableStateFlow("")
+    private val searchText = MutableStateFlow(route.criteria.description.orEmpty())
     private var listJob: Job? = null
     private var breakdownJob: Job? = null
     private var merchantsJob: Job? = null
@@ -316,6 +320,36 @@ class TransactionsViewModel(
         return error.accountMismatch?.let { ImportOutcome.Mismatch(it) } ?: ImportOutcome.Failed(error.importMessage())
     }
 
+    /** Ticks or unticks one; the first starts selecting. */
+    fun toggleSelected(id: String) = _state.update {
+        it.copy(selected = if (id in it.selected) it.selected - id else it.selected + id)
+    }
+
+    /** Every transaction loaded so far, ticked. */
+    fun selectAll() = _state.update { state -> state.copy(selected = state.list.items.map { it.id }.toSet()) }
+
+    fun clearSelection() = _state.update { it.copy(selected = emptySet()) }
+
+    /**
+     * One change for every ticked transaction: a category, a flow, or a budget (linked, or unlinked). Said with what
+     * the API skipped (a flow that doesn't fit, say); the ticks go once it is done.
+     */
+    fun bulk(change: TransactionBulkUpdate) {
+        val ids = _state.value.selected.toList()
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            val result = apiCall { api.bulkUpdate(change.copy(transactionIds = ids)) }
+            val error = result.apiError
+            if (error == null) {
+                val done = result.getOrThrow()
+                clearSelection()
+                changed((listOf("Updated ${done.updated} ${if (done.updated == 1) "transaction" else "transactions"}") + done.notes).joinToString(". "))
+            } else {
+                _messages.trySend(UiMessage(error.conflictOr(error.validationOr(error.loadMessage("Could not change the transactions.")))))
+            }
+        }
+    }
+
     /** Re-applies the category and flow rules to the stored transactions. */
     fun applyRules() {
         viewModelScope.launch {
@@ -474,7 +508,11 @@ class TransactionsViewModel(
     private fun reloadList(clear: Boolean = false) {
         listJob?.cancel()
         _state.update {
-            it.copy(list = if (clear) ListState() else it.list.copy(loading = true, error = null, moreFailed = false, loadingMore = false))
+            it.copy(
+                list = if (clear) ListState() else it.list.copy(loading = true, error = null, moreFailed = false, loadingMore = false),
+                // Other transactions are about to show: what was ticked may not be among them.
+                selected = emptySet(),
+            )
         }
         listJob = viewModelScope.launch {
             val current = _state.value

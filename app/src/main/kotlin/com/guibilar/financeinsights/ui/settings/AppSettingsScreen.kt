@@ -47,7 +47,7 @@ import com.guibilar.financeinsights.security.authenticate
 import com.guibilar.financeinsights.security.canAuthenticate
 import kotlinx.coroutines.flow.emptyFlow
 
-/** The app's own settings, kept on this phone: how it looks, the app lock, and budget alerts. */
+/** The app's own settings, kept on this phone: how it looks, the app lock, and notifications. */
 @Composable
 fun AppSettingsScreen(preferences: AppPreferences, lock: AppLock?, contentPadding: PaddingValues, onBack: () -> Unit) {
     val context = LocalContext.current
@@ -56,6 +56,8 @@ fun AppSettingsScreen(preferences: AppPreferences, lock: AppLock?, contentPaddin
     val dynamicColor by preferences.dynamicColor.collectAsState()
     val locking by preferences.lock.collectAsState()
     val alerts by preferences.budgetAlerts.collectAsState()
+    val priceAlerts by preferences.priceAlerts.collectAsState()
+    val monthlyReview by preferences.monthlyReview.collectAsState()
     val hideWidget by preferences.hideWidgetAmounts.collectAsState()
     // Checked again on coming back, a screen lock just set up in the phone's settings.
     var lockAvailable by remember { mutableStateOf(canAuthenticate(context)) }
@@ -64,17 +66,31 @@ fun AppSettingsScreen(preferences: AppPreferences, lock: AppLock?, contentPaddin
         onPauseOrDispose {}
     }
     var alertsNote by remember { mutableStateOf<String?>(null) }
+    // The notification switched on while the permission was asked for.
+    var waiting by remember { mutableStateOf<((Boolean) -> Unit)?>(null) }
 
-    fun setAlerts(on: Boolean) {
-        preferences.setBudgetAlerts(on)
-        if (on) BudgetAlerts.schedule(context) else BudgetAlerts.cancel(context)
+    fun apply(set: (Boolean) -> Unit, on: Boolean) {
+        set(on)
+        BudgetAlerts.reschedule(context, preferences)
     }
     val askToNotify = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        val set = waiting
+        waiting = null
         if (granted) {
             alertsNote = null
-            setAlerts(true)
+            set?.let { apply(it, true) }
         } else {
-            alertsNote = "Notifications are off for this app. Allow them in the phone's settings to get budget alerts."
+            alertsNote = "Notifications are off for this app. Allow them in the phone's settings to get these."
+        }
+    }
+    /** Turns a notification on (asking for the permission first, if need be) or off. */
+    fun switch(set: (Boolean) -> Unit, on: Boolean) {
+        if (on && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !BudgetAlerts.canNotify(context)) {
+            waiting = set
+            askToNotify.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            alertsNote = null
+            apply(set, on)
         }
     }
 
@@ -135,14 +151,17 @@ fun AppSettingsScreen(preferences: AppPreferences, lock: AppLock?, contentPaddin
                 "Budget alerts",
                 "A notification when a budget passes 80% and when it's used up, once each period. Checked every few hours.",
                 alerts,
-            ) { on ->
-                if (on && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !BudgetAlerts.canNotify(context)) {
-                    askToNotify.launch(Manifest.permission.POST_NOTIFICATIONS)
-                } else {
-                    alertsNote = null
-                    setAlerts(on)
-                }
-            }
+            ) { switch(preferences::setBudgetAlerts, it) }
+            SwitchRow(
+                "Subscription price changes",
+                "A notification when a subscription or bill with a fixed price starts charging a different amount.",
+                priceAlerts,
+            ) { switch(preferences::setPriceAlerts, it) }
+            SwitchRow(
+                "Monthly review",
+                "Early each month, the month before: what was spent against the month before it, and where most went.",
+                monthlyReview,
+            ) { switch(preferences::setMonthlyReview, it) }
             alertsNote?.let {
                 Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(horizontal = 16.dp))
             }

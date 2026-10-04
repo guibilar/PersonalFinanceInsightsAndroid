@@ -12,6 +12,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Rule
 import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.ManageAccounts
+import androidx.compose.material.icons.outlined.Autorenew
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -28,7 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.guibilar.financeinsights.ui.common.FitText
 
-/** Where the rest of the app lives: rules, categories, accounts, and the signed-in account. */
+/** Where the rest of the app lives: subscriptions, reviews, rules, categories, accounts, and the signed-in account. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MoreScreen(
@@ -40,10 +42,15 @@ fun MoreScreen(
     openAccounts: () -> Unit,
     openAccount: () -> Unit,
     openSettings: () -> Unit = {},
+    openSubscriptions: () -> Unit = {},
+    openReview: () -> Unit = {},
 ) {
     Column(Modifier.fillMaxSize().padding(bottom = contentPadding.calculateBottomPadding())) {
         TopAppBar(title = { FitText("More", fontWeight = FontWeight.SemiBold, minFontSize = 14.sp) })
         Column(Modifier.verticalScroll(rememberScrollState())) {
+            Entry(Icons.Outlined.Autorenew, "Subscriptions", "Payments that come again and again, and what they cost", openSubscriptions)
+            Entry(Icons.Outlined.CalendarMonth, "Review", "A month or a year against the one before", openReview)
+            HorizontalDivider(Modifier.padding(vertical = 8.dp))
             Entry(Icons.AutoMirrored.Outlined.Rule, "Rules", "What sets each transaction's category, and what it counts as", openRules)
             Entry(Icons.Outlined.Palette, "Categories", "Names and colours, everywhere they show", openCategories)
             Entry(Icons.Outlined.AccountBalance, "Accounts", "The bank accounts statements are imported into", openAccounts)

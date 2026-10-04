@@ -8,6 +8,8 @@ import com.guibilar.financeinsights.core.model.BudgetFilter
 import com.guibilar.financeinsights.core.model.CashFlowReport
 import com.guibilar.financeinsights.core.model.CategorizedReport
 import com.guibilar.financeinsights.core.model.Page
+import com.guibilar.financeinsights.core.model.SpendingForecast
+import com.guibilar.financeinsights.core.api.apiCall
 import com.guibilar.financeinsights.core.model.Status
 import com.guibilar.financeinsights.core.model.Transaction
 import com.guibilar.financeinsights.core.model.TransactionFilter
@@ -28,11 +30,14 @@ data class DashboardState(
     val cashFlow: LoadState<CashFlowReport> = LoadState.Loading,
     val budgets: LoadState<Page<Budget>> = LoadState.Loading,
     val recent: LoadState<Page<Transaction>> = LoadState.Loading,
+    val forecast: LoadState<SpendingForecast> = LoadState.Loading,
+    /** Transactions left in Other that a rule could sort; 0 while unknown (or when that failed). */
+    val unsorted: Int = 0,
     /** Pulled to refresh: the figures stay on screen while they reload. */
     val refreshing: Boolean = false,
 )
 
-/** The dashboard's five reports, each loading (and failing) on its own, as on the web. */
+/** The dashboard's reports, each loading (and failing) on its own, as on the web. */
 class DashboardViewModel(private val api: FinanceApi, private val today: () -> LocalDate = LocalDate::now) : ViewModel() {
     private val _state = MutableStateFlow(DashboardState(today()))
     val state: StateFlow<DashboardState> = _state.asStateFlow()
@@ -67,7 +72,7 @@ class DashboardViewModel(private val api: FinanceApi, private val today: () -> L
     fun retryRecent() = retry({ copy(recent = it) }) { loadRecent() }
 
     /**
-     * Loads the five reports, each showing as soon as it arrives (it used to wait for the slowest). [quiet] (coming
+     * Loads the reports, each showing as soon as it arrives (it used to wait for the slowest). [quiet] (coming
      * back to the screen) keeps a report that was showing when its reload fails, offline say, instead of turning it
      * into an error card.
      */
@@ -80,6 +85,10 @@ class DashboardViewModel(private val api: FinanceApi, private val today: () -> L
                 launch { load("Could not load income and spending.") { api.cashFlow() }.let { r -> _state.update { it.copy(cashFlow = next(it.cashFlow, r)) } } },
                 launch { loadBudgets().let { r -> _state.update { it.copy(budgets = next(it.budgets, r)) } } },
                 launch { loadRecent().let { r -> _state.update { it.copy(recent = next(it.recent, r)) } } },
+                launch { loadForecast().let { r -> _state.update { it.copy(forecast = next(it.forecast, r)) } } },
+                launch {
+                    apiCall { api.uncategorised() }.getOrNull()?.let { r -> _state.update { it.copy(unsorted = r.transactionCount) } }
+                },
             )
             reports.joinAll()
             _state.update { it.copy(refreshing = false) }
@@ -88,6 +97,10 @@ class DashboardViewModel(private val api: FinanceApi, private val today: () -> L
 
     private suspend fun loadBudgets() =
         load("Could not load budgets.") { api.budgets(BudgetFilter(status = Status.Active, page = 1, pageSize = 1000)) }
+
+    private suspend fun loadForecast() = load("Could not work out the forecast.") { api.forecast() }
+
+    fun retryForecast() = retry({ copy(forecast = it) }) { loadForecast() }
 
     private suspend fun loadRecent() =
         load("Could not load transactions.") { api.transactions(TransactionFilter(page = 1, pageSize = RECENT)) }

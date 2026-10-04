@@ -18,6 +18,7 @@ import com.guibilar.financeinsights.core.model.CategoryRuleMove
 import com.guibilar.financeinsights.core.model.ChangePasswordInput
 import com.guibilar.financeinsights.core.model.FlowRule
 import com.guibilar.financeinsights.core.model.FlowRuleInput
+import com.guibilar.financeinsights.core.model.UncategorisedReport
 import com.guibilar.financeinsights.ui.common.LoadState
 import com.guibilar.financeinsights.ui.common.UiMessage
 import com.guibilar.financeinsights.ui.common.load
@@ -56,6 +57,8 @@ data class RulesState(
     val categories: List<Category> = emptyList(),
     /** A move is on its way: positions are about to change, so the move buttons wait. */
     val moving: Boolean = false,
+    /** The merchants left in Other because no rule names them; null while unknown. */
+    val uncategorised: UncategorisedReport? = null,
 )
 
 /**
@@ -82,6 +85,27 @@ class RulesViewModel(private val api: FinanceApi) : SettingsViewModel() {
         viewModelScope.launch {
             apiCall { api.categories() }.getOrNull()?.let { categories -> _state.update { it.copy(categories = categories) } }
         }
+        viewModelScope.launch {
+            apiCall { api.uncategorised() }.getOrNull()?.let { report -> _state.update { it.copy(uncategorised = report) } }
+        }
+    }
+
+    /**
+     * A merchant left in Other sorted at once: a rule for [keyword] into [category], then the rules applied. Null when
+     * done (with a message saying how many moved), or why not.
+     */
+    suspend fun sortMerchant(keyword: String, category: Category): String? {
+        val trimmed = keyword.trim().uppercase()
+        if (trimmed.isEmpty()) return "Enter a keyword."
+        val added = apiCall { api.addCategoryRule(CategoryRuleInput(trimmed, category.id)) }
+        added.apiError?.let { return it.conflictOr(it.validationOr(it.loadMessage("Could not add the rule."))) }
+        val applied = apiCall { api.applyRules() }.getOrNull()
+        say(
+            if (applied == null) "Rule “$trimmed” added, but the rules could not be applied."
+            else "Rule “$trimmed” added: ${applied.updated} ${if (applied.updated == 1) "transaction" else "transactions"} now in ${category.name}",
+        )
+        reload()
+        return null
     }
 
     /**

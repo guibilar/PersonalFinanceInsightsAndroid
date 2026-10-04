@@ -1,0 +1,199 @@
+{
+    "label": "2026",
+    "year": 2026,
+    "month": null,
+    "start": "2026-01-01T00:00:00Z",
+    "end": "2026-12-31T00:00:00Z",
+    "complete": false,
+    "previousLabel": "2025",
+    "spending": 6666.93,
+    "previousSpending": 0,
+    "income": 3.25,
+    "previousIncome": 0,
+    "purchases": 95,
+    "noSpendDays": 227,
+    "categories": [
+        {
+            "category": {
+                "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b0a",
+                "name": "Transportation",
+                "color": "#16BFCF"
+            },
+            "spending": 2370.92,
+            "previousSpending": 0
+        },
+        {
+            "category": {
+                "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b03",
+                "name": "Groceries",
+                "color": "#2CA12D"
+            },
+            "spending": 1328.52,
+            "previousSpending": 0
+        },
+        {
+            "category": {
+                "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b08",
+                "name": "Shopping",
+                "color": "#7F7E7E"
+            },
+            "spending": 695.67,
+            "previousSpending": 0
+        },
+        {
+            "category": {
+                "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b0b",
+                "name": "Utilities",
+                "color": "#800080"
+            },
+            "spending": 562.27,
+            "previousSpending": 0
+        },
+        {
+            "category": {
+                "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b01",
+                "name": "Dining",
+                "color": "#1F76B5"
+            },
+            "spending": 518.6,
+            "previousSpending": 0
+        },
+        {
+            "category": {
+                "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b06",
+                "name": "Pet",
+                "color": "#8C564B"
+            },
+            "spending": 511.06,
+            "previousSpending": 0
+        },
+        {
+            "category": {
+                "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b04",
+                "name": "Health",
+                "color": "#D72628"
+            },
+            "spending": 342.33,
+            "previousSpending": 0
+        },
+        {
+            "category": {
+                "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b09",
+                "name": "Subscriptions",
+                "color": "#BDBD23"
+            },
+            "spending": 279.98,
+            "previousSpending": 0
+        },
+        {
+            "category": {
+                "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b05",
+                "name": "Other",
+                "color": "#9466BC"
+            },
+            "spending": 41.58,
+            "previousSpending": 0
+        },
+        {
+            "category": {
+                "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b02",
+                "name": "Entertainment",
+                "color": "#FF7E0F"
+            },
+            "spending": 16.0,
+            "previousSpending": 0
+        }
+    ],
+    "topMerchants": [
+        {
+            "name": "AIR CAN",
+            "count": 1,
+            "spending": 2125.52
+        },
+        {
+            "name": "GROCERY",
+            "count": 4,
+            "spending": 743.84
+        },
+        {
+            "name": "NO FRILLS",
+            "count": 12,
+            "spending": 455.79
+        },
+        {
+            "name": "ENMAX",
+            "count": 5,
+            "spending": 444.87
+        },
+        {
+            "name": "SAMSUNG",
+            "count": 2,
+            "spending": 386.49
+        }
+    ],
+    "biggestPurchase": {
+        "description": "AIR CAN* WINNIPEG CAN",
+        "amount": 2125.52,
+        "date": "2026-08-27T00:00:00Z",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b0a",
+            "name": "Transportation",
+            "color": "#16BFCF"
+        }
+    },
+    "months": [
+        {
+            "label": "Jan",
+            "spending": 0,
+            "income": 0
+        },
+        {
+            "label": "Feb",
+            "spending": 0,
+            "income": 0
+        },
+        {
+            "label": "Mar",
+            "spending": 0,
+            "income": 0
+        },
+        {
+            "label": "Apr",
+            "spending": 0,
+            "income": 0
+        },
+        {
+            "label": "May",
+            "spending": 0,
+            "income": 0
+        },
+        {
+            "label": "Jun",
+            "spending": 234.98,
+            "income": 0
+        },
+        {
+            "label": "Jul",
+            "spending": 782.18,
+            "income": 0
+        },
+        {
+            "label": "Aug",
+            "spending": 4870.28,
+            "income": 3.25
+        },
+        {
+            "label": "Sep",
+            "spending": 573.61,
+            "income": 0
+        },
+        {
+            "label": "Oct",
+            "spending": 205.88,
+            "income": 0
+        }
+    ],
+    "recurringCount": 3,
+    "recurringMonthlyTotal": 113.34,
+    "earliest": "2026-06"
+}

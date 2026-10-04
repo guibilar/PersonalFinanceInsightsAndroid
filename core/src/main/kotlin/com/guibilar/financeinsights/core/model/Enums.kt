@@ -47,3 +47,17 @@ enum class TransactionSortField { Date, Description, Amount, Category }
 
 @Serializable
 enum class SortDirection { Ascending, Descending }
+
+/** How often a recurring payment comes. */
+@Serializable
+enum class RecurringCadence(val label: String, val perYear: Int) {
+    Weekly("every week", 52),
+    Biweekly("every 2 weeks", 26),
+    Monthly("every month", 12),
+    Quarterly("every 3 months", 4),
+    Yearly("every year", 1),
+}
+
+/** Active: on schedule. Late: past due, not by a whole period yet. Stopped: no charge for more than a period. */
+@Serializable
+enum class RecurringStatus { Active, Late, Stopped }

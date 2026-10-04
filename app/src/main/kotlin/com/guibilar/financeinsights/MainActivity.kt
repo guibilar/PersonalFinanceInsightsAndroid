@@ -66,6 +66,8 @@ class MainActivity : FragmentActivity() {
         when (intent?.action) {
             ACTION_ADD_TRANSACTION -> app.quickAction.value = QuickAction.AddTransaction
             ACTION_BUDGETS -> app.quickAction.value = QuickAction.Budgets
+            ACTION_SUBSCRIPTIONS -> app.quickAction.value = QuickAction.Subscriptions
+            ACTION_REVIEW -> app.quickAction.value = QuickAction.Review
             else -> takeStatement(intent)
         }
     }
@@ -88,5 +90,7 @@ class MainActivity : FragmentActivity() {
     companion object {
         const val ACTION_ADD_TRANSACTION = "com.guibilar.financeinsights.ADD_TRANSACTION"
         const val ACTION_BUDGETS = "com.guibilar.financeinsights.BUDGETS"
+        const val ACTION_SUBSCRIPTIONS = "com.guibilar.financeinsights.SUBSCRIPTIONS"
+        const val ACTION_REVIEW = "com.guibilar.financeinsights.REVIEW"
     }
 }

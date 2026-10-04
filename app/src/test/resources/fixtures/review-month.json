@@ -1,0 +1,148 @@
+{
+    "label": "September 2026",
+    "year": 2026,
+    "month": 9,
+    "start": "2026-09-01T00:00:00Z",
+    "end": "2026-09-30T00:00:00Z",
+    "complete": true,
+    "previousLabel": "August 2026",
+    "spending": 573.61,
+    "previousSpending": 4870.28,
+    "income": 0,
+    "previousIncome": 3.25,
+    "purchases": 13,
+    "noSpendDays": 21,
+    "categories": [
+        {
+            "category": {
+                "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b06",
+                "name": "Pet",
+                "color": "#8C564B"
+            },
+            "spending": 210,
+            "previousSpending": 241.06
+        },
+        {
+            "category": {
+                "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b03",
+                "name": "Groceries",
+                "color": "#2CA12D"
+            },
+            "spending": 161.85,
+            "previousSpending": 565.98
+        },
+        {
+            "category": {
+                "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b0b",
+                "name": "Utilities",
+                "color": "#800080"
+            },
+            "spending": 93.4,
+            "previousSpending": 271.07
+        },
+        {
+            "category": {
+                "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b0a",
+                "name": "Transportation",
+                "color": "#16BFCF"
+            },
+            "spending": 30,
+            "previousSpending": 2217.52
+        },
+        {
+            "category": {
+                "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b09",
+                "name": "Subscriptions",
+                "color": "#BDBD23"
+            },
+            "spending": 28.48,
+            "previousSpending": 175.55
+        },
+        {
+            "category": {
+                "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b05",
+                "name": "Other",
+                "color": "#9466BC"
+            },
+            "spending": 26.23,
+            "previousSpending": 15.35
+        },
+        {
+            "category": {
+                "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b01",
+                "name": "Dining",
+                "color": "#1F76B5"
+            },
+            "spending": 23.65,
+            "previousSpending": 348.5
+        },
+        {
+            "category": {
+                "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b08",
+                "name": "Shopping",
+                "color": "#7F7E7E"
+            },
+            "spending": 0,
+            "previousSpending": 676.92
+        },
+        {
+            "category": {
+                "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b04",
+                "name": "Health",
+                "color": "#D72628"
+            },
+            "spending": 0,
+            "previousSpending": 342.33
+        },
+        {
+            "category": {
+                "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b02",
+                "name": "Entertainment",
+                "color": "#FF7E0F"
+            },
+            "spending": 0,
+            "previousSpending": 16.0
+        }
+    ],
+    "topMerchants": [
+        {
+            "name": "VET C",
+            "count": 1,
+            "spending": 210
+        },
+        {
+            "name": "GROCERY",
+            "count": 1,
+            "spending": 95
+        },
+        {
+            "name": "ENMAX",
+            "count": 1,
+            "spending": 93.4
+        },
+        {
+            "name": "NO FRILLS",
+            "count": 2,
+            "spending": 66.85
+        },
+        {
+            "name": "BUS C",
+            "count": 1,
+            "spending": 30
+        }
+    ],
+    "biggestPurchase": {
+        "description": "VET C",
+        "amount": 210,
+        "date": "2026-09-15T00:00:00Z",
+        "category": {
+            "id": "7d3c9f2a-6b1e-4f08-a5c4-2e9b0d1c7b06",
+            "name": "Pet",
+            "color": "#8C564B"
+        }
+    },
+    "months": [],
+    "recurringCount": 3,
+    "recurringMonthlyTotal": 113.34,
+    "earliest": "2026-06"
+}

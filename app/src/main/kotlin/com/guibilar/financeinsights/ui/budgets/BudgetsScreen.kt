@@ -83,6 +83,9 @@ import com.guibilar.financeinsights.ui.common.EmptyState
 import com.guibilar.financeinsights.ui.common.ErrorState
 import com.guibilar.financeinsights.ui.common.FitText
 import com.guibilar.financeinsights.ui.common.PillBar
+import kotlin.math.roundToInt
+import com.guibilar.financeinsights.core.model.BudgetPeriod
+import com.guibilar.financeinsights.core.model.BudgetForecast
 import com.guibilar.financeinsights.ui.common.Placeholder
 import com.guibilar.financeinsights.ui.common.ShowMessages
 import com.guibilar.financeinsights.ui.common.Skeleton
@@ -165,7 +168,7 @@ fun BudgetsScreen(model: BudgetsViewModel, account: AccountInfo, onSignOut: susp
                         }
                         else -> {
                             items(state.items, key = { it.id }) { budget ->
-                                BudgetCard(budget, onEdit = { editing = budget }, onDelete = { deleting = budget })
+                                BudgetCard(budget, onEdit = { editing = budget }, onDelete = { deleting = budget }, projection = state.projections[budget.id])
                             }
                             if (state.loadingMore) {
                                 item { Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { CircularProgressIndicator(Modifier.size(24.dp)) } }
@@ -222,7 +225,7 @@ fun BudgetsScreen(model: BudgetsViewModel, account: AccountInfo, onSignOut: susp
 /** A budget: what it counts, how much of it is spent, and what is left. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun BudgetCard(budget: Budget, onEdit: () -> Unit, onDelete: () -> Unit) {
+private fun BudgetCard(budget: Budget, onEdit: () -> Unit, onDelete: () -> Unit, projection: BudgetForecast? = null) {
     val colors = LocalChartColors.current
     val health = budgetHealth(budget.percentageUsed)
     val barColor = when (health) {
@@ -299,6 +302,18 @@ private fun BudgetCard(budget: Budget, onEdit: () -> Unit, onDelete: () -> Unit)
                             BudgetHealth.Over -> colors.negative
                             BudgetHealth.Warning -> budgetWarningText
                             BudgetHealth.Ok -> MaterialTheme.colorScheme.onSurface
+                        },
+                    )
+                }
+                if (projection != null) {
+                    Text(
+                        "At this pace, ${Money.format(projection.projected)} (${projection.projectedPercentage.roundToInt()}%) by the end of the " +
+                            if (projection.period == BudgetPeriod.Yearly) "year" else "month",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = when {
+                            projection.projectedPercentage > 100 -> colors.negative
+                            projection.projectedPercentage > 90 -> budgetWarningText
+                            else -> MaterialTheme.colorScheme.onSurfaceVariant
                         },
                     )
                 }

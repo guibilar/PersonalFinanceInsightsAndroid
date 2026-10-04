@@ -33,6 +33,12 @@ import com.guibilar.financeinsights.core.model.RulesResult
 import com.guibilar.financeinsights.core.model.TransactionInput
 import com.guibilar.financeinsights.core.model.TransactionLink
 import com.guibilar.financeinsights.core.model.TransactionUpdate
+import com.guibilar.financeinsights.core.model.BulkUpdateResult
+import com.guibilar.financeinsights.core.model.RecurringReport
+import com.guibilar.financeinsights.core.model.ReviewReport
+import com.guibilar.financeinsights.core.model.SpendingForecast
+import com.guibilar.financeinsights.core.model.TransactionBulkUpdate
+import com.guibilar.financeinsights.core.model.UncategorisedReport
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.http.Body
@@ -72,6 +78,26 @@ interface FinanceApi {
     /** A page of the merchants the list's criteria spent at, largest first; page 1 is the breakdown's top ones. */
     @POST("Reports/merchants")
     suspend fun merchants(@Body input: MerchantsInput): Page<MerchantTotal>
+
+    /** Subscriptions, bills and rent: payments that come again and again. */
+    @GET("Reports/recurring")
+    suspend fun recurring(): RecurringReport
+
+    /** Where this month's spending is heading, and each monthly and yearly budget. */
+    @GET("Reports/forecast")
+    suspend fun forecast(): SpendingForecast
+
+    /** Merchants left in Other because no rule names them. */
+    @GET("Reports/uncategorised")
+    suspend fun uncategorised(): UncategorisedReport
+
+    /** A month, or a year without [month]; the last complete month without either. */
+    @GET("Reports/review")
+    suspend fun review(@Query("year") year: Int? = null, @Query("month") month: Int? = null): ReviewReport
+
+    /** One change (category, flow, budget) for many transactions at once. */
+    @POST("Transaction/Bulk")
+    suspend fun bulkUpdate(@Body update: TransactionBulkUpdate): BulkUpdateResult
 
     @POST("Transaction/Filter")
     suspend fun transactions(@Body filter: TransactionFilter): Page<Transaction>

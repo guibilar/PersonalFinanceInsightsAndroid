@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.asStateFlow
 /** Light, dark, or as the phone is set. */
 enum class ThemeChoice(val label: String) { System("As the phone"), Light("Light"), Dark("Dark") }
 
-/** The app's own settings (not the account's): how it looks, locking it, and budget alerts. Kept on the phone. */
+/** The app's own settings (not the account's): how it looks, locking it, and notifications. Kept on the phone. */
 class AppPreferences(context: Context) {
     private val prefs = context.getSharedPreferences("preferences", Context.MODE_PRIVATE)
 
@@ -32,6 +32,17 @@ class AppPreferences(context: Context) {
     private val _budgetAlerts = MutableStateFlow(prefs.getBoolean(KEY_BUDGET_ALERTS, false))
     /** A notification when a budget passes 80% and 100%. */
     val budgetAlerts: StateFlow<Boolean> = _budgetAlerts.asStateFlow()
+
+    private val _priceAlerts = MutableStateFlow(prefs.getBoolean(KEY_PRICE_ALERTS, false))
+    /** A notification when a subscription's fixed price changes. */
+    val priceAlerts: StateFlow<Boolean> = _priceAlerts.asStateFlow()
+
+    private val _monthlyReview = MutableStateFlow(prefs.getBoolean(KEY_MONTHLY_REVIEW, false))
+    /** A notification early each month with the month before in review. */
+    val monthlyReview: StateFlow<Boolean> = _monthlyReview.asStateFlow()
+
+    /** Any notification is on: the background check runs. */
+    val anyAlerts get() = budgetAlerts.value || priceAlerts.value || monthlyReview.value
 
     fun setTheme(value: ThemeChoice) {
         prefs.edit().putString(KEY_THEME, value.name).apply()
@@ -58,11 +69,23 @@ class AppPreferences(context: Context) {
         _budgetAlerts.value = value
     }
 
+    fun setPriceAlerts(value: Boolean) {
+        prefs.edit().putBoolean(KEY_PRICE_ALERTS, value).apply()
+        _priceAlerts.value = value
+    }
+
+    fun setMonthlyReview(value: Boolean) {
+        prefs.edit().putBoolean(KEY_MONTHLY_REVIEW, value).apply()
+        _monthlyReview.value = value
+    }
+
     private companion object {
         const val KEY_THEME = "theme"
         const val KEY_DYNAMIC_COLOR = "dynamicColor"
         const val KEY_LOCK = "lock"
         const val KEY_BUDGET_ALERTS = "budgetAlerts"
         const val KEY_HIDE_WIDGET_AMOUNTS = "hideWidgetAmounts"
+        const val KEY_PRICE_ALERTS = "priceAlerts"
+        const val KEY_MONTHLY_REVIEW = "monthlyReview"
     }
 }
