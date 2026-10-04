@@ -144,6 +144,8 @@ data class TransactionBulkUpdate(
     /** Links them to this active budget, moving any linked to another. */
     val budgetId: String? = null,
     val unlinkBudget: Boolean = false,
+    val addTagId: String? = null,
+    val removeTagId: String? = null,
 )
 
 @Serializable

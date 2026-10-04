@@ -19,6 +19,8 @@ import com.guibilar.financeinsights.core.model.CategoryRuleInput
 import com.guibilar.financeinsights.core.model.CategoryRulePreview
 import com.guibilar.financeinsights.core.model.CategoryRulePreviewInput
 import com.guibilar.financeinsights.core.model.Status
+import com.guibilar.financeinsights.core.model.Tag
+import com.guibilar.financeinsights.core.model.TagInput
 import com.guibilar.financeinsights.core.model.TransactionInput
 import com.guibilar.financeinsights.core.model.TransactionLink
 import com.guibilar.financeinsights.core.model.TransactionUpdate
@@ -96,6 +98,8 @@ data class TransactionsState(
     val periodMerchants: List<MerchantTotal> = emptyList(),
     val periodMerchantCount: Int = 0,
     val categories: List<Category> = emptyList(),
+    /** For the tag filter, the edit sheet and the selection bar. */
+    val tags: List<Tag> = emptyList(),
     val accounts: List<Account> = emptyList(),
     /** The accounts were asked for once (loaded or not): until then, none isn't "no account". */
     val accountsLoaded: Boolean = false,
@@ -130,7 +134,7 @@ sealed interface ImportOutcome {
 }
 
 /**
- * The transactions list: its criteria (search, category, account, flow, dates), sorting, pages loaded as the list
+ * The transactions list: its criteria (search, category, tag, account, flow, dates), sorting, pages loaded as the list
  * scrolls, and the totals and "Over time" breakdown of whatever the criteria pick.
  */
 @OptIn(FlowPreview::class)
@@ -183,6 +187,25 @@ class TransactionsViewModel(
             _state.update { it.copy(accounts = accounts ?: it.accounts, accountsLoaded = true) }
         }
         loadBudgets()
+        loadTags()
+    }
+
+    /** Again after any change: counts move, and the edit sheet may have added one. */
+    private fun loadTags() {
+        viewModelScope.launch {
+            apiCall { api.tags() }.getOrNull()?.let { tags -> _state.update { it.copy(tags = tags) } }
+        }
+    }
+
+    /** Adds a tag from the edit sheet, by a name no tag has yet; the tag, or why not (a 409 says the name is taken). */
+    suspend fun createTag(name: String): Result<Tag> {
+        val result = apiCall { api.addTag(TagInput(name)) }
+        val error = result.apiError ?: run {
+            val tag = result.getOrThrow()
+            _state.update { state -> state.copy(tags = (state.tags + tag).sortedBy { it.name.lowercase() }) }
+            return Result.success(tag)
+        }
+        return Result.failure(IllegalStateException(error.conflictOr(error.validationOr(error.loadMessage("Could not add the tag.")))))
     }
 
     private fun loadBudgets() {
@@ -331,7 +354,8 @@ class TransactionsViewModel(
     fun clearSelection() = _state.update { it.copy(selected = emptySet()) }
 
     /**
-     * One change for every ticked transaction: a category, a flow, or a budget (linked, or unlinked). Said with what
+     * One change for every ticked transaction: a category, a flow, a budget (linked, or unlinked), or a tag (added or
+     * removed). Said with what
      * the API skipped (a flow that doesn't fit, say); the ticks go once it is done.
      */
     fun bulk(change: TransactionBulkUpdate) {
@@ -363,6 +387,7 @@ class TransactionsViewModel(
     private fun changed(message: String, actionLabel: String? = null, action: (() -> Unit)? = null) {
         reloadList()
         reloadBreakdown()
+        loadTags()
         _messages.trySend(UiMessage(message, actionLabel, action))
     }
 
@@ -372,6 +397,7 @@ class TransactionsViewModel(
     }
 
     fun setCategory(id: String?) = setCriteria { copy(categoryId = id) }
+    fun setTag(id: String?) = setCriteria { copy(tagId = id) }
     fun setAccount(id: String?) = setCriteria { copy(accountId = id) }
     fun setFlow(flow: Flow?) = setCriteria { copy(flow = flow) }
     fun setDates(range: DateRange) = setCriteria { copy(startDate = range.startDate, endDate = range.endDate) }

@@ -101,7 +101,7 @@ class GesturesTest {
     fun `pulling down the list refreshes it, with the collapsing bar in the way`() {
         transactions()
         val before = api.transactionFilters.size
-        compose.onNodeWithText("Search descriptions").performTouchInput { swipeDown(startY = top, endY = top + 600f, durationMillis = 400) }
+        compose.onNodeWithText("Search descriptions and notes").performTouchInput { swipeDown(startY = top, endY = top + 600f, durationMillis = 400) }
         compose.mainClock.advanceTimeBy(2_000)
         compose.waitForIdle()
         assertTrue(api.transactionFilters.size > before)

@@ -71,6 +71,8 @@ import com.guibilar.financeinsights.ui.settings.CategoriesViewModel
 import com.guibilar.financeinsights.ui.settings.MoreScreen
 import com.guibilar.financeinsights.ui.settings.RulesScreen
 import com.guibilar.financeinsights.ui.settings.RulesViewModel
+import com.guibilar.financeinsights.ui.settings.TagsScreen
+import com.guibilar.financeinsights.ui.settings.TagsViewModel
 import com.guibilar.financeinsights.ui.signin.LockScreen
 import com.guibilar.financeinsights.ui.signin.SignInScreen
 import com.guibilar.financeinsights.ui.signin.UnreachableScreen
@@ -107,6 +109,9 @@ data object AppSettingsRoute
 @Serializable
 data object SubscriptionsRoute
 
+@Serializable
+data object TagsRoute
+
 /** A month's review, or a year's without [month]; the last complete month without either. */
 @Serializable
 data class ReviewRoute(val year: Int? = null, val month: Int? = null)
@@ -115,6 +120,8 @@ data class ReviewRoute(val year: Int? = null, val month: Int? = null)
 @Serializable
 data class TransactionsRoute(
     val categoryId: String? = null,
+    /** A tag's transactions (from Tags). */
+    val tagId: String? = null,
     /** Part of the description: a merchant's transactions. */
     val description: String? = null,
     val startDate: String? = null,
@@ -122,7 +129,7 @@ data class TransactionsRoute(
     val overTime: Boolean = false,
     val interval: BreakdownInterval? = null,
 ) {
-    val criteria get() = TransactionCriteria(description = description, categoryId = categoryId, startDate = startDate, endDate = endDate)
+    val criteria get() = TransactionCriteria(description = description, categoryId = categoryId, tagId = tagId, startDate = startDate, endDate = endDate)
 }
 
 /** Signed in or not decides what shows; signing out (or the session ending) brings back the sign-in screen. */
@@ -329,6 +336,7 @@ fun MainScreen(
                         contentPadding = padding,
                         openRules = { nav.navigate(RulesRoute) },
                         openCategories = { nav.navigate(CategoriesRoute) },
+                        openTags = { nav.navigate(TagsRoute) },
                         openAccounts = { nav.navigate(AccountsRoute) },
                         openAccount = { nav.navigate(AccountSettingsRoute) },
                         openSettings = { nav.navigate(AppSettingsRoute) },
@@ -357,6 +365,14 @@ fun MainScreen(
                 }
                 composable<CategoriesRoute> {
                     CategoriesScreen(viewModel { CategoriesViewModel(api) }, padding, onBack = { nav.popBackStack() })
+                }
+                composable<TagsRoute> {
+                    TagsScreen(
+                        viewModel { TagsViewModel(api) },
+                        padding,
+                        onBack = { nav.popBackStack() },
+                        openTransactions = { tag -> nav.navigate(TransactionsRoute(tagId = tag.id)) },
+                    )
                 }
                 composable<AccountsRoute> {
                     AccountsScreen(viewModel { AccountsViewModel(api) }, padding, onBack = { nav.popBackStack() })

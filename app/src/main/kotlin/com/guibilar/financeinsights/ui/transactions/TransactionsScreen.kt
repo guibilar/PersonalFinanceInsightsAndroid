@@ -100,6 +100,7 @@ import androidx.compose.material.icons.outlined.Sell
 import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.LinkOff
+import androidx.compose.material.icons.outlined.Tag
 import com.guibilar.financeinsights.core.model.TransactionBulkUpdate
 import com.guibilar.financeinsights.core.model.Flow
 import com.guibilar.financeinsights.ui.common.ColorDot
@@ -224,7 +225,7 @@ fun TransactionsScreen(
                                 OutlinedTextField(
                                     value = state.search,
                                     onValueChange = model::search,
-                                    placeholder = { Placeholder("Search descriptions") },
+                                    placeholder = { Placeholder("Search descriptions and notes") },
                                     leadingIcon = { Icon(Icons.Outlined.Search, null) },
                                     trailingIcon = {
                                         if (state.search.isNotEmpty()) IconButton(onClick = model::clearSearch) { Icon(Icons.Outlined.Close, "Clear search") }
@@ -368,6 +369,7 @@ fun TransactionsScreen(
                             model = model,
                             onClose = { opened = null },
                             modifier = Modifier.imePadding(),
+                            tags = state.tags,
                         )
                     }
                 }
@@ -386,6 +388,7 @@ fun TransactionsScreen(
                 budgets = state.budgets,
                 model = model,
                 onDismiss = { opened = null },
+                tags = state.tags,
             )
         }
     }
@@ -452,6 +455,9 @@ private fun filterChips(state: TransactionsState, model: TransactionsViewModel):
         criteria.categoryId?.let { id ->
             add(FilterChipModel("category", state.categories.firstOrNull { it.id == id }?.name ?: "Category") { model.setCategory(null) })
         }
+        criteria.tagId?.let { id ->
+            add(FilterChipModel("tag", "#" + (state.tags.firstOrNull { it.id == id }?.name ?: "Tag")) { model.setTag(null) })
+        }
         criteria.accountId?.let { id ->
             add(FilterChipModel("account", state.accounts.firstOrNull { it.id == id }?.name ?: "Account") { model.setAccount(null) })
         }
@@ -495,7 +501,7 @@ private fun SortMenu(field: TransactionSortField, direction: SortDirection, onSo
 
 /**
  * The top bar while transactions are ticked: how many, ticking all that are loaded, and one change for them all (a
- * category, what they count as, a budget to link to or unlinking).
+ * category, what they count as, a budget to link to or unlinking, a tag to add or remove).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -556,6 +562,32 @@ private fun SelectionBar(state: TransactionsState, model: TransactionsViewModel)
                             model.bulk(TransactionBulkUpdate(emptyList(), unlinkBudget = true))
                         },
                     )
+                }
+            }
+            if (state.tags.isNotEmpty()) {
+                Box {
+                    IconButton(onClick = { menu = "tag" }) { Icon(Icons.Outlined.Tag, "Add or remove a tag") }
+                    DropdownMenu(expanded = menu == "tag", onDismissRequest = { menu = null }) {
+                        state.tags.forEach { tag ->
+                            DropdownMenuItem(
+                                text = { Text("Add #${tag.name}") },
+                                onClick = {
+                                    menu = null
+                                    model.bulk(TransactionBulkUpdate(emptyList(), addTagId = tag.id))
+                                },
+                            )
+                        }
+                        HorizontalDivider()
+                        state.tags.forEach { tag ->
+                            DropdownMenuItem(
+                                text = { Text("Remove #${tag.name}") },
+                                onClick = {
+                                    menu = null
+                                    model.bulk(TransactionBulkUpdate(emptyList(), removeTagId = tag.id))
+                                },
+                            )
+                        }
+                    }
                 }
             }
         },

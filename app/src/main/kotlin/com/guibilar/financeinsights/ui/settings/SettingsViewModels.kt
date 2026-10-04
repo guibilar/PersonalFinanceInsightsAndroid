@@ -18,6 +18,8 @@ import com.guibilar.financeinsights.core.model.CategoryRuleMove
 import com.guibilar.financeinsights.core.model.ChangePasswordInput
 import com.guibilar.financeinsights.core.model.FlowRule
 import com.guibilar.financeinsights.core.model.FlowRuleInput
+import com.guibilar.financeinsights.core.model.Tag
+import com.guibilar.financeinsights.core.model.TagInput
 import com.guibilar.financeinsights.core.model.UncategorisedReport
 import com.guibilar.financeinsights.ui.common.LoadState
 import com.guibilar.financeinsights.ui.common.UiMessage
@@ -267,5 +269,41 @@ class AccountSettingsViewModel(private val api: FinanceApi) : SettingsViewModel(
                 if (count == 0) "You weren't signed in anywhere else." else "Signed out $count other ${if (count == 1) "session" else "sessions"}."
             } ?: result.apiError!!.loadMessage("Could not sign out the other sessions."),
         )
+    }
+}
+
+/** Free labels across categories: add, rename, delete (taking it off every transaction). */
+class TagsViewModel(private val api: FinanceApi) : SettingsViewModel() {
+    private val _state = MutableStateFlow<LoadState<List<Tag>>>(LoadState.Loading)
+    val state: StateFlow<LoadState<List<Tag>>> = _state.asStateFlow()
+
+    init {
+        reload()
+    }
+
+    fun reload() {
+        viewModelScope.launch { _state.value = load("Could not load the tags.") { api.tags() } }
+    }
+
+    suspend fun save(editing: Tag?, name: String): String? {
+        val input = TagInput(name.trim())
+        return change(
+            if (editing == null) "Could not add the tag." else "Could not rename the tag.",
+            { if (editing == null) api.addTag(input) else api.renameTag(editing.id, input) },
+        ) {
+            reload()
+            say(if (editing == null) "Added “${input.name}”" else "Renamed to “${input.name}”")
+        }
+    }
+
+    fun delete(tag: Tag) = viewModelScope.launch {
+        val error = change("Could not delete “${tag.name}”.", { api.deleteTag(tag.id) }) {
+            reload()
+            say("Deleted “${tag.name}”")
+        }
+        if (error != null) {
+            reload()
+            say(error)
+        }
     }
 }

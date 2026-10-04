@@ -57,6 +57,7 @@ import com.guibilar.financeinsights.core.model.Budget
 import com.guibilar.financeinsights.core.model.CategoryRuleInput
 import com.guibilar.financeinsights.core.model.CategoryRulePreview
 import com.guibilar.financeinsights.core.model.CategoryReference
+import com.guibilar.financeinsights.core.model.Tag
 import com.guibilar.financeinsights.core.model.Transaction
 import com.guibilar.financeinsights.core.model.TransactionType
 import com.guibilar.financeinsights.core.model.TransactionUpdate
@@ -72,7 +73,7 @@ private const val PREVIEW_DEBOUNCE_MS = 300L
 
 /**
  * One transaction: what the bank says (date, amount, account) and what can be corrected (description, category,
- * what it counts as), linking it to a budget, and deleting it. A new category can spread to similar transactions
+ * what it counts as, its note and tags), linking it to a budget, and deleting it. A new category can spread to similar transactions
  * with a rule, as on the web.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -83,12 +84,13 @@ fun EditTransactionSheet(
     budgets: List<Budget>,
     model: TransactionsViewModel,
     onDismiss: () -> Unit,
+    tags: List<Tag> = emptyList(),
 ) {
     val scope = rememberCoroutineScope()
     val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     fun close() = scope.launch { sheet.hide() }.invokeOnCompletion { onDismiss() }
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheet) {
-        EditTransaction(transaction, categories, budgets, model, onClose = ::close, Modifier.navigationBarsPadding().imePadding())
+        EditTransaction(transaction, categories, budgets, model, onClose = ::close, Modifier.navigationBarsPadding().imePadding(), tags)
     }
 }
 
@@ -105,12 +107,15 @@ fun EditTransaction(
     model: TransactionsViewModel,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
+    tags: List<Tag> = emptyList(),
 ) {
     val colors = LocalChartColors.current
     val scope = rememberCoroutineScope()
     var description by rememberSaveable { mutableStateOf(transaction.description) }
     var categoryId by rememberSaveable { mutableStateOf(transaction.category.id) }
     var flow by rememberSaveable { mutableStateOf(transaction.flow) }
+    var note by rememberSaveable { mutableStateOf(transaction.note.orEmpty()) }
+    var tagIds by rememberSaveable { mutableStateOf(transaction.tags.map { it.id }) }
     var alsoSimilar by rememberSaveable { mutableStateOf(false) }
     var keyword by rememberSaveable { mutableStateOf(suggestRuleKeyword(transaction.description)) }
     var preview by remember { mutableStateOf<CategoryRulePreview?>(null) }
@@ -123,6 +128,9 @@ fun EditTransaction(
     val options = if (categories.any { it.id == transaction.category.id }) categories else listOf(transaction.category) + categories
     val flows = flowsFor(transaction.transactionType).let { if (transaction.flow in it) it else listOf(transaction.flow) + it }
     val categoryChanged = categoryId != transaction.category.id
+    // The transaction's own tags stay shown while the list loads.
+    val tagOptions = tags.map { it.reference }.let { known -> known + transaction.tags.filter { own -> known.none { it.id == own.id } } }
+    val noteError = if (note.trim().length > TextLimits.TRANSACTION_NOTE) "At most ${TextLimits.TRANSACTION_NOTE} characters." else null
     val descriptionError = when {
         description.isBlank() -> "Enter a description."
         description.length > TextLimits.TRANSACTION_DESCRIPTION -> "At most ${TextLimits.TRANSACTION_DESCRIPTION} characters."
@@ -225,15 +233,28 @@ fun EditTransaction(
             flows.forEach { option -> FilterChip(flow == option, onClick = { flow = option }, label = { Text(option.label) }) }
         }
         Text(flow.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        TagPicker(tagOptions, tagIds, onChange = { tagIds = it }, onCreate = model::createTag)
+        OutlinedTextField(
+            value = note,
+            onValueChange = { note = it },
+            label = { Text("Note") },
+            placeholder = { Text("Anything to remember about it") },
+            isError = noteError != null,
+            supportingText = noteError?.let { { Text(it) } },
+            minLines = 2,
+            maxLines = 5,
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+            modifier = Modifier.fillMaxWidth(),
+        )
 
         if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
         Button(
-            enabled = !saving && descriptionError == null && keywordError == null,
+            enabled = !saving && descriptionError == null && keywordError == null && noteError == null,
             onClick = {
                 saving = true
                 error = null
                 scope.launch {
-                    val update = TransactionUpdate(description.trim(), categoryId, flow.takeIf { it != transaction.flow })
+                    val update = editUpdate(transaction, description, categoryId, flow, note, tagIds)
                     error = model.saveEdit(transaction, update, rule)
                     saving = false
                     if (error == null) close()
@@ -275,6 +296,28 @@ fun EditTransaction(
             dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
         )
     }
+}
+
+/**
+ * What an edit changes: the description and category always; the flow, note and tags only when changed (so a flow
+ * the rules gave isn't locked by saving it unchanged). An emptied note is sent empty, which clears it.
+ */
+fun editUpdate(
+    transaction: Transaction,
+    description: String,
+    categoryId: String,
+    flow: com.guibilar.financeinsights.core.model.Flow,
+    note: String,
+    tagIds: List<String>,
+): TransactionUpdate {
+    val newNote = note.trim()
+    return TransactionUpdate(
+        description = description.trim(),
+        categoryId = categoryId,
+        flow = flow.takeIf { it != transaction.flow },
+        note = newNote.takeIf { it != transaction.note.orEmpty() },
+        tagIds = tagIds.takeIf { it.toSet() != transaction.tags.map { t -> t.id }.toSet() },
+    )
 }
 
 /** Which budget it counts towards: unlink it, or link it to an active one. */

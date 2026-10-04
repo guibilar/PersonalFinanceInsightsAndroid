@@ -13,6 +13,8 @@ import com.guibilar.financeinsights.core.model.LoginInput
 import com.guibilar.financeinsights.core.model.MerchantTotal
 import com.guibilar.financeinsights.core.model.MerchantsInput
 import com.guibilar.financeinsights.core.model.Page
+import com.guibilar.financeinsights.core.model.Tag
+import com.guibilar.financeinsights.core.model.TagInput
 import com.guibilar.financeinsights.core.model.Transaction
 import com.guibilar.financeinsights.core.model.TransactionFilter
 import com.guibilar.financeinsights.core.model.AccountInput
@@ -203,6 +205,21 @@ interface FinanceApi {
     /** Deletes it after moving its transactions and rules to [moveTo] (Other when null); built-in ones are a 409. */
     @DELETE("Categories/{id}")
     suspend fun deleteCategory(@Path("id") id: String, @Query("moveTo") moveTo: String?)
+
+    /** Every tag, by name, with how many transactions carry it. */
+    @GET("Tags")
+    suspend fun tags(): List<Tag>
+
+    /** A name already used, ignoring case, is a 409. */
+    @POST("Tags")
+    suspend fun addTag(@Body tag: TagInput): Tag
+
+    @PUT("Tags/{id}")
+    suspend fun renameTag(@Path("id") id: String, @Body tag: TagInput): Tag
+
+    /** Deletes it and takes it off every transaction. */
+    @DELETE("Tags/{id}")
+    suspend fun deleteTag(@Path("id") id: String)
 
     @POST("Accounts")
     suspend fun addAccount(@Body account: AccountInput): Account

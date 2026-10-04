@@ -25,6 +25,19 @@ data class Category(
 }
 
 @Serializable
+data class TagReference(val id: String, val name: String)
+
+/** A free label across categories, with how many visible transactions carry it. */
+@Serializable
+data class Tag(
+    val id: String,
+    val name: String,
+    val transactionCount: Int = 0,
+) {
+    val reference get() = TagReference(id, name)
+}
+
+@Serializable
 data class Account(
     val id: String,
     val name: String,
@@ -77,6 +90,10 @@ data class Transaction(
     val flowLocked: Boolean = false,
     val budgetId: String? = null,
     val budget: BudgetReference? = null,
+    /** A note of one's own. */
+    val note: String? = null,
+    /** By name. */
+    val tags: List<TagReference> = emptyList(),
 ) {
     /** The calendar day, as the API stores it. */
     val day get() = isoDay(date)

@@ -7,6 +7,7 @@ import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.material3.Icon
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.StickyNote2
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,6 +31,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -91,6 +93,8 @@ fun TransactionRow(
                 contentDescription = listOfNotNull(
                     transaction.description, signedAmount(transaction), date, transaction.category.name,
                     transaction.accountName, flowNote, transaction.budget?.let { "Budget ${it.name}" },
+                    transaction.tags.takeIf { it.isNotEmpty() }?.let { tags -> "Tagged " + tags.joinToString(", ") { it.name } },
+                    transaction.note?.let { "Note: $it" },
                 ).joinToString(", ")
                 if (selected != null) this.selected = selected
                 if (onClick != null) onClick(label = if (selected != null) "Select" else "Open") { onClick(); true }
@@ -125,6 +129,24 @@ fun TransactionRow(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            // Tags, or the note when there are none; the note icon says there is one either way.
+            val note = transaction.note
+            if (transaction.tags.isNotEmpty() || note != null) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (note != null) {
+                        Icon(Icons.AutoMirrored.Outlined.StickyNote2, null, Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(Modifier.width(4.dp))
+                    }
+                    Text(
+                        if (transaction.tags.isNotEmpty()) transaction.tags.joinToString("  ") { "#${it.name}" } else note.orEmpty(),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontStyle = if (transaction.tags.isEmpty()) FontStyle.Italic else FontStyle.Normal,
+                        color = if (transaction.tags.isNotEmpty()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
         }
         Spacer(Modifier.width(8.dp))
         Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {

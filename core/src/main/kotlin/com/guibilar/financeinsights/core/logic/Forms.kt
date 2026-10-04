@@ -19,6 +19,8 @@ object TextLimits {
     const val BUDGET_MERCHANT = 100
     const val TRANSACTION_DESCRIPTION = 200
     const val CATEGORY_RULE_KEYWORD = 100
+    const val TRANSACTION_NOTE = 500
+    const val TAG_NAME = 40
 }
 
 /**

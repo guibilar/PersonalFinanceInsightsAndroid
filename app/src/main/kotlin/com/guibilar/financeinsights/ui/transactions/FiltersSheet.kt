@@ -45,6 +45,7 @@ import com.guibilar.financeinsights.core.logic.describeRange
 import com.guibilar.financeinsights.core.logic.matchDatePreset
 import com.guibilar.financeinsights.core.model.Account
 import com.guibilar.financeinsights.core.model.Category
+import com.guibilar.financeinsights.core.model.Tag
 import com.guibilar.financeinsights.core.model.Flow
 import com.guibilar.financeinsights.ui.common.ColorDot
 import com.guibilar.financeinsights.ui.common.DropdownPicker
@@ -106,6 +107,18 @@ fun FiltersSheet(
                 dot = { it?.let { c -> parseHexColor(c.color) } },
                 onPick = { model.setCategory(it?.id) },
             )
+
+            // Once there are tags, or while filtering by one.
+            if (state.tags.isNotEmpty() || criteria.tagId != null) {
+                SheetLabel("Tag")
+                DropdownPicker(
+                    label = "Tag",
+                    options = listOf<Tag?>(null) + state.tags,
+                    selected = state.tags.firstOrNull { it.id == criteria.tagId },
+                    text = { it?.let { t -> "#${t.name}" } ?: "All tags" },
+                    onPick = { model.setTag(it?.id) },
+                )
+            }
 
             SheetLabel("Account")
             DropdownPicker(
