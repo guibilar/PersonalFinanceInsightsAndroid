@@ -142,6 +142,20 @@ class InsightsTest {
     }
 
     @Test
+    fun `a merchant can be kept in Other on purpose, with a rule into Other`() = runTest(dispatcher) {
+        val model = RulesViewModel(api)
+        val messages = collect(model.messages)
+        advanceUntilIdle()
+        val other = model.state.value.categories.first { it.isFallback }
+
+        assertNull(model.sortMerchant("mystery shop", other))
+        advanceUntilIdle()
+
+        assertEquals("addCategoryRule" to CategoryRuleInput("MYSTERY SHOP", other.id), api.sent.first())
+        assertEquals(listOf("Rule “MYSTERY SHOP” added: it stays in Other and isn't listed here any more"), messages)
+    }
+
+    @Test
     fun `ticked transactions change at once, and the ticks go with it`() = runTest(dispatcher) {
         val model = TransactionsViewModel(api, TransactionsRoute()) { today }
         val messages = collect(model.messages)

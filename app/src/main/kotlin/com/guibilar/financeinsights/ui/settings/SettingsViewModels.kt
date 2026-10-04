@@ -94,7 +94,8 @@ class RulesViewModel(private val api: FinanceApi) : SettingsViewModel() {
 
     /**
      * A merchant left in Other sorted at once: a rule for [keyword] into [category], then the rules applied. Null when
-     * done (with a message saying how many moved), or why not.
+     * done (with a message saying how many moved), or why not. A rule into Other keeps them there on purpose: the
+     * merchant isn't listed again.
      */
     suspend fun sortMerchant(keyword: String, category: Category): String? {
         val trimmed = keyword.trim().uppercase()
@@ -104,6 +105,7 @@ class RulesViewModel(private val api: FinanceApi) : SettingsViewModel() {
         val applied = apiCall { api.applyRules() }.getOrNull()
         say(
             if (applied == null) "Rule “$trimmed” added, but the rules could not be applied."
+            else if (category.isFallback) "Rule “$trimmed” added: it stays in ${category.name} and isn't listed here any more"
             else "Rule “$trimmed” added: ${applied.updated} ${if (applied.updated == 1) "transaction" else "transactions"} now in ${category.name}",
         )
         reload()

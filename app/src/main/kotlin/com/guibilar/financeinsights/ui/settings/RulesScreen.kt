@@ -189,7 +189,7 @@ private fun CategoryRules(state: RulesState, model: RulesViewModel, onEdit: (Cat
                 }
             }
         }
-        if (sorting && unsorted != null) UnsortedSheet(unsorted, state.categories.filter { !it.isFallback }, model) { sorting = false }
+        if (sorting && unsorted != null) UnsortedSheet(unsorted, state.categories.filter { !it.isFallback } + state.categories.filter { it.isFallback }, model) { sorting = false }
         Text(
             "The first rule whose keyword is in a description sets the transaction's category.",
             style = MaterialTheme.typography.bodySmall,
@@ -544,7 +544,7 @@ private fun UnsortedSheet(report: UncategorisedReport, categories: List<Category
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Text("Sort what's left in Other", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(horizontal = 20.dp))
         Text(
-            "Pick a category: a rule is added for the keyword and applied to all of them.",
+            "Pick a category, or keep it in Other: a rule is added for the keyword and applied to all of them.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
@@ -576,7 +576,8 @@ private fun UnsortedSheet(report: UncategorisedReport, categories: List<Category
                         label = "Category",
                         options = categories,
                         selected = null,
-                        text = { it?.name ?: if (busy == merchant.keyword) "Adding the rule…" else "Categorise as…" },
+                        // Other comes last, as keeping them where they are: a rule into Other says they belong there.
+                        text = { c -> c?.let { if (it.isFallback) "Keep in ${it.name}" else it.name } ?: if (busy == merchant.keyword) "Adding the rule…" else "Categorise as…" },
                         dot = { it?.let { c -> parseHexColor(c.color) } },
                         enabled = busy == null,
                         onPick = { category ->

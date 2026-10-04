@@ -14,7 +14,10 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.guibilar.financeinsights.FakeFinanceApi
+import com.guibilar.financeinsights.core.model.CategoryRuleInput
 import com.guibilar.financeinsights.core.model.TransactionBulkUpdate
+import com.guibilar.financeinsights.ui.settings.RulesScreen
+import com.guibilar.financeinsights.ui.settings.RulesViewModel
 import com.guibilar.financeinsights.ui.dashboard.DashboardScreen
 import com.guibilar.financeinsights.ui.dashboard.DashboardViewModel
 import com.guibilar.financeinsights.ui.insights.RecurringScreen
@@ -114,5 +117,21 @@ class InsightsScreensTest {
         val update = api.sent.single { it.first == "bulkUpdate" }.second as TransactionBulkUpdate
         assertEquals(2, update.transactionIds.size)
         compose.onNodeWithText("2 selected").assertDoesNotExist()
+    }
+
+    @Test
+    fun keepInOther() {
+        val model = RulesViewModel(api)
+        show { RulesScreen(model, PaddingValues(), onBack = {}) }
+        compose.onNodeWithText("Sort them").performClick()
+        compose.waitForIdle()
+        compose.onAllNodesWithText("Categorise as…")[0].performClick()
+        compose.waitForIdle()
+        shoot("unsorted-keep-in-other")
+
+        compose.onNodeWithText("Keep in Other").performScrollTo().performClick()
+        compose.waitForIdle()
+        val rule = api.sent.first { it.first == "addCategoryRule" }.second as CategoryRuleInput
+        assertEquals("Other", model.state.value.categories.first { it.id == rule.categoryId }.name)
     }
 }
