@@ -12,9 +12,12 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.guibilar.financeinsights.FakeFinanceApi
+import com.guibilar.financeinsights.core.api.ApiError
+import com.guibilar.financeinsights.core.model.ImportResult
 import com.guibilar.financeinsights.ui.budgets.BudgetsScreen
 import com.guibilar.financeinsights.ui.budgets.BudgetsViewModel
 import com.guibilar.financeinsights.ui.theme.FinanceTheme
@@ -88,12 +91,32 @@ class FormsScreenshotTest {
         val model = TransactionsViewModel(api, TransactionsRoute()) { today }
         show {
             val state by model.state.collectAsState()
-            ImportSheet(state.accounts, model, {}, PickedFile("cibc_credit.csv", ByteArray(2048)))
+            ImportSheet(state.accounts, model, {}, listOf(PickedFile("cibc_credit.csv", ByteArray(2048))))
         }
         compose.onNodeWithText("Choose an account").performClick()
         compose.onNodeWithText("Credit card · Credit card").performClick()
         compose.onNodeWithText("Import").performClick()
         shoot("import-mismatch")
+    }
+
+    @Test
+    fun importSeveralFiles() {
+        api.importAnswers += ImportResult(read = 1, added = 1, skipped = 0)
+        api.importAnswers += ApiError.Http(400, "Bad Request", null, null, mapOf("file" to listOf("This file doesn't look like a Wealthsimple statement.")))
+        api.importAnswers += ImportResult(read = 4, added = 3, skipped = 1)
+        val model = TransactionsViewModel(api, TransactionsRoute()) { today }
+        // Made once, as the screen holds them: a new list would be new files shared.
+        val files = listOf(PickedFile("May_2026.pdf", ByteArray(2048)), PickedFile("neo-statement.pdf", ByteArray(2048)), PickedFile("June_2026.pdf", ByteArray(2048)))
+        show {
+            val state by model.state.collectAsState()
+            ImportSheet(state.accounts, model, {}, files)
+        }
+        compose.onNodeWithText("Choose an account").performClick()
+        compose.onNodeWithText("Credit card · Credit card").performClick()
+        compose.onNodeWithText("Import 3 files").performScrollTo().performClick()
+        // The uploads answer off the main thread.
+        compose.waitUntil(5_000) { compose.onAllNodesWithText("Try again").fetchSemanticsNodes().isNotEmpty() }
+        shoot("import-several")
     }
 
     @Test

@@ -4,6 +4,7 @@ import com.guibilar.financeinsights.FakeFinanceApi
 import com.guibilar.financeinsights.core.api.ApiError
 import com.guibilar.financeinsights.core.model.CategoryRuleInput
 import com.guibilar.financeinsights.core.model.Flow
+import com.guibilar.financeinsights.core.model.ImportResult
 import com.guibilar.financeinsights.core.model.TransactionFilter
 import com.guibilar.financeinsights.core.model.TransactionInput
 import com.guibilar.financeinsights.core.model.TransactionType
@@ -146,8 +147,12 @@ class TransactionActionsTest {
         advanceUntilIdle()
 
         assertEquals(ImportOutcome.Mismatch("4 of the 5 transactions are already in \"Visa\"."), first)
-        assertEquals(ImportOutcome.Imported, second)
+        assertEquals(ImportOutcome.Imported(ImportResult(read = 10, added = 7, skipped = 3)), second)
         assertEquals(listOf("a1", "true"), api.sent.last().second)
+        // Each file says nothing; the sheet sums them up once they are all in.
+        assertTrue(messages.isEmpty())
+        model.imported(listOf((second as ImportOutcome.Imported).result))
+        advanceUntilIdle()
         assertEquals("Imported 7 new transactions (3 already imported)", messages.single().text)
     }
 }

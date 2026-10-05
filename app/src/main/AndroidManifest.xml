@@ -22,9 +22,10 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
             <!-- A statement shared or opened from another app (a bank's download, Files) goes to the import. PDFs only
-                 when shared (Neo's statements): opening any PDF shouldn't offer this app. -->
+                 when shared (Neo's and Wealthsimple's statements): opening any PDF shouldn't offer this app. -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/csv" />
                 <data android:mimeType="text/comma-separated-values" />

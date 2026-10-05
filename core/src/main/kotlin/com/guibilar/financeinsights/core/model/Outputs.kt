@@ -267,16 +267,25 @@ data class ImportResult(
     val balanceDate: String? = null,
 ) {
     /** "Imported 1 new transaction (2 already imported); balance on May 31, 2026: $3,845.03". */
-    val message: String
-        get() {
-            val noun = if (added == 1) "transaction" else "transactions"
-            val already = if (skipped > 0) " (${skipped} already imported)" else ""
-            val worth = if (balance != null && balanceDate != null) {
-                "; balance on ${java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy", java.util.Locale.US).format(isoDay(balanceDate))}: " +
-                    com.guibilar.financeinsights.core.logic.Money.format(balance)
-            } else ""
-            return "Imported $added new $noun$already$worth"
-        }
+    val message: String get() = importSummary(listOf(this))
+}
+
+/**
+ * What several files' imports added together: "Imported 4 new transactions from 2 files (1 already imported)", and the
+ * latest balance a statement gave.
+ */
+fun importSummary(results: List<ImportResult>): String {
+    val added = results.sumOf { it.added }
+    val skipped = results.sumOf { it.skipped }
+    val noun = if (added == 1) "transaction" else "transactions"
+    val files = if (results.size > 1) " from ${results.size} files" else ""
+    val already = if (skipped > 0) " ($skipped already imported)" else ""
+    val latest = results.filter { it.balance != null && it.balanceDate != null }.maxByOrNull { isoDay(it.balanceDate!!) }
+    val worth = latest?.let {
+        "; balance on ${java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy", java.util.Locale.US).format(isoDay(it.balanceDate!!))}: " +
+            com.guibilar.financeinsights.core.logic.Money.format(it.balance!!)
+    } ?: ""
+    return "Imported $added new $noun$files$already$worth"
 }
 
 @Serializable

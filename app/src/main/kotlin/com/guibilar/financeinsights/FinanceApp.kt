@@ -35,8 +35,8 @@ class FinanceApp : Application() {
     lateinit var lock: AppLock
         private set
 
-    /** A statement shared to the app, until the import sheet takes it (after signing in, if need be). */
-    val sharedStatement = MutableStateFlow<PickedFile?>(null)
+    /** Statements shared to the app, until the import sheet takes them (after signing in, if need be). */
+    val sharedStatement = MutableStateFlow<List<PickedFile>?>(null)
 
     /** A shortcut, widget or notification tap, until the screens act on it. */
     val quickAction = MutableStateFlow<QuickAction?>(null)
