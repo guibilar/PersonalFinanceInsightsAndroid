@@ -166,6 +166,7 @@ val Flow.ruleScope
 fun formatLabel(format: com.guibilar.financeinsights.core.model.StatementFormat) = when (format) {
     com.guibilar.financeinsights.core.model.StatementFormat.Cibc -> "CIBC"
     com.guibilar.financeinsights.core.model.StatementFormat.Neo -> "Neo Financial"
+    com.guibilar.financeinsights.core.model.StatementFormat.Wealthsimple -> "Wealthsimple"
     com.guibilar.financeinsights.core.model.StatementFormat.Manual -> "No files (add by hand)"
 }
 
@@ -173,6 +174,7 @@ fun accountTypeLabel(type: com.guibilar.financeinsights.core.model.AccountType) 
     com.guibilar.financeinsights.core.model.AccountType.Chequing -> "Chequing"
     com.guibilar.financeinsights.core.model.AccountType.Savings -> "Savings"
     com.guibilar.financeinsights.core.model.AccountType.CreditCard -> "Credit card"
+    com.guibilar.financeinsights.core.model.AccountType.Investment -> "Investment"
 }
 
 /** What a password change's refusal says, by field: "currentPassword", "newPassword", or "other". */

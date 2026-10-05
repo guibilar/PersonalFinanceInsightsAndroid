@@ -19,6 +19,10 @@ object Money {
         return if (amount < 0 && round(amount * 100) != 0.0) "-$text" else text
     }
 
+    /** An amount to edit in a field: "7000", "12.50". */
+    fun plain(amount: Double): String =
+        if (amount % 1.0 == 0.0) amount.toLong().toString() else String.format(Locale.US, "%.2f", amount)
+
     /** "$5K", "$1.2K", "$950": for axis ticks, which carry the values that aren't labelled. */
     fun compact(amount: Double): String {
         // No sign on what rounds to nothing: "-$0" read oddly.

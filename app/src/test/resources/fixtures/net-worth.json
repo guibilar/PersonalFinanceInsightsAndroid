@@ -1,0 +1,16 @@
+{
+  "assets": 8000,
+  "liabilities": 250,
+  "netWorth": 7750,
+  "accounts": [
+    { "id": "a1", "name": "Chequing", "type": "Chequing", "plan": "None", "balance": 2500, "balanceDate": "2026-09-30T00:00:00Z", "movedSince": true, "isLiability": false },
+    { "id": "a2", "name": "Savings", "type": "Savings", "plan": "None", "balance": null, "balanceDate": null, "movedSince": false, "isLiability": false },
+    { "id": "a3", "name": "Visa", "type": "CreditCard", "plan": "None", "balance": 250, "balanceDate": "2026-09-30T00:00:00Z", "movedSince": true, "isLiability": true },
+    { "id": "a4", "name": "Wealthsimple", "type": "Investment", "plan": "Tfsa", "balance": 5500, "balanceDate": "2026-09-30T00:00:00Z", "movedSince": false, "isLiability": false }
+  ],
+  "months": [
+    { "month": "Aug 2026", "date": "2026-08-31T00:00:00Z", "assets": 1000, "liabilities": 0, "netWorth": 1000, "accountsCounted": 1 },
+    { "month": "Sep 2026", "date": "2026-09-30T00:00:00Z", "assets": 6000, "liabilities": 200, "netWorth": 5800, "accountsCounted": 3 },
+    { "month": "Oct 2026", "date": "2026-10-15T00:00:00Z", "assets": 8000, "liabilities": 250, "netWorth": 7750, "accountsCounted": 3 }
+  ]
+}

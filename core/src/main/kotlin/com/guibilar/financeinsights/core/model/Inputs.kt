@@ -191,11 +191,35 @@ data class CategoryInput(
 
 /** A new account; its type can't change afterwards. */
 @Serializable
-data class AccountInput(val name: String, val type: AccountType, val format: StatementFormat)
+data class AccountInput(
+    val name: String,
+    val type: AccountType,
+    val format: StatementFormat,
+    /** Savings and investment accounts only. */
+    val plan: RegisteredPlan? = null,
+    val contributionRoom: Double? = null,
+    val contributionRoomYear: Int? = null,
+)
 
-/** Renames an account and/or corrects its statement format. */
+/** Renames an account, corrects its statement format, or sets its plan and room (left out: unchanged). */
 @Serializable
-data class AccountUpdate(val name: String, val format: StatementFormat)
+data class AccountUpdate(
+    val name: String,
+    val format: StatementFormat,
+    /** None clears it and its room. */
+    val plan: RegisteredPlan? = null,
+    val contributionRoom: Double? = null,
+    val contributionRoomYear: Int? = null,
+)
+
+/** An account's balance at the end of a day; another for the same day replaces it. */
+@Serializable
+data class AccountBalanceInput(
+    /** "yyyy-MM-dd", not in the future. */
+    val date: String,
+    /** For a card, what it owes. */
+    val amount: Double,
+)
 
 @Serializable
 data class ChangePasswordInput(val currentPassword: String, val newPassword: String)

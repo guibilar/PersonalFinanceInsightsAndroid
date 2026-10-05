@@ -45,6 +45,67 @@ data class Account(
     val format: StatementFormat,
     /** Deleted (hidden) transactions included: only an account with none can be deleted. */
     val transactionCount: Int = 0,
+    val plan: RegisteredPlan = RegisteredPlan.None,
+    /** The plan's contribution room for [contributionRoomYear], as entered. */
+    val contributionRoom: Double? = null,
+    val contributionRoomYear: Int? = null,
+    /** This year's transfers in: for a registered plan, its contributions. */
+    val depositedThisYear: Double = 0.0,
+    /** This year's transfers out: for a TFSA, room again next January. */
+    val withdrawnThisYear: Double = 0.0,
+    /** This year's room less this year's deposits; null until this year's room is entered. */
+    val roomLeft: Double? = null,
+    /** The latest balance entered. */
+    val balance: AccountBalance? = null,
+)
+
+/** What an account held (a card: owed) at the end of a day, as its bank or broker showed it. */
+@Serializable
+data class AccountBalance(
+    val id: String,
+    /** "2026-09-30T00:00:00Z". */
+    val date: String,
+    val amount: Double,
+) {
+    val day get() = isoDay(date)
+}
+
+@Serializable
+data class NetWorthAccount(
+    val id: String,
+    val name: String,
+    val type: AccountType,
+    val plan: RegisteredPlan = RegisteredPlan.None,
+    /** Today's balance (a card: what it owes); null until one is entered. */
+    val balance: Double? = null,
+    val balanceDate: String? = null,
+    /** Transactions since [balanceDate] moved it. */
+    val movedSince: Boolean = false,
+    val isLiability: Boolean = false,
+)
+
+@Serializable
+data class NetWorthMonth(
+    /** "Sep 2026". */
+    val month: String,
+    val date: String,
+    val assets: Double,
+    val liabilities: Double,
+    val netWorth: Double,
+    /** Fewer than today's: an account's history starts later. */
+    val accountsCounted: Int = 0,
+)
+
+/** What everything is worth today and at each of the last twelve month ends. */
+@Serializable
+data class NetWorthReport(
+    val assets: Double = 0.0,
+    /** What the cards owe, positive. */
+    val liabilities: Double = 0.0,
+    val netWorth: Double = 0.0,
+    val accounts: List<NetWorthAccount> = emptyList(),
+    /** Oldest first. */
+    val months: List<NetWorthMonth> = emptyList(),
 )
 
 @Serializable
@@ -200,7 +261,23 @@ data class ImportResult(
     val added: Int,
     /** Rows already stored by an earlier import. */
     val skipped: Int,
-)
+    /** The account's value at the end of the statement's period, saved as its balance that day (Wealthsimple statements). */
+    val balance: Double? = null,
+    /** The day of [balance]: "2026-05-31T00:00:00Z". */
+    val balanceDate: String? = null,
+) {
+    /** "Imported 1 new transaction (2 already imported); balance on May 31, 2026: $3,845.03". */
+    val message: String
+        get() {
+            val noun = if (added == 1) "transaction" else "transactions"
+            val already = if (skipped > 0) " (${skipped} already imported)" else ""
+            val worth = if (balance != null && balanceDate != null) {
+                "; balance on ${java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy", java.util.Locale.US).format(isoDay(balanceDate))}: " +
+                    com.guibilar.financeinsights.core.logic.Money.format(balance)
+            } else ""
+            return "Imported $added new $noun$already$worth"
+        }
+}
 
 @Serializable
 data class RulesResult(

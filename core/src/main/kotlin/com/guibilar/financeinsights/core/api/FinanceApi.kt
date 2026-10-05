@@ -13,6 +13,9 @@ import com.guibilar.financeinsights.core.model.LoginInput
 import com.guibilar.financeinsights.core.model.MerchantTotal
 import com.guibilar.financeinsights.core.model.MerchantsInput
 import com.guibilar.financeinsights.core.model.Page
+import com.guibilar.financeinsights.core.model.AccountBalance
+import com.guibilar.financeinsights.core.model.AccountBalanceInput
+import com.guibilar.financeinsights.core.model.NetWorthReport
 import com.guibilar.financeinsights.core.model.Tag
 import com.guibilar.financeinsights.core.model.TagInput
 import com.guibilar.financeinsights.core.model.Transaction
@@ -220,6 +223,21 @@ interface FinanceApi {
     /** Deletes it and takes it off every transaction. */
     @DELETE("Tags/{id}")
     suspend fun deleteTag(@Path("id") id: String)
+
+    /** The balances entered for an account, newest first. */
+    @GET("Accounts/{id}/Balances")
+    suspend fun balances(@Path("id") id: String): List<AccountBalance>
+
+    /** Its balance at the end of a day, replacing one entered for that day before. */
+    @POST("Accounts/{id}/Balances")
+    suspend fun setBalance(@Path("id") id: String, @Body balance: AccountBalanceInput): AccountBalance
+
+    @DELETE("Accounts/{id}/Balances/{balanceId}")
+    suspend fun deleteBalance(@Path("id") id: String, @Path("balanceId") balanceId: String)
+
+    /** What every account holds or owes today and at each of the last twelve month ends. */
+    @GET("Reports/net-worth")
+    suspend fun netWorth(): NetWorthReport
 
     @POST("Accounts")
     suspend fun addAccount(@Body account: AccountInput): Account
