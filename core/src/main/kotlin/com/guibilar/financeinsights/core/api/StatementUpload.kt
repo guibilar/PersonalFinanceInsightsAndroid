@@ -11,7 +11,9 @@ const val MAX_STATEMENT_BYTES = 5 * 1024 * 1024
 /** Uploads a statement file into an account; [confirmed] imports it even though it looks like another account's. */
 suspend fun FinanceApi.importStatement(fileName: String, bytes: ByteArray, accountId: String, confirmed: Boolean = false): ImportResult {
     val text = "text/plain".toMediaType()
-    val file = MultipartBody.Part.createFormData("file", fileName, bytes.toRequestBody("text/csv".toMediaType()))
+    // A PDF (Neo's monthly statements) is recognised by its first bytes, as the API does.
+    val type = if (bytes.size >= 5 && String(bytes, 0, 5, Charsets.US_ASCII) == "%PDF-") "application/pdf" else "text/csv"
+    val file = MultipartBody.Part.createFormData("file", fileName, bytes.toRequestBody(type.toMediaType()))
     return importStatement(file, accountId.toRequestBody(text), if (confirmed) "true".toRequestBody(text) else null)
 }
 

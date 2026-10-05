@@ -99,6 +99,19 @@ class ApiClientTest {
     }
 
     @Test
+    fun `uploads a Neo PDF statement as a PDF, and a CSV as CSV`() = runTest {
+        repeat(2) { server.enqueue(MockResponse.Builder().body("""{"read":1,"added":1,"skipped":0}""").build()) }
+
+        api().importStatement("statement-july-31-2026.pdf", "%PDF-1.7 ...".toByteArray(), "a1")
+        api().importStatement("export.csv", "2026-09-30,COFFEE,4.50,".toByteArray(), "a1")
+
+        val pdf = server.takeRequest().body!!.utf8()
+        val csv = server.takeRequest().body!!.utf8()
+        assertTrue(pdf, pdf.contains("filename=\"statement-july-31-2026.pdf\"") && pdf.contains("Content-Type: application/pdf"))
+        assertTrue(csv, csv.contains("Content-Type: text/csv"))
+    }
+
+    @Test
     fun `explains failures the way the web app does`() = runTest {
         server.enqueue(MockResponse.Builder().code(409).body("""{"title":"Conflict","detail":"An account named \"Visa\" already exists."}""").build())
         server.enqueue(MockResponse.Builder().code(400).body("""{"title":"Invalid","errors":{"amount":["Use whole cents."],"date":["A date is required."]}}""").build())
