@@ -166,6 +166,7 @@ val Flow.ruleScope
 fun formatLabel(format: com.guibilar.financeinsights.core.model.StatementFormat) = when (format) {
     com.guibilar.financeinsights.core.model.StatementFormat.Cibc -> "CIBC"
     com.guibilar.financeinsights.core.model.StatementFormat.Neo -> "Neo Financial"
+    com.guibilar.financeinsights.core.model.StatementFormat.Wealthsimple -> "Wealthsimple"
     com.guibilar.financeinsights.core.model.StatementFormat.Manual -> "No files (add by hand)"
 }
 

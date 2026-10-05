@@ -335,9 +335,7 @@ class TransactionsViewModel(
     suspend fun import(fileName: String, bytes: ByteArray, accountId: String, confirmed: Boolean): ImportOutcome {
         val result = apiCall { api.importStatement(fileName, bytes, accountId, confirmed) }
         val error = result.apiError ?: run {
-            val imported = result.getOrThrow()
-            val noun = if (imported.added == 1) "transaction" else "transactions"
-            changed("Imported ${imported.added} new $noun" + if (imported.skipped > 0) " (${imported.skipped} already imported)" else "")
+            changed(result.getOrThrow().message)
             return ImportOutcome.Imported
         }
         return error.accountMismatch?.let { ImportOutcome.Mismatch(it) } ?: ImportOutcome.Failed(error.importMessage())

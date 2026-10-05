@@ -22,7 +22,7 @@ enum class RegisteredPlan(val label: String) {
 
 /** How a bank lays out its statement files; Manual accounts have none, their transactions are added by hand. */
 @Serializable
-enum class StatementFormat { Cibc, Neo, Manual }
+enum class StatementFormat { Cibc, Neo, Wealthsimple, Manual }
 
 @Serializable
 enum class TransactionType { Credit, Debit }

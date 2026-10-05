@@ -261,7 +261,23 @@ data class ImportResult(
     val added: Int,
     /** Rows already stored by an earlier import. */
     val skipped: Int,
-)
+    /** The account's value at the end of the statement's period, saved as its balance that day (Wealthsimple statements). */
+    val balance: Double? = null,
+    /** The day of [balance]: "2026-05-31T00:00:00Z". */
+    val balanceDate: String? = null,
+) {
+    /** "Imported 1 new transaction (2 already imported); balance on May 31, 2026: $3,845.03". */
+    val message: String
+        get() {
+            val noun = if (added == 1) "transaction" else "transactions"
+            val already = if (skipped > 0) " (${skipped} already imported)" else ""
+            val worth = if (balance != null && balanceDate != null) {
+                "; balance on ${java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy", java.util.Locale.US).format(isoDay(balanceDate))}: " +
+                    com.guibilar.financeinsights.core.logic.Money.format(balance)
+            } else ""
+            return "Imported $added new $noun$already$worth"
+        }
+}
 
 @Serializable
 data class RulesResult(
