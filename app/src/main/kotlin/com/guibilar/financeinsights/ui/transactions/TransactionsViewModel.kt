@@ -14,6 +14,8 @@ import com.guibilar.financeinsights.core.logic.DateRange
 import com.guibilar.financeinsights.core.logic.describeRulesResult
 import com.guibilar.financeinsights.core.logic.matchDatePreset
 import com.guibilar.financeinsights.core.model.Budget
+import com.guibilar.financeinsights.core.model.ImportResult
+import com.guibilar.financeinsights.core.model.importSummary
 import com.guibilar.financeinsights.core.model.BudgetFilter
 import com.guibilar.financeinsights.core.model.CategoryRuleInput
 import com.guibilar.financeinsights.core.model.CategoryRulePreview
@@ -128,7 +130,7 @@ sealed interface AddOutcome {
 
 /** How an import went: done, the file looks like another account's (it can still go ahead), or another failure. */
 sealed interface ImportOutcome {
-    data object Imported : ImportOutcome
+    data class Imported(val result: ImportResult) : ImportOutcome
     data class Mismatch(val message: String) : ImportOutcome
     data class Failed(val message: String) : ImportOutcome
 }
@@ -331,13 +333,13 @@ class TransactionsViewModel(
         return null
     }
 
-    /** Imports a statement into an account; [confirmed] goes ahead although it looks like another account's. */
+    /**
+     * Imports a statement into an account; [confirmed] goes ahead although it looks like another account's. Says nothing:
+     * when the files are done, [imported] sums them up, or [partlyImported] shows what came in.
+     */
     suspend fun import(fileName: String, bytes: ByteArray, accountId: String, confirmed: Boolean): ImportOutcome {
         val result = apiCall { api.importStatement(fileName, bytes, accountId, confirmed) }
-        val error = result.apiError ?: run {
-            changed(result.getOrThrow().message)
-            return ImportOutcome.Imported
-        }
+        val error = result.apiError ?: return ImportOutcome.Imported(result.getOrThrow())
         return error.accountMismatch?.let { ImportOutcome.Mismatch(it) } ?: ImportOutcome.Failed(error.importMessage())
     }
 
@@ -382,6 +384,15 @@ class TransactionsViewModel(
     }
 
     /** Something changed on the server: the list and totals follow, and the person is told. */
+    /** Every file picked is in. */
+    fun imported(results: List<ImportResult>) = changed(importSummary(results))
+
+    /** Some files are in, others need another look: the list shows what came in, without a word yet. */
+    fun partlyImported() {
+        reloadList()
+        reloadBreakdown()
+    }
+
     private fun changed(message: String, actionLabel: String? = null, action: (() -> Unit)? = null) {
         reloadList()
         reloadBreakdown()

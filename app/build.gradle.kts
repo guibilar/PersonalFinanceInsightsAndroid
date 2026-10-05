@@ -14,8 +14,8 @@ android {
         applicationId = "com.guibilar.financeinsights"
         minSdk = 26
         targetSdk = 36
-        versionCode = 24
-        versionName = "0.13.1"
+        versionCode = 25
+        versionName = "0.14.0"
     }
 
     buildTypes {

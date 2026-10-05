@@ -72,18 +72,24 @@ class MainActivity : FragmentActivity() {
         }
     }
 
-    /** A statement shared to the app, or opened with it, waits for the import sheet. */
+    /** Statements shared to the app (one or several), or one opened with it, wait for the import sheet. */
     private fun takeStatement(intent: Intent?) {
-        val uri: Uri = when (intent?.action) {
-            Intent.ACTION_SEND -> IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java)
-            Intent.ACTION_VIEW -> intent.data
-            else -> null
-        } ?: return
+        val uris: List<Uri> = when (intent?.action) {
+            Intent.ACTION_SEND -> listOfNotNull(IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java))
+            Intent.ACTION_SEND_MULTIPLE -> IntentCompat.getParcelableArrayListExtra(intent, Intent.EXTRA_STREAM, Uri::class.java).orEmpty()
+            Intent.ACTION_VIEW -> listOfNotNull(intent.data)
+            else -> emptyList()
+        }
+        if (uris.isEmpty()) return
         lifecycleScope.launch {
-            val file = withContext(Dispatchers.IO) { readFile(this@MainActivity, uri) }
-            // Unreadable, it used to vanish without a word.
-            if (file != null) app.sharedStatement.value = file
-            else Toast.makeText(this@MainActivity, "Could not read that file.", Toast.LENGTH_LONG).show()
+            val files = withContext(Dispatchers.IO) { uris.mapNotNull { readFile(this@MainActivity, it) } }
+            // Unreadable, they used to vanish without a word.
+            if (files.isNotEmpty()) app.sharedStatement.value = files
+            val unreadable = uris.size - files.size
+            if (unreadable > 0) {
+                val text = if (uris.size == 1) "Could not read that file." else "Could not read $unreadable of the ${uris.size} files."
+                Toast.makeText(this@MainActivity, text, Toast.LENGTH_LONG).show()
+            }
         }
     }
 

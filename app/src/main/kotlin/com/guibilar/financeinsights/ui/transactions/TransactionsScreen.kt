@@ -120,7 +120,7 @@ fun TransactionsScreen(
     account: AccountInfo,
     onSignOut: suspend () -> Unit,
     contentPadding: PaddingValues,
-    sharedFile: PickedFile? = null,
+    sharedFiles: List<PickedFile>? = null,
     onSharedFileTaken: () -> Unit = {},
     addRequested: Boolean = false,
     onAddTaken: () -> Unit = {},
@@ -135,15 +135,15 @@ fun TransactionsScreen(
     var filtersOpen by rememberSaveable { mutableStateOf(false) }
     var opened by rememberOpenItem(state.list.items) { it.id }
     var adding by rememberSaveable { mutableStateOf(false) }
-    var importing by remember { mutableStateOf<PickedFile?>(null) }
+    var importing by remember { mutableStateOf<List<PickedFile>>(emptyList()) }
     var importOpen by rememberSaveable { mutableStateOf(false) }
     var confirmRules by rememberSaveable { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
 
-    // A statement shared to the app opens the import, ready to go.
-    LaunchedEffect(sharedFile) {
-        if (sharedFile != null) {
-            importing = sharedFile
+    // Statements shared to the app open the import, ready to go.
+    LaunchedEffect(sharedFiles) {
+        if (sharedFiles != null) {
+            importing = sharedFiles
             importOpen = true
             onSharedFileTaken()
         }
@@ -207,7 +207,7 @@ fun TransactionsScreen(
                         if (!state.showDeleted) {
                             MoreMenu(
                                 onImport = {
-                                    importing = null
+                                    importing = emptyList()
                                     importOpen = true
                                 },
                                 onApplyRules = { confirmRules = true },
@@ -275,7 +275,7 @@ fun TransactionsScreen(
                                         EmptyState("No transactions yet.")
                                         OutlinedButton(onClick = {
                                             // Not a statement shared earlier: this one is picked afresh.
-                                            importing = null
+                                            importing = emptyList()
                                             importOpen = true
                                         }) { Text("Import a statement") }
                                     } else {
@@ -393,7 +393,7 @@ fun TransactionsScreen(
         }
     }
     if (adding) AddTransactionSheet(state, model, onDismiss = { adding = false })
-    if (importOpen) ImportSheet(state.accounts, model, onDismiss = { importOpen = false }, initialFile = importing, accountsLoaded = state.accountsLoaded)
+    if (importOpen) ImportSheet(state.accounts, model, onDismiss = { importOpen = false }, initialFiles = importing, accountsLoaded = state.accountsLoaded)
     if (confirmRules) {
         AlertDialog(
             onDismissRequest = { confirmRules = false },

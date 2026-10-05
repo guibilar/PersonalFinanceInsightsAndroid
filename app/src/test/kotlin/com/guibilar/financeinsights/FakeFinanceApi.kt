@@ -71,6 +71,8 @@ class FakeFinanceApi : FinanceApi {
     val slow = mutableMapOf<String, Long>()
     /** How many budgets there are, when more than the recorded ones: the later pages repeat them under new ids. */
     var budgetCount: Int? = null
+    /** How the next imports go, one per file: an [ImportResult], or an [ApiError.Http] to refuse that file. */
+    val importAnswers = ArrayDeque<Any>()
     /** What was sent, by call: the writes the app made. */
     val sent = mutableListOf<Pair<String, Any?>>()
 
@@ -182,7 +184,13 @@ class FakeFinanceApi : FinanceApi {
     override suspend fun applyRules() = write("applyRules", null) { RulesResult(87, 3) }
 
     override suspend fun importStatement(file: MultipartBody.Part, accountId: RequestBody, confirmed: RequestBody?) =
-        write("importStatement", listOf(accountId.text(), confirmed?.text())) { ImportResult(read = 10, added = 7, skipped = 3) }
+        write("importStatement", listOf(accountId.text(), confirmed?.text())) {
+            when (val answer = importAnswers.removeFirstOrNull()) {
+                is ApiError.Http -> throw answer
+                is ImportResult -> answer
+                else -> ImportResult(read = 10, added = 7, skipped = 3)
+            }
+        }
 
     override suspend fun addCategoryRule(rule: CategoryRuleInput) = write("addCategoryRule", rule) {
         CategoryRule("r1", rule.keyword, CategoryReference(rule.categoryId, "Dining", "#1F76B5"), 0)

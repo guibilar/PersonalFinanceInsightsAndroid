@@ -141,7 +141,7 @@ data class TransactionsRoute(
 @Composable
 fun FinanceRoot(
     session: Session,
-    sharedStatement: MutableStateFlow<PickedFile?> = MutableStateFlow(null),
+    sharedStatement: MutableStateFlow<List<PickedFile>?> = MutableStateFlow(null),
     quickAction: MutableStateFlow<QuickAction?> = MutableStateFlow(null),
     lock: AppLock? = null,
     preferences: AppPreferences? = null,
@@ -228,7 +228,7 @@ fun MainScreen(
     api: FinanceApi,
     account: AccountInfo,
     onSignOut: suspend () -> Unit,
-    sharedStatement: MutableStateFlow<PickedFile?> = MutableStateFlow(null),
+    sharedStatement: MutableStateFlow<List<PickedFile>?> = MutableStateFlow(null),
     quickAction: MutableStateFlow<QuickAction?> = MutableStateFlow(null),
     preferences: AppPreferences? = null,
     lock: AppLock? = null,
@@ -406,7 +406,7 @@ fun MainScreen(
                         account = account,
                         onSignOut = onSignOut,
                         contentPadding = padding,
-                        sharedFile = statement,
+                        sharedFiles = statement,
                         onSharedFileTaken = { sharedStatement.value = null },
                         addRequested = addRequested,
                         onAddTaken = { addRequested = false },
