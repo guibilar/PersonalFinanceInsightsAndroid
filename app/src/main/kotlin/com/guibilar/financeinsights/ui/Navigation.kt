@@ -72,6 +72,8 @@ import com.guibilar.financeinsights.ui.settings.MoreScreen
 import com.guibilar.financeinsights.ui.settings.RulesScreen
 import com.guibilar.financeinsights.ui.settings.RulesViewModel
 import com.guibilar.financeinsights.ui.settings.TagsScreen
+import com.guibilar.financeinsights.ui.settings.NetWorthScreen
+import com.guibilar.financeinsights.ui.settings.NetWorthViewModel
 import com.guibilar.financeinsights.ui.settings.TagsViewModel
 import com.guibilar.financeinsights.ui.signin.LockScreen
 import com.guibilar.financeinsights.ui.signin.SignInScreen
@@ -111,6 +113,9 @@ data object SubscriptionsRoute
 
 @Serializable
 data object TagsRoute
+
+@Serializable
+data object NetWorthRoute
 
 /** A month's review, or a year's without [month]; the last complete month without either. */
 @Serializable
@@ -337,6 +342,7 @@ fun MainScreen(
                         openRules = { nav.navigate(RulesRoute) },
                         openCategories = { nav.navigate(CategoriesRoute) },
                         openTags = { nav.navigate(TagsRoute) },
+                        openNetWorth = { nav.navigate(NetWorthRoute) },
                         openAccounts = { nav.navigate(AccountsRoute) },
                         openAccount = { nav.navigate(AccountSettingsRoute) },
                         openSettings = { nav.navigate(AppSettingsRoute) },
@@ -365,6 +371,14 @@ fun MainScreen(
                 }
                 composable<CategoriesRoute> {
                     CategoriesScreen(viewModel { CategoriesViewModel(api) }, padding, onBack = { nav.popBackStack() })
+                }
+                composable<NetWorthRoute> {
+                    NetWorthScreen(
+                        viewModel { NetWorthViewModel(api) },
+                        padding,
+                        onBack = { nav.popBackStack() },
+                        openAccounts = { nav.navigate(AccountsRoute) },
+                    )
                 }
                 composable<TagsRoute> {
                     TagsScreen(

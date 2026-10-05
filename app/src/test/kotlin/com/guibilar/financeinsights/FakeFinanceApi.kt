@@ -21,6 +21,9 @@ import com.guibilar.financeinsights.core.model.LoginInput
 import com.guibilar.financeinsights.core.model.MerchantTotal
 import com.guibilar.financeinsights.core.model.MerchantsInput
 import com.guibilar.financeinsights.core.model.Page
+import com.guibilar.financeinsights.core.model.AccountBalance
+import com.guibilar.financeinsights.core.model.AccountBalanceInput
+import com.guibilar.financeinsights.core.model.NetWorthReport
 import com.guibilar.financeinsights.core.model.Tag
 import com.guibilar.financeinsights.core.model.TagInput
 import com.guibilar.financeinsights.core.model.Transaction
@@ -150,7 +153,22 @@ class FakeFinanceApi : FinanceApi {
     /** Categories added to the recorded ones, for cases the recording doesn't have. */
     val extraCategories = mutableListOf<Category>()
     override suspend fun categories(): List<Category> = check("categories").let { fixture<List<Category>>("categories") + extraCategories }
-    override suspend fun accounts(): List<Account> = check("accounts").let { fixture("accounts") }
+    override suspend fun accounts(): List<Account> = check("accounts").let { fixture<List<Account>>("accounts") + extraAccounts }
+
+    /** Accounts beyond the recorded ones (an investment, say). */
+    val extraAccounts = mutableListOf<Account>()
+    /** The balances listed for any account, newest first. */
+    var accountBalances = listOf(
+        AccountBalance("b2", "2026-10-01T00:00:00Z", 12_500.0),
+        AccountBalance("b1", "2026-09-30T00:00:00Z", 12_000.0),
+    )
+
+    override suspend fun balances(id: String): List<AccountBalance> = check("balances").let { accountBalances }
+    override suspend fun setBalance(id: String, balance: AccountBalanceInput) =
+        write("setBalance", id to balance) { AccountBalance("new", "${balance.date}T00:00:00Z", balance.amount) }
+    override suspend fun deleteBalance(id: String, balanceId: String) = write("deleteBalance", id to balanceId) {}
+    override suspend fun netWorth(): NetWorthReport = check("netWorth").let { netWorthReport ?: fixture("net-worth") }
+    var netWorthReport: NetWorthReport? = null
 
     override suspend fun addTransaction(input: TransactionInput) = write("addTransaction", input) {
         fixture<Page<Transaction>>("recent").items.first().copy(id = "new", description = input.description)

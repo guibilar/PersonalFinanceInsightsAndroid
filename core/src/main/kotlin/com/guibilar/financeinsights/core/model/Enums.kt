@@ -4,7 +4,21 @@ import kotlinx.serialization.Serializable
 
 /** The kind of an account; each account has one and it can't change. */
 @Serializable
-enum class AccountType { Chequing, Savings, CreditCard }
+enum class AccountType {
+    Chequing, Savings, CreditCard,
+
+    /** Its value moves with the market, not only with its transactions. */
+    Investment;
+
+    /** Savings and investments: money put away, which can be held in a registered plan. */
+    val holdsSavings get() = this == Savings || this == Investment
+}
+
+/** The Canadian registered plan a savings or investment account is held in. */
+@Serializable
+enum class RegisteredPlan(val label: String) {
+    None("Not registered"), Tfsa("TFSA"), Rrsp("RRSP"), Fhsa("FHSA")
+}
 
 /** How a bank lays out its statement files; Manual accounts have none, their transactions are added by hand. */
 @Serializable

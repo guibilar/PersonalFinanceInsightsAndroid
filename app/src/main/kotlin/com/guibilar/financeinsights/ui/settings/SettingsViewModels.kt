@@ -8,6 +8,8 @@ import com.guibilar.financeinsights.core.api.apiError
 import com.guibilar.financeinsights.core.logic.describeRulesResult
 import com.guibilar.financeinsights.core.logic.passwordErrors
 import com.guibilar.financeinsights.core.model.Account
+import com.guibilar.financeinsights.core.model.AccountBalance
+import com.guibilar.financeinsights.core.model.AccountBalanceInput
 import com.guibilar.financeinsights.core.model.AccountInput
 import com.guibilar.financeinsights.core.model.AccountUpdate
 import com.guibilar.financeinsights.core.model.Category
@@ -18,6 +20,7 @@ import com.guibilar.financeinsights.core.model.CategoryRuleMove
 import com.guibilar.financeinsights.core.model.ChangePasswordInput
 import com.guibilar.financeinsights.core.model.FlowRule
 import com.guibilar.financeinsights.core.model.FlowRuleInput
+import com.guibilar.financeinsights.core.model.NetWorthReport
 import com.guibilar.financeinsights.core.model.Tag
 import com.guibilar.financeinsights.core.model.TagInput
 import com.guibilar.financeinsights.core.model.UncategorisedReport
@@ -239,6 +242,19 @@ class AccountsViewModel(private val api: FinanceApi) : SettingsViewModel() {
             say("Saved “${update.name.trim()}”")
         }
 
+    /** The balances entered for an account, newest first; null when they couldn't be loaded. */
+    suspend fun balances(account: Account): List<AccountBalance>? = apiCall { api.balances(account.id) }.getOrNull()
+
+    /** Its balance at the end of [date]; null when saved, or why not. */
+    suspend fun setBalance(account: Account, date: java.time.LocalDate, amount: Double): String? =
+        change("Could not save the balance.", { api.setBalance(account.id, AccountBalanceInput(date.toString(), amount)) }) {
+            reload()
+            say("Balance saved")
+        }
+
+    suspend fun deleteBalance(account: Account, balance: AccountBalance): String? =
+        change("Could not delete the balance.", { api.deleteBalance(account.id, balance.id) }) { reload() }
+
     fun delete(account: Account) = viewModelScope.launch {
         val error = change("Could not delete “${account.name}”.", { api.deleteAccount(account.id) }) {
             reload()
@@ -307,5 +323,19 @@ class TagsViewModel(private val api: FinanceApi) : SettingsViewModel() {
             reload()
             say(error)
         }
+    }
+}
+
+/** What everything is worth: today's net worth and each of the last twelve month ends, from the balances entered. */
+class NetWorthViewModel(private val api: FinanceApi) : SettingsViewModel() {
+    private val _state = MutableStateFlow<LoadState<NetWorthReport>>(LoadState.Loading)
+    val state: StateFlow<LoadState<NetWorthReport>> = _state.asStateFlow()
+
+    init {
+        reload()
+    }
+
+    fun reload() {
+        viewModelScope.launch { _state.value = load("Could not work out your net worth.") { api.netWorth() } }
     }
 }

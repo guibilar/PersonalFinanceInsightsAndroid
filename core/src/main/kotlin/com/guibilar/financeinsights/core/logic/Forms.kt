@@ -173,6 +173,7 @@ fun accountTypeLabel(type: com.guibilar.financeinsights.core.model.AccountType) 
     com.guibilar.financeinsights.core.model.AccountType.Chequing -> "Chequing"
     com.guibilar.financeinsights.core.model.AccountType.Savings -> "Savings"
     com.guibilar.financeinsights.core.model.AccountType.CreditCard -> "Credit card"
+    com.guibilar.financeinsights.core.model.AccountType.Investment -> "Investment"
 }
 
 /** What a password change's refusal says, by field: "currentPassword", "newPassword", or "other". */
