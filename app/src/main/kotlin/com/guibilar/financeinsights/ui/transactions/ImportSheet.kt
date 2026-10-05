@@ -53,11 +53,11 @@ class PickedFile(val name: String, val bytes: ByteArray)
 /** The statement file types banks export, as phones label them. */
 private val STATEMENT_TYPES = arrayOf(
     "text/csv", "text/comma-separated-values", "application/csv", "text/plain",
-    "application/vnd.ms-excel", "application/octet-stream",
+    "application/vnd.ms-excel", "application/octet-stream", "application/pdf",
 )
 
 /**
- * Imports a bank statement (CSV) into an account; rows imported before are skipped. When the file looks like another
+ * Imports a bank statement (CSV, or a Neo PDF statement) into an account; rows imported before are skipped. When the file looks like another
  * account's, the API says so and it can go ahead anyway. [initialFile] is a file shared to the app.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -129,7 +129,7 @@ fun ImportSheet(
         Column(Modifier.padding(horizontal = 20.dp).navigationBarsPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("Import a statement", style = MaterialTheme.typography.titleLarge)
             Text(
-                "A CSV export from your bank. Transactions imported before are skipped, so overlapping statements are fine.",
+                "A CSV export from your bank, or a Neo monthly PDF statement. Transactions imported before are skipped, so overlapping statements are fine.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
