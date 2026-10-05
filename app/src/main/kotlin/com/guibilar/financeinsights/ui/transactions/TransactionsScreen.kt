@@ -124,6 +124,8 @@ fun TransactionsScreen(
     onSharedFileTaken: () -> Unit = {},
     addRequested: Boolean = false,
     onAddTaken: () -> Unit = {},
+    importRequested: Boolean = false,
+    onImportTaken: () -> Unit = {},
 ) {
     val state by model.state.collectAsState()
     // Back from the background on a new day: today moves on.
@@ -155,6 +157,14 @@ fun TransactionsScreen(
             if (state.showDeleted) model.toggleDeleted()
             adding = true
             onAddTaken()
+        }
+    }
+    // "Import statements" from the dashboard.
+    LaunchedEffect(importRequested) {
+        if (importRequested) {
+            importing = emptyList()
+            importOpen = true
+            onImportTaken()
         }
     }
     val listState = rememberLazyListState()

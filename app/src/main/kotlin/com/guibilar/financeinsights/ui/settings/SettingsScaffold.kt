@@ -39,7 +39,8 @@ import kotlinx.coroutines.flow.Flow
 @Composable
 fun SettingsScaffold(
     title: String,
-    onBack: () -> Unit,
+    /** Null for a page that is a tab of its own: nothing to go back to. */
+    onBack: (() -> Unit)?,
     contentPadding: PaddingValues,
     messages: Flow<UiMessage>,
     addLabel: String? = null,
@@ -54,7 +55,7 @@ fun SettingsScaffold(
         Column(Modifier.fillMaxSize()) {
             TopAppBar(
                 title = { FitText(title, fontWeight = FontWeight.SemiBold, minFontSize = 14.sp) },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back") } },
+                navigationIcon = { if (onBack != null) IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back") } },
                 actions = actions,
             )
             content()

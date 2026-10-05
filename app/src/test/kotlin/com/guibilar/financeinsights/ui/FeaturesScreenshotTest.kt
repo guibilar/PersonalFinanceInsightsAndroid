@@ -6,6 +6,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.isSelectable
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureScreenRoboImage
@@ -56,6 +58,17 @@ class FeaturesScreenshotTest {
     fun lock() {
         show(dark = true) { LockScreen(onUnlock = {}) }
         shoot("lock-dark")
+    }
+
+    @Test
+    @Config(qualifiers = "w360dp-h780dp-xxhdpi")
+    fun fiveTabsFitAPhone() {
+        show { MainScreen(FakeFinanceApi(), account, {}) }
+        // The tab, not the dashboard's Net worth tile.
+        compose.onNode(hasText("Net worth") and isSelectable()).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Home").assertExists()
+        shoot("tabs-net-worth")
     }
 
     @Test

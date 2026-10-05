@@ -1,6 +1,22 @@
 package com.guibilar.financeinsights.ui.dashboard
 
 import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.automirrored.outlined.ShowChart
+import androidx.compose.material.icons.outlined.Autorenew
+import androidx.compose.material.icons.outlined.Savings
+import androidx.compose.material.icons.outlined.UploadFile
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.semantics.semantics
+import com.guibilar.financeinsights.core.logic.AttentionItem
+import com.guibilar.financeinsights.core.logic.AttentionKind
+import com.guibilar.financeinsights.core.logic.attentionItems
+import com.guibilar.financeinsights.core.logic.investmentLine
+import com.guibilar.financeinsights.core.logic.investments
+import com.guibilar.financeinsights.core.logic.leftOverThisMonth
+import com.guibilar.financeinsights.core.logic.usualHint
+import com.guibilar.financeinsights.core.model.Account
+import com.guibilar.financeinsights.core.model.RegisteredPlan
+import com.guibilar.financeinsights.ui.settings.sinceLastMonth
 import kotlin.math.roundToInt
 import com.guibilar.financeinsights.ui.common.budgetWarningText
 import com.guibilar.financeinsights.core.model.SpendingForecast
@@ -123,6 +139,10 @@ fun DashboardScreen(
     openRules: () -> Unit = {},
     openReview: () -> Unit = {},
     openSubscriptions: () -> Unit = {},
+    openNetWorth: () -> Unit = {},
+    openAccounts: () -> Unit = {},
+    /** The transactions, with the import open. */
+    openImport: () -> Unit = {},
 ) {
     val state by model.state.collectAsState()
     // Back from the background on a new day: today moves on.
@@ -136,10 +156,13 @@ fun DashboardScreen(
             title = {
                 Column {
                     Text("Dashboard", fontWeight = FontWeight.SemiBold)
-                    Text("Your spending in $monthName", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("$monthName at a glance", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             },
-            actions = { AccountMenuButton(account, onSignOut) },
+            actions = {
+                IconButton(onClick = openImport) { Icon(Icons.Outlined.UploadFile, "Import statements") }
+                AccountMenuButton(account, onSignOut)
+            },
         )
         PullToRefreshBox(isRefreshing = state.refreshing, onRefresh = model::refresh, modifier = Modifier.fillMaxSize()) {
             LazyColumn(
@@ -147,9 +170,21 @@ fun DashboardScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxSize(),
             ) {
-                item { HeadlineTiles(state) }
-                if (state.unsorted > 0) {
-                    item { UnsortedNudge(state.unsorted, openRules) }
+                item { HeadlineTiles(state, openNetWorth, openBudgets) }
+                val attention = if (state.attentionLoaded) {
+                    attentionItems(state.unsorted, state.budgets.valueOrNull?.items.orEmpty(), state.recurring, state.accounts, state.today)
+                } else emptyList()
+                if (attention.isNotEmpty()) {
+                    item {
+                        NeedsAttention(attention) { kind ->
+                            when (kind) {
+                                AttentionKind.Budget -> openBudgets()
+                                AttentionKind.Statement -> openImport()
+                                AttentionKind.Price -> openSubscriptions()
+                                AttentionKind.Unsorted -> openRules()
+                            }
+                        }
+                    }
                 }
                 item {
                     SectionCard(
@@ -166,38 +201,7 @@ fun DashboardScreen(
                         Loaded(state.forecast, model::retryForecast) { forecast -> MonthForecast(forecast, openSubscriptions) }
                     }
                 }
-                item {
-                    SectionCard("Monthly spending", subtitle = "By category, this year") {
-                        Loaded(state.year, model::retryYear, lines = 6) { report ->
-                            if (report.monthlyData.isEmpty()) EmptyState("No spending recorded this year yet.")
-                            else MonthlySpending(report, state.today, openTransactions)
-                        }
-                    }
-                }
-                item {
-                    SectionCard("This month by category", subtitle = monthName) {
-                        Loaded(state.month, model::retryMonth) { report ->
-                            if (report.monthlyData.isEmpty()) EmptyState("No spending this month yet.")
-                            else CategoryBreakdown(report, state.today, openTransactions)
-                        }
-                    }
-                }
-                item {
-                    SectionCard("Average by category", subtitle = "A typical month, against this one") {
-                        Loaded(state.year, model::retryYear) { report ->
-                            if (report.monthlyData.isEmpty()) EmptyState("No spending recorded this year yet.")
-                            else CategoryAverages(report, state.today)
-                        }
-                    }
-                }
-                item {
-                    SectionCard("Income and spending", subtitle = "Per month, this year") {
-                        Loaded(state.cashFlow, model::retryCashFlow, lines = 6) { report ->
-                            if (report.months.isEmpty()) EmptyState("Nothing recorded this year yet.")
-                            else CashFlow(report)
-                        }
-                    }
-                }
+                item { ByCategory(state, monthName, model, openTransactions) }
                 item {
                     SectionCard(
                         "Budgets at a glance",
@@ -216,6 +220,38 @@ fun DashboardScreen(
                     }
                 }
                 item {
+                    SectionCard("Income and spending", subtitle = "Per month, this year") {
+                        Loaded(state.cashFlow, model::retryCashFlow, lines = 6) { report ->
+                            if (report.months.isEmpty()) EmptyState("Nothing recorded this year yet.")
+                            else CashFlow(report)
+                        }
+                    }
+                }
+                item {
+                    SectionCard("Monthly spending", subtitle = "By category, this year") {
+                        Loaded(state.year, model::retryYear, lines = 6) { report ->
+                            if (report.monthlyData.isEmpty()) EmptyState("No spending recorded this year yet.")
+                            else MonthlySpending(report, state.today, openTransactions)
+                        }
+                    }
+                }
+                val held = investments(state.accounts)
+                if (held.isNotEmpty()) {
+                    item {
+                        SectionCard(
+                            "Investments",
+                            subtitle = "What they hold, and this year's room",
+                            action = {
+                                TextButton(onClick = openAccounts) {
+                                    Text("Accounts")
+                                    Spacer(Modifier.width(4.dp))
+                                    Icon(Icons.AutoMirrored.Outlined.ArrowForward, null)
+                                }
+                            },
+                        ) { Investments(held) }
+                    }
+                }
+                item {
                     SectionCard(
                         "Recent transactions",
                         action = {
@@ -227,7 +263,7 @@ fun DashboardScreen(
                         },
                     ) {
                         Loaded(state.recent, model::retryRecent) { page ->
-                            if (page.items.isEmpty()) EmptyState("No transactions yet. Import a statement from Transactions.")
+                            if (page.items.isEmpty()) EmptyState("No transactions yet. Import a statement to start.")
                             else RecentTransactions(page.items)
                         }
                     }
@@ -248,15 +284,23 @@ private fun <T> Loaded(state: LoadState<T>, retry: () -> Unit, lines: Int = 4, c
 }
 
 @Composable
-private fun HeadlineTiles(state: DashboardState) {
+private fun HeadlineTiles(state: DashboardState, openNetWorth: () -> Unit, openBudgets: () -> Unit) {
     val colors = LocalChartColors.current
     val month = state.month.valueOrNull
     val year = state.year.valueOrNull
+    val cashFlow = state.cashFlow.valueOrNull
+    val netWorth = state.netWorth.valueOrNull
     val budgets = state.budgets.valueOrNull?.items
     val failed = "Could not load this"
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
     val tiles: List<@Composable (Modifier) -> Unit> = listOf(
         { m ->
-            val hint = month?.let { spentHint(it, state.today) }
+            // Against a usual month at the same point; against last month so far until a month is finished.
+            val hint = month?.let { spent ->
+                year?.takeIf { report -> report.monthlyData.any { monthOf(it.month)?.isBefore(YearMonth.from(state.today)) == true } }
+                    ?.let { usualHint(spentThisMonth(spent), it.averageMonthlyTotal, state.today) }
+                    ?: spentHint(spent, state.today)
+            }
             StatTile(
                 "Spent this month",
                 month?.let { Money.format(spentThisMonth(it)) } ?: placeholder(state.month),
@@ -264,7 +308,7 @@ private fun HeadlineTiles(state: DashboardState) {
                 m,
                 hint = hint?.text ?: failedHint(state.month, failed),
                 hintColor = when {
-                    hint == null -> MaterialTheme.colorScheme.onSurfaceVariant
+                    hint == null -> muted
                     hint.worse -> colors.negative
                     else -> colors.positive
                 },
@@ -272,22 +316,51 @@ private fun HeadlineTiles(state: DashboardState) {
             )
         },
         { m ->
+            val left = cashFlow?.let { leftOverThisMonth(it, state.today) }
             StatTile(
-                "Monthly average",
-                year?.let { Money.format(it.averageMonthlyTotal) } ?: placeholder(state.year),
-                Icons.AutoMirrored.Outlined.TrendingUp,
+                "Left over this month",
+                when {
+                    cashFlow == null -> placeholder(state.cashFlow)
+                    left == null -> "—"
+                    else -> Money.format(left.net)
+                },
+                Icons.Outlined.Savings,
                 m,
-                hint = year?.let { averageCaption(it.monthlyData.map { d -> d.month }, state.today) } ?: failedHint(state.year, failed),
+                hint = when {
+                    cashFlow == null -> failedHint(state.cashFlow, failed)
+                    left == null -> "No income or spending yet"
+                    // Before payday, spending alone isn't a warning.
+                    left.income == 0.0 -> "No income yet this month"
+                    left.net >= 0 -> "Income less spending so far"
+                    else -> "More went out than came in"
+                },
+                hintColor = when {
+                    left == null || left.income == 0.0 -> muted
+                    left.net >= 0 -> colors.positive
+                    else -> colors.negative
+                },
             )
         },
         { m ->
-            val top = month?.let { categoryShares(it).firstOrNull() }
+            val change = netWorth?.let(::sinceLastMonth)
             StatTile(
-                "Top category",
-                if (month != null) top?.category ?: "—" else placeholder(state.month),
-                Icons.Outlined.Sell,
+                "Net worth",
+                netWorth?.let { Money.format(it.netWorth) } ?: placeholder(state.netWorth),
+                Icons.AutoMirrored.Outlined.ShowChart,
                 m,
-                hint = if (month != null) top?.let { "${Money.format(it.amount)} this month" } ?: "No spending yet" else failedHint(state.month, failed),
+                hint = when {
+                    netWorth == null -> failedHint(state.netWorth, failed)
+                    netWorth.months.isEmpty() -> "Enter a balance to start"
+                    change == null -> null
+                    else -> "${if (change >= 0) "+" else "−"}${Money.format(kotlin.math.abs(change))} since last month"
+                },
+                hintColor = when {
+                    change == null || change == 0.0 -> muted
+                    change > 0 -> colors.positive
+                    else -> colors.negative
+                },
+                hintIcon = change?.takeIf { it != 0.0 }?.let { if (it > 0) Icons.AutoMirrored.Outlined.TrendingUp else Icons.AutoMirrored.Outlined.TrendingDown },
+                onClick = openNetWorth,
             )
         },
         { m ->
@@ -308,10 +381,11 @@ private fun HeadlineTiles(state: DashboardState) {
                     else -> "Review your budgets"
                 },
                 hintColor = when {
-                    budgets.isNullOrEmpty() -> MaterialTheme.colorScheme.onSurfaceVariant
+                    budgets.isNullOrEmpty() -> muted
                     over == 0 -> colors.positive
                     else -> colors.negative
                 },
+                onClick = openBudgets,
             )
         },
     )
@@ -321,6 +395,118 @@ private fun HeadlineTiles(state: DashboardState) {
         tiles.chunked(perRow).forEach { row ->
             Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 row.forEach { tile -> tile(Modifier.weight(1f).fillMaxHeight()) }
+            }
+        }
+    }
+}
+
+/** What needs a look, each opening where it is dealt with. Only shown when something does. */
+@Composable
+private fun NeedsAttention(items: List<AttentionItem>, open: (AttentionKind) -> Unit) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(vertical = 8.dp)) {
+            Text(
+                "Needs attention",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+            )
+            items.forEach { item ->
+                Row(
+                    Modifier.fillMaxWidth().clickable(role = Role.Button) { open(item.kind) }.padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        when (item.kind) {
+                            AttentionKind.Budget -> Icons.Outlined.AccountBalanceWallet
+                            AttentionKind.Statement -> Icons.Outlined.UploadFile
+                            AttentionKind.Price -> Icons.Outlined.Autorenew
+                            AttentionKind.Unsorted -> Icons.Outlined.Sell
+                        },
+                        null,
+                        Modifier.size(18.dp),
+                        tint = if (item.kind == AttentionKind.Budget) LocalChartColors.current.negative else MaterialTheme.colorScheme.onTertiaryContainer,
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        item.text,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onTertiaryContainer)
+                }
+            }
+        }
+    }
+}
+
+/** This month's split by category, or each category against a usual month: one card, two views. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ByCategory(state: DashboardState, monthName: String, model: DashboardViewModel, open: (TransactionsRoute) -> Unit) {
+    var usual by rememberSaveable { mutableStateOf(false) }
+    SectionCard("By category", subtitle = if (usual) "A typical month, against this one" else monthName) {
+        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
+            listOf("This month", "Against usual").forEachIndexed { index, label ->
+                SegmentedButton(
+                    selected = usual == (index == 1),
+                    onClick = { usual = index == 1 },
+                    shape = SegmentedButtonDefaults.itemShape(index, 2),
+                ) { Text(label) }
+            }
+        }
+        if (usual) {
+            Loaded(state.year, model::retryYear) { report ->
+                if (report.monthlyData.isEmpty()) EmptyState("No spending recorded this year yet.")
+                else CategoryAverages(report, state.today)
+            }
+        } else {
+            Loaded(state.month, model::retryMonth) { report ->
+                if (report.monthlyData.isEmpty()) EmptyState("No spending this month yet.")
+                else CategoryBreakdown(report, state.today, open)
+            }
+        }
+    }
+}
+
+/** Each investment or registered account: what it holds, this year's contributions and the room left. */
+@Composable
+private fun Investments(accounts: List<Account>) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        accounts.forEach { account ->
+            Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        account.name,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    if (account.plan != RegisteredPlan.None) {
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            account.plan.label,
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(MaterialTheme.colorScheme.secondaryContainer)
+                                .padding(horizontal = 6.dp, vertical = 2.dp),
+                        )
+                    }
+                    Spacer(Modifier.weight(1f))
+                    Text(account.balance?.let { Money.format(it.amount) } ?: "—", fontWeight = FontWeight.SemiBold)
+                }
+                Text(
+                    investmentLine(account),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if ((account.roomLeft ?: 0.0) < 0) LocalChartColors.current.negative else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }
@@ -630,27 +816,6 @@ private fun RecentTransactions(transactions: List<Transaction>) {
 }
 
 /** "4 transactions are in Other…": a rule per merchant sorts them, under Rules. */
-@Composable
-private fun UnsortedNudge(count: Int, openRules: () -> Unit) {
-    Card(
-        onClick = openRules,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                "$count ${if (count == 1) "transaction is" else "transactions are"} in Other because no rule names " +
-                    "${if (count == 1) "its merchant" else "their merchants"}.",
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.weight(1f),
-            )
-            Spacer(Modifier.width(8.dp))
-            Text("Sort them", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
-        }
-    }
-}
-
 /** Where the month is heading: spent, the recurring payments still due, and usual day-to-day for the days left. */
 @Composable
 private fun MonthForecast(forecast: SpendingForecast, openSubscriptions: () -> Unit) {

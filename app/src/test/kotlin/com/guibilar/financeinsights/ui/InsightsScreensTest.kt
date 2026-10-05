@@ -14,6 +14,14 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.guibilar.financeinsights.FakeFinanceApi
+import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.hasScrollAction
+import com.guibilar.financeinsights.core.model.StatementFormat
+import com.guibilar.financeinsights.core.model.RegisteredPlan
+import com.guibilar.financeinsights.core.model.AccountType
+import com.guibilar.financeinsights.core.model.AccountBalance
+import com.guibilar.financeinsights.core.model.Account
 import com.guibilar.financeinsights.core.model.CategoryRuleInput
 import com.guibilar.financeinsights.core.model.TransactionBulkUpdate
 import com.guibilar.financeinsights.ui.settings.RulesScreen
@@ -96,8 +104,40 @@ class InsightsScreensTest {
         compose.onNodeWithText("Budgets at this pace").performScrollTo()
         shoot("dashboard-forecast")
 
-        compose.onNodeWithText("Sort them").performClick()
+        compose.onNodeWithText("in Other because no rule names", substring = true).performScrollTo().performClick()
         assertEquals(1, rules)
+    }
+
+    @Test
+    fun dashboardHeadlinesAttentionAndInvestments() {
+        var imports = 0
+        var netWorth = 0
+        api.extraAccounts += Account(
+            id = "ws", name = "Wealthsimple TFSA", type = AccountType.Investment, format = StatementFormat.Wealthsimple,
+            transactionCount = 3, plan = RegisteredPlan.Tfsa, contributionRoom = 7000.0, contributionRoomYear = 2026,
+            depositedThisYear = 5300.0, roomLeft = 1700.0, lastTransactionDate = "2026-06-16T00:00:00Z",
+            balance = AccountBalance("b1", "2026-06-30T00:00:00Z", 4380.73),
+        )
+        val model = DashboardViewModel(api) { today }
+        show {
+            DashboardScreen(
+                model, AccountInfo("dev", "s"), {}, PaddingValues(), {},
+                openImport = { imports++ },
+                openNetWorth = { netWorth++ },
+            )
+        }
+
+        compose.onNodeWithText("Left over this month").assertExists()
+        compose.onNodeWithText("Net worth").performClick()
+        assertEquals(1, netWorth)
+        compose.onNodeWithText("Needs attention").performScrollTo()
+        shoot("dashboard-attention")
+        compose.onNodeWithText("Wealthsimple TFSA: statements reach Jun 30, 2026. Import last month's").performClick()
+        assertEquals(1, imports)
+
+        // Further down the list: composed once scrolled to.
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Balance on Jun 30, 2026 · $5,300.00 in this year · $1,700.00 room left"))
+        shoot("dashboard-investments")
     }
 
     @Test

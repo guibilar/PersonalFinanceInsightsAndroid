@@ -1,5 +1,7 @@
 package com.guibilar.financeinsights.ui.common
 
+import androidx.compose.foundation.clickable
+
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -107,9 +109,11 @@ fun StatTile(
     hint: String? = null,
     hintColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     hintIcon: ImageVector? = null,
+    /** Opens the page the number comes from. */
+    onClick: (() -> Unit)? = null,
 ) {
     Card(
-        modifier = modifier,
+        modifier = if (onClick != null) modifier.clip(CardDefaults.shape).clickable(onClick = onClick) else modifier,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {

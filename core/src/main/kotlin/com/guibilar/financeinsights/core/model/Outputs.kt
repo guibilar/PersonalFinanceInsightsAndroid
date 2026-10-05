@@ -45,6 +45,8 @@ data class Account(
     val format: StatementFormat,
     /** Deleted (hidden) transactions included: only an account with none can be deleted. */
     val transactionCount: Int = 0,
+    /** The day of its latest transaction (deleted ones included), "2026-09-30T00:00:00Z"; null without any. */
+    val lastTransactionDate: String? = null,
     val plan: RegisteredPlan = RegisteredPlan.None,
     /** The plan's contribution room for [contributionRoomYear], as entered. */
     val contributionRoom: Double? = null,
