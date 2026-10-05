@@ -3,7 +3,10 @@ package com.guibilar.financeinsights.ui.dashboard
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.guibilar.financeinsights.core.api.FinanceApi
+import com.guibilar.financeinsights.core.model.Account
 import com.guibilar.financeinsights.core.model.Budget
+import com.guibilar.financeinsights.core.model.NetWorthReport
+import com.guibilar.financeinsights.core.model.RecurringReport
 import com.guibilar.financeinsights.core.model.BudgetFilter
 import com.guibilar.financeinsights.core.model.CashFlowReport
 import com.guibilar.financeinsights.core.model.CategorizedReport
@@ -31,8 +34,15 @@ data class DashboardState(
     val budgets: LoadState<Page<Budget>> = LoadState.Loading,
     val recent: LoadState<Page<Transaction>> = LoadState.Loading,
     val forecast: LoadState<SpendingForecast> = LoadState.Loading,
+    val netWorth: LoadState<NetWorthReport> = LoadState.Loading,
+    /** For what needs attention and the investments; empty while unknown (or when that failed). */
+    val accounts: List<Account> = emptyList(),
+    /** For subscriptions whose price changed; null while unknown (or when that failed). */
+    val recurring: RecurringReport? = null,
     /** Transactions left in Other that a rule could sort; 0 while unknown (or when that failed). */
     val unsorted: Int = 0,
+    /** Whether accounts, subscriptions and Other are all in, so what needs attention shows at once. */
+    val attentionLoaded: Boolean = false,
     /** Pulled to refresh: the figures stay on screen while they reload. */
     val refreshing: Boolean = false,
 )
@@ -70,6 +80,7 @@ class DashboardViewModel(private val api: FinanceApi, private val today: () -> L
     fun retryCashFlow() = retry({ copy(cashFlow = it) }) { load("Could not load income and spending.") { api.cashFlow() } }
     fun retryBudgets() = retry({ copy(budgets = it) }) { loadBudgets() }
     fun retryRecent() = retry({ copy(recent = it) }) { loadRecent() }
+    fun retryNetWorth() = retry({ copy(netWorth = it) }) { load("Could not load net worth.") { api.netWorth() } }
 
     /**
      * Loads the reports, each showing as soon as it arrives (it used to wait for the slowest). [quiet] (coming
@@ -86,8 +97,16 @@ class DashboardViewModel(private val api: FinanceApi, private val today: () -> L
                 launch { loadBudgets().let { r -> _state.update { it.copy(budgets = next(it.budgets, r)) } } },
                 launch { loadRecent().let { r -> _state.update { it.copy(recent = next(it.recent, r)) } } },
                 launch { loadForecast().let { r -> _state.update { it.copy(forecast = next(it.forecast, r)) } } },
+                launch { load("Could not load net worth.") { api.netWorth() }.let { r -> _state.update { it.copy(netWorth = next(it.netWorth, r)) } } },
                 launch {
-                    apiCall { api.uncategorised() }.getOrNull()?.let { r -> _state.update { it.copy(unsorted = r.transactionCount) } }
+                    // What needs attention: each part adds nothing when it fails, and the list waits for all of them.
+                    val parts = listOf(
+                        launch { apiCall { api.uncategorised() }.getOrNull()?.let { r -> _state.update { it.copy(unsorted = r.transactionCount) } } },
+                        launch { apiCall { api.accounts() }.getOrNull()?.let { r -> _state.update { it.copy(accounts = r) } } },
+                        launch { apiCall { api.recurring() }.getOrNull()?.let { r -> _state.update { it.copy(recurring = r) } } },
+                    )
+                    parts.joinAll()
+                    _state.update { it.copy(attentionLoaded = true) }
                 },
             )
             reports.joinAll()

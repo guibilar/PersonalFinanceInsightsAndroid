@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ShowChart
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.Menu
@@ -14,6 +15,7 @@ import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
@@ -29,6 +31,7 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -213,13 +216,14 @@ private const val RAIL_FROM_WIDTH = 600
 private data class Tab(val label: String, val icon: ImageVector, val route: Any, val matches: (androidx.navigation.NavDestination) -> Boolean)
 
 private val tabs = listOf(
-    Tab("Dashboard", Icons.Outlined.Dashboard, DashboardRoute) { it.hasRoute<DashboardRoute>() },
+    Tab("Home", Icons.Outlined.Dashboard, DashboardRoute) { it.hasRoute<DashboardRoute>() },
     Tab("Transactions", Icons.Outlined.ReceiptLong, TransactionsRoute()) { it.hasRoute<TransactionsRoute>() },
     Tab("Budgets", Icons.Outlined.AccountBalanceWallet, BudgetsRoute) { it.hasRoute<BudgetsRoute>() },
+    Tab("Net worth", Icons.AutoMirrored.Outlined.ShowChart, NetWorthRoute) { it.hasRoute<NetWorthRoute>() },
     Tab("More", Icons.Outlined.Menu, MoreRoute) {
         it.hasRoute<MoreRoute>() || it.hasRoute<RulesRoute>() || it.hasRoute<CategoriesRoute>() ||
             it.hasRoute<AccountsRoute>() || it.hasRoute<AccountSettingsRoute>() || it.hasRoute<AppSettingsRoute>() ||
-            it.hasRoute<SubscriptionsRoute>() || it.hasRoute<ReviewRoute>()
+            it.hasRoute<SubscriptionsRoute>() || it.hasRoute<ReviewRoute>() || it.hasRoute<TagsRoute>()
     },
 )
 
@@ -245,6 +249,8 @@ fun MainScreen(
     // The launcher shortcut and widget's Add, and a budget alert's tap.
     val action by quickAction.collectAsState()
     var addRequested by rememberSaveable { mutableStateOf(false) }
+    // The dashboard's import button: the transactions open with the import sheet.
+    var importRequested by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(action) {
         when (action) {
             QuickAction.AddTransaction -> {
@@ -287,7 +293,8 @@ fun MainScreen(
                             selected = selected,
                             onClick = { select(tab, selected) },
                             icon = { Icon(tab.icon, null) },
-                            label = { Text(tab.label) },
+                            // Five tabs on a narrow phone: one line, a size smaller, so "Transactions" doesn't wrap.
+                            label = { Text(tab.label, style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 0.sp), maxLines = 1, softWrap = false) },
                         )
                     }
                 }
@@ -332,6 +339,12 @@ fun MainScreen(
                         openRules = { nav.navigate(RulesRoute) },
                         openReview = { nav.navigate(ReviewRoute()) },
                         openSubscriptions = { nav.navigate(SubscriptionsRoute) },
+                        openNetWorth = { tabs.first { it.route == NetWorthRoute }.let { select(it, false) } },
+                        openAccounts = { nav.navigate(AccountsRoute) },
+                        openImport = {
+                            importRequested = true
+                            nav.navigate(TransactionsRoute()) { popUpTo<DashboardRoute>() }
+                        },
                     )
                 }
                 composable<MoreRoute> {
@@ -342,7 +355,6 @@ fun MainScreen(
                         openRules = { nav.navigate(RulesRoute) },
                         openCategories = { nav.navigate(CategoriesRoute) },
                         openTags = { nav.navigate(TagsRoute) },
-                        openNetWorth = { nav.navigate(NetWorthRoute) },
                         openAccounts = { nav.navigate(AccountsRoute) },
                         openAccount = { nav.navigate(AccountSettingsRoute) },
                         openSettings = { nav.navigate(AppSettingsRoute) },
@@ -376,7 +388,8 @@ fun MainScreen(
                     NetWorthScreen(
                         viewModel { NetWorthViewModel(api) },
                         padding,
-                        onBack = { nav.popBackStack() },
+                        // A tab: nothing to go back to.
+                        onBack = null,
                         openAccounts = { nav.navigate(AccountsRoute) },
                     )
                 }
@@ -410,6 +423,8 @@ fun MainScreen(
                         onSharedFileTaken = { sharedStatement.value = null },
                         addRequested = addRequested,
                         onAddTaken = { addRequested = false },
+                        importRequested = importRequested,
+                        onImportTaken = { importRequested = false },
                     )
                 }
             }

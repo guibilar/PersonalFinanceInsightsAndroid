@@ -54,7 +54,7 @@ fun sinceLastMonth(report: NetWorthReport): Double? {
 
 /** What everything is worth: today's net worth, assets and card debt, the last twelve months, and each account. */
 @Composable
-fun NetWorthScreen(model: NetWorthViewModel, contentPadding: PaddingValues, onBack: () -> Unit, openAccounts: () -> Unit) {
+fun NetWorthScreen(model: NetWorthViewModel, contentPadding: PaddingValues, onBack: (() -> Unit)?, openAccounts: () -> Unit) {
     val state by model.state.collectAsState()
     SettingsScaffold("Net worth", onBack, contentPadding, model.messages) {
         when (val current = state) {
