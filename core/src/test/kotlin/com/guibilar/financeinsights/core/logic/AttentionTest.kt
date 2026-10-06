@@ -104,6 +104,20 @@ class AttentionTest {
     }
 
     @Test
+    fun `says when nothing was imported for more than a week`() {
+        val imported = Account(
+            id = "c", name = "Chequing", type = AccountType.Chequing, format = StatementFormat.Cibc,
+            lastImportedAt = "2026-08-27T15:00:00Z", lastTransactionDate = "2026-08-26T00:00:00Z",
+        )
+
+        assertEquals(
+            listOf(AttentionItem(AttentionKind.Statement, "No statements imported in 9 days")),
+            attentionItems(0, emptyList(), null, listOf(imported), today, java.time.ZoneOffset.UTC),
+        )
+        assertEquals(emptyList<AttentionItem>(), attentionItems(0, emptyList(), null, listOf(imported), LocalDate.of(2026, 9, 3), java.time.ZoneOffset.UTC))
+    }
+
+    @Test
     fun `investments, by balance, with this year's room`() {
         val tfsa = Account(
             id = "a1", name = "TFSA", type = AccountType.Investment, format = StatementFormat.Wealthsimple,

@@ -12,6 +12,7 @@ import com.guibilar.financeinsights.core.model.StatementFormat
 import com.guibilar.financeinsights.core.model.isoDay
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.Locale
@@ -71,9 +72,14 @@ fun attentionItems(
     recurring: RecurringReport?,
     accounts: List<Account>,
     today: LocalDate,
+    zone: ZoneId = ZoneId.systemDefault(),
 ): List<AttentionItem> = buildList {
     budgets.filter { it.percentageUsed >= 100 }.forEach { budget ->
         add(AttentionItem(AttentionKind.Budget, "${budget.name} is over its limit (${budget.percentageUsed.toInt()}% used)"))
+    }
+    lastImportDay(accounts, zone)?.let { last ->
+        val days = ChronoUnit.DAYS.between(last, today)
+        if (days > IMPORT_REMINDER_DAYS) add(AttentionItem(AttentionKind.Statement, "No statements imported in $days days"))
     }
     accountsBehind(accounts, today).forEach { account ->
         add(

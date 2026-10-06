@@ -58,6 +58,7 @@ fun AppSettingsScreen(preferences: AppPreferences, lock: AppLock?, contentPaddin
     val alerts by preferences.budgetAlerts.collectAsState()
     val priceAlerts by preferences.priceAlerts.collectAsState()
     val monthlyReview by preferences.monthlyReview.collectAsState()
+    val importReminders by preferences.importReminders.collectAsState()
     val hideWidget by preferences.hideWidgetAmounts.collectAsState()
     // Checked again on coming back, a screen lock just set up in the phone's settings.
     var lockAvailable by remember { mutableStateOf(canAuthenticate(context)) }
@@ -162,6 +163,11 @@ fun AppSettingsScreen(preferences: AppPreferences, lock: AppLock?, contentPaddin
                 "Early each month, the month before: what was spent against the month before it, and where most went.",
                 monthlyReview,
             ) { switch(preferences::setMonthlyReview, it) }
+            SwitchRow(
+                "Import reminders",
+                "A notification when no statement has been imported for more than a week, and once a week after that until one is.",
+                importReminders,
+            ) { switch(preferences::setImportReminders, it) }
             alertsNote?.let {
                 Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(horizontal = 16.dp))
             }

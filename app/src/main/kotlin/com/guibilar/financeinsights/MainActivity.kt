@@ -68,6 +68,7 @@ class MainActivity : FragmentActivity() {
             ACTION_BUDGETS -> app.quickAction.value = QuickAction.Budgets
             ACTION_SUBSCRIPTIONS -> app.quickAction.value = QuickAction.Subscriptions
             ACTION_REVIEW -> app.quickAction.value = QuickAction.Review
+            ACTION_IMPORT -> app.quickAction.value = QuickAction.Import
             else -> takeStatement(intent)
         }
     }
@@ -98,5 +99,6 @@ class MainActivity : FragmentActivity() {
         const val ACTION_BUDGETS = "com.guibilar.financeinsights.BUDGETS"
         const val ACTION_SUBSCRIPTIONS = "com.guibilar.financeinsights.SUBSCRIPTIONS"
         const val ACTION_REVIEW = "com.guibilar.financeinsights.REVIEW"
+        const val ACTION_IMPORT = "com.guibilar.financeinsights.IMPORT"
     }
 }
