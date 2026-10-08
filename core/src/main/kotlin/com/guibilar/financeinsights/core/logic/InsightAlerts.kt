@@ -1,8 +1,16 @@
 package com.guibilar.financeinsights.core.logic
 
+import com.guibilar.financeinsights.core.model.Account
 import com.guibilar.financeinsights.core.model.RecurringReport
+import com.guibilar.financeinsights.core.model.StatementFormat
+import com.guibilar.financeinsights.core.model.isoDay
 import com.guibilar.financeinsights.core.model.ReviewReport
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
+import java.util.Locale
 import java.time.YearMonth
 
 /** A subscription whose fixed price changed: what to tell the person, once. */
@@ -50,4 +58,40 @@ fun reviewAlert(review: ReviewReport): Pair<String, String> {
         if (top != null) append(" Most went to ${top.category.name}, ${Money.format(top.spending)}.")
     }
     return "Your ${review.label.substringBefore(' ')} in review" to text
+}
+
+/** A week without an import: what to tell the person. */
+data class ImportReminder(val key: String, val title: String, val text: String)
+
+/** More days than this without importing a statement brings a reminder, and then one a week while it stays so. */
+const val IMPORT_REMINDER_DAYS = 7
+
+/**
+ * The day statements were last imported, in [zone]: the latest import into any account that takes statements, or,
+ * for accounts imported into before imports were recorded, the latest transaction. Null when nothing ever was.
+ */
+fun lastImportDay(accounts: List<Account>, zone: ZoneId): LocalDate? {
+    val importable = accounts.filter { it.format != StatementFormat.Manual }
+    val imported = importable.mapNotNull { it.lastImportedAt }.maxOfOrNull { Instant.parse(it).atZone(zone).toLocalDate() }
+    return imported ?: importable.mapNotNull { it.lastTransactionDate }.maxOfOrNull { isoDay(it) }
+}
+
+/**
+ * The reminder to send today, if any: when more than [IMPORT_REMINDER_DAYS] days have gone by since the last import,
+ * once, and again each further week, unless already told ([sent], by key). Nothing before the first import.
+ */
+fun importReminder(accounts: List<Account>, today: LocalDate, zone: ZoneId, sent: Map<String, Int>): ImportReminder? {
+    val last = lastImportDay(accounts, zone) ?: return null
+    val days = ChronoUnit.DAYS.between(last, today)
+    if (days <= IMPORT_REMINDER_DAYS) return null
+    // Day 8 is the first week's reminder, day 15 the second's; a new import starts again from its own day.
+    val week = (days - 1) / IMPORT_REMINDER_DAYS
+    val key = "import:$last:$week"
+    if (key in sent) return null
+    return ImportReminder(
+        key = key,
+        title = "No statements imported in $days days",
+        text = "The last import was ${DateTimeFormatter.ofPattern("MMM d", Locale.US).format(last)}. " +
+            "Import your latest statements to keep budgets and net worth up to date.",
+    )
 }

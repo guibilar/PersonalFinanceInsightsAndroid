@@ -41,8 +41,12 @@ class AppPreferences(context: Context) {
     /** A notification early each month with the month before in review. */
     val monthlyReview: StateFlow<Boolean> = _monthlyReview.asStateFlow()
 
+    private val _importReminders = MutableStateFlow(prefs.getBoolean(KEY_IMPORT_REMINDERS, false))
+    /** A notification after more than a week without importing a statement, and weekly while it stays so. */
+    val importReminders: StateFlow<Boolean> = _importReminders.asStateFlow()
+
     /** Any notification is on: the background check runs. */
-    val anyAlerts get() = budgetAlerts.value || priceAlerts.value || monthlyReview.value
+    val anyAlerts get() = budgetAlerts.value || priceAlerts.value || monthlyReview.value || importReminders.value
 
     fun setTheme(value: ThemeChoice) {
         prefs.edit().putString(KEY_THEME, value.name).apply()
@@ -79,6 +83,11 @@ class AppPreferences(context: Context) {
         _monthlyReview.value = value
     }
 
+    fun setImportReminders(value: Boolean) {
+        prefs.edit().putBoolean(KEY_IMPORT_REMINDERS, value).apply()
+        _importReminders.value = value
+    }
+
     private companion object {
         const val KEY_THEME = "theme"
         const val KEY_DYNAMIC_COLOR = "dynamicColor"
@@ -87,5 +96,6 @@ class AppPreferences(context: Context) {
         const val KEY_HIDE_WIDGET_AMOUNTS = "hideWidgetAmounts"
         const val KEY_PRICE_ALERTS = "priceAlerts"
         const val KEY_MONTHLY_REVIEW = "monthlyReview"
+        const val KEY_IMPORT_REMINDERS = "importReminders"
     }
 }

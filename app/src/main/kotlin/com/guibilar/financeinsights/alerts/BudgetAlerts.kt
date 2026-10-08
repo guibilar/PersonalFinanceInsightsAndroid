@@ -25,6 +25,7 @@ import com.guibilar.financeinsights.R
 import com.guibilar.financeinsights.core.api.apiCall
 import com.guibilar.financeinsights.core.logic.BudgetAlert
 import com.guibilar.financeinsights.core.logic.budgetAlerts
+import com.guibilar.financeinsights.core.logic.importReminder
 import com.guibilar.financeinsights.core.logic.priceAlerts
 import com.guibilar.financeinsights.core.logic.reviewAlert
 import com.guibilar.financeinsights.core.logic.reviewKey
@@ -33,6 +34,7 @@ import com.guibilar.financeinsights.core.model.BudgetFilter
 import com.guibilar.financeinsights.core.model.Status
 import com.guibilar.financeinsights.widget.SpendingWidget
 import java.time.LocalDate
+import java.time.ZoneId
 import java.util.concurrent.TimeUnit
 
 /** Budget alerts: a check every few hours (when online) that notifies once a budget passes 80% and 100%. */
@@ -56,13 +58,16 @@ object BudgetAlerts {
         WorkManager.getInstance(context).cancelUniqueWork(WORK)
     }
 
-    /** Checks in the background while any notification is on (budgets, price changes, the monthly review). */
+    /** Checks in the background while any notification is on (budgets, price changes, the monthly review, import reminders). */
     fun reschedule(context: Context, preferences: AppPreferences) {
         if (preferences.anyAlerts) schedule(context) else cancel(context)
     }
 
     /** Price changes and the monthly review, apart from the budgets in the phone's notification settings. */
     const val INSIGHTS_CHANNEL = "insights"
+
+    /** The import reminders, a channel of their own so they can be silenced alone. */
+    const val REMINDERS_CHANNEL = "reminders"
 
     /** The "Budgets" and "Subscriptions and reviews" channels, in the phone's notification settings. */
     fun createChannel(context: Context) {
@@ -78,10 +83,24 @@ object BudgetAlerts {
                 description = "When a subscription's price changes, and the month before in review"
             },
         )
+        manager.createNotificationChannel(
+            NotificationChannel(REMINDERS_CHANNEL, "Import reminders", NotificationManager.IMPORTANCE_DEFAULT).apply {
+                description = "When no statement has been imported for more than a week"
+            },
+        )
     }
 
     /** A notification on the insights channel that opens [action]'s screen; [id] replaces an earlier one of it. */
-    internal fun notifyInsight(context: Context, id: Int, action: String, title: String, text: String, private: Boolean, publicTitle: String) {
+    internal fun notifyInsight(
+        context: Context,
+        id: Int,
+        action: String,
+        title: String,
+        text: String,
+        private: Boolean,
+        publicTitle: String,
+        channel: String = INSIGHTS_CHANNEL,
+    ) {
         if (!canNotify(context)) return
         val open = PendingIntent.getActivity(
             context,
@@ -89,7 +108,7 @@ object BudgetAlerts {
             Intent(context, MainActivity::class.java).setAction(action).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
-        val notification = NotificationCompat.Builder(context, INSIGHTS_CHANNEL)
+        val notification = NotificationCompat.Builder(context, channel)
             .setSmallIcon(R.drawable.ic_stat_wallet)
             .setContentTitle(title)
             .setContentText(text)
@@ -100,7 +119,7 @@ object BudgetAlerts {
                 if (private) {
                     setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
                     setPublicVersion(
-                        NotificationCompat.Builder(context, INSIGHTS_CHANNEL)
+                        NotificationCompat.Builder(context, channel)
                             .setSmallIcon(R.drawable.ic_stat_wallet)
                             .setContentTitle(publicTitle)
                             .setContentIntent(open)
@@ -166,6 +185,8 @@ internal class SentAlerts(context: Context) {
     }
 }
 
+private const val IMPORT_REMINDER_ID = 7_000
+
 class BudgetAlertWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         val app = applicationContext as FinanceApp
@@ -212,6 +233,18 @@ class BudgetAlertWorker(context: Context, params: WorkerParameters) : CoroutineW
                     )
                     sent.record(key, 1)
                 }
+            }
+        }
+        if (preferences.importReminders.value) {
+            val accounts = apiCall { api.accounts() }.getOrNull()
+            if (accounts == null) retry = true
+            else importReminder(accounts, today, ZoneId.systemDefault(), sent.all())?.let { reminder ->
+                // One at a time: a later week's reminder replaces the one before.
+                BudgetAlerts.notifyInsight(
+                    applicationContext, IMPORT_REMINDER_ID, MainActivity.ACTION_IMPORT, reminder.title, reminder.text, private,
+                    "Time to import your statements", BudgetAlerts.REMINDERS_CHANNEL,
+                )
+                sent.record(reminder.key, 1)
             }
         }
         return if (retry) Result.retry() else Result.success()

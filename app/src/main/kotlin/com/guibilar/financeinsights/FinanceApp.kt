@@ -22,7 +22,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 /** Something asked of the app from outside it: the launcher shortcut, the widget, a notification. */
-enum class QuickAction { AddTransaction, Budgets, Subscriptions, Review }
+enum class QuickAction { AddTransaction, Budgets, Subscriptions, Review, Import }
 
 class FinanceApp : Application() {
     /** One per process: the screens reach the API through it. */

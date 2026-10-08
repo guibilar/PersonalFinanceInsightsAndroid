@@ -47,6 +47,8 @@ data class Account(
     val transactionCount: Int = 0,
     /** The day of its latest transaction (deleted ones included), "2026-09-30T00:00:00Z"; null without any. */
     val lastTransactionDate: String? = null,
+    /** When a statement was last imported into it, "2026-10-06T14:30:00Z" (UTC); null until the first. */
+    val lastImportedAt: String? = null,
     val plan: RegisteredPlan = RegisteredPlan.None,
     /** The plan's contribution room for [contributionRoomYear], as entered. */
     val contributionRoom: Double? = null,

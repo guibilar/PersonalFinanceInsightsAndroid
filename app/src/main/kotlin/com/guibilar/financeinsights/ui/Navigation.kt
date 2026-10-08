@@ -249,7 +249,7 @@ fun MainScreen(
     // The launcher shortcut and widget's Add, and a budget alert's tap.
     val action by quickAction.collectAsState()
     var addRequested by rememberSaveable { mutableStateOf(false) }
-    // The dashboard's import button: the transactions open with the import sheet.
+    // The dashboard's import button and the import reminder: the transactions open with the import sheet.
     var importRequested by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(action) {
         when (action) {
@@ -265,6 +265,11 @@ fun MainScreen(
             // From a notification: the page, Back returning to the dashboard.
             QuickAction.Subscriptions -> nav.navigate(SubscriptionsRoute) { popUpTo<DashboardRoute>() }
             QuickAction.Review -> nav.navigate(ReviewRoute()) { popUpTo<DashboardRoute>() }
+            // The import reminder: the transactions, with the import open.
+            QuickAction.Import -> {
+                importRequested = true
+                if (entry?.destination?.hasRoute<TransactionsRoute>() != true) nav.navigate(TransactionsRoute()) { popUpTo<DashboardRoute>() }
+            }
             null -> {}
         }
         quickAction.value = null
