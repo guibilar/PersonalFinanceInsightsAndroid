@@ -37,11 +37,12 @@ class ImportSheetTest {
     fun `a shared statement over the limit is refused, not uploaded cut short`() {
         val model = TransactionsViewModel(api, TransactionsRoute()) { LocalDate.of(2026, 10, 3) }
         val big = PickedFile("huge.csv", ByteArray(5 * 1024 * 1024 + 1))
+        model.openImport(listOf(big))
         compose.setContent {
             FinanceTheme(dynamicColor = false) {
                 Surface {
                     val state by model.state.collectAsState()
-                    ImportSheet(state.accounts, model, {}, listOf(big), state.accountsLoaded)
+                    ImportSheet(state.accounts, model, {}, state.accountsLoaded)
                 }
             }
         }
@@ -52,11 +53,12 @@ class ImportSheetTest {
     }
 
     private fun showSheet(model: TransactionsViewModel, files: List<PickedFile>, onDismiss: () -> Unit = {}) {
+        model.openImport(files)
         compose.setContent {
             FinanceTheme(dynamicColor = false) {
                 Surface {
                     val state by model.state.collectAsState()
-                    ImportSheet(state.accounts.filter { it.id == state.accounts.first().id }, model, onDismiss, files, state.accountsLoaded)
+                    ImportSheet(state.accounts.filter { it.id == state.accounts.first().id }, model, onDismiss, state.accountsLoaded)
                 }
             }
         }

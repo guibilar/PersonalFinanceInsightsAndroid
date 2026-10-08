@@ -89,9 +89,10 @@ class FormsScreenshotTest {
     fun importLooksLikeAnotherAccounts() {
         api.refusing["importStatement"] = FakeFinanceApi.conflict("4 of the 5 transactions in this file are already in \"Neo card\". Is \"Credit card\" the right account?", "account-mismatch")
         val model = TransactionsViewModel(api, TransactionsRoute()) { today }
+        model.openImport(listOf(PickedFile("cibc_credit.csv", ByteArray(2048))))
         show {
             val state by model.state.collectAsState()
-            ImportSheet(state.accounts, model, {}, listOf(PickedFile("cibc_credit.csv", ByteArray(2048))))
+            ImportSheet(state.accounts, model, {})
         }
         compose.onNodeWithText("Choose an account").performClick()
         compose.onNodeWithText("Credit card · Credit card").performClick()
@@ -105,11 +106,10 @@ class FormsScreenshotTest {
         api.importAnswers += ApiError.Http(400, "Bad Request", null, null, mapOf("file" to listOf("This file doesn't look like a Wealthsimple statement.")))
         api.importAnswers += ImportResult(read = 4, added = 3, skipped = 1)
         val model = TransactionsViewModel(api, TransactionsRoute()) { today }
-        // Made once, as the screen holds them: a new list would be new files shared.
-        val files = listOf(PickedFile("May_2026.pdf", ByteArray(2048)), PickedFile("neo-statement.pdf", ByteArray(2048)), PickedFile("June_2026.pdf", ByteArray(2048)))
+        model.openImport(listOf(PickedFile("May_2026.pdf", ByteArray(2048)), PickedFile("neo-statement.pdf", ByteArray(2048)), PickedFile("June_2026.pdf", ByteArray(2048))))
         show {
             val state by model.state.collectAsState()
-            ImportSheet(state.accounts, model, {}, files)
+            ImportSheet(state.accounts, model, {})
         }
         compose.onNodeWithText("Choose an account").performClick()
         compose.onNodeWithText("Credit card · Credit card").performClick()

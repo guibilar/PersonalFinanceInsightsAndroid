@@ -64,7 +64,10 @@ class MainActivity : FragmentActivity() {
     }
 
     private fun take(intent: Intent?) {
-        when (intent?.action) {
+        // Reopened from Recents after Back closed it, the app is handed the intent that first started it again: a
+        // statement shared back then (no longer readable), or a shortcut's or notification's page. Not asked for now.
+        if (intent == null || (intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) != 0) return
+        when (intent.action) {
             ACTION_ADD_TRANSACTION -> {
                 // Ranks the "Add transaction" shortcut among the ones the launcher offers.
                 ShortcutManagerCompat.reportShortcutUsed(this, "add_transaction")
@@ -79,8 +82,8 @@ class MainActivity : FragmentActivity() {
     }
 
     /** Statements shared to the app (one or several), or one opened with it, wait for the import sheet. */
-    private fun takeStatement(intent: Intent?) {
-        val uris: List<Uri> = when (intent?.action) {
+    private fun takeStatement(intent: Intent) {
+        val uris: List<Uri> = when (intent.action) {
             Intent.ACTION_SEND -> listOfNotNull(IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java))
             Intent.ACTION_SEND_MULTIPLE -> IntentCompat.getParcelableArrayListExtra(intent, Intent.EXTRA_STREAM, Uri::class.java).orEmpty()
             Intent.ACTION_VIEW -> listOfNotNull(intent.data)

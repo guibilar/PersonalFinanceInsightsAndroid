@@ -113,16 +113,14 @@ fun TransactionsScreen(
     var filtersOpen by rememberSaveable { mutableStateOf(false) }
     var opened by rememberOpenItem(state.list.items) { it.id }
     var adding by rememberSaveable { mutableStateOf(false) }
-    var importing by remember { mutableStateOf<List<PickedFile>>(emptyList()) }
-    var importOpen by rememberSaveable { mutableStateOf(false) }
+    val importState by model.importState.collectAsState()
     var confirmRules by rememberSaveable { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
 
     // Statements shared to the app open the import, ready to go.
     LaunchedEffect(sharedFiles) {
         if (sharedFiles != null) {
-            importing = sharedFiles
-            importOpen = true
+            model.openImport(sharedFiles)
             onSharedFileTaken()
         }
     }
@@ -138,8 +136,7 @@ fun TransactionsScreen(
     // "Import statements" from the dashboard.
     LaunchedEffect(importRequested) {
         if (importRequested) {
-            importing = emptyList()
-            importOpen = true
+            model.openImport()
             onImportTaken()
         }
     }
@@ -192,10 +189,7 @@ fun TransactionsScreen(
                         }
                         if (!state.showDeleted) {
                             MoreMenu(
-                                onImport = {
-                                    importing = emptyList()
-                                    importOpen = true
-                                },
+                                onImport = { model.openImport() },
                                 onApplyRules = { confirmRules = true },
                                 onShowDeleted = model::toggleDeleted,
                             )
@@ -259,11 +253,7 @@ fun TransactionsScreen(
                                         OutlinedButton(onClick = model::toggleDeleted) { Text("Back to transactions") }
                                     } else if (state.criteria.isEmpty) {
                                         EmptyState("No transactions yet.")
-                                        OutlinedButton(onClick = {
-                                            // Not a statement shared earlier: this one is picked afresh.
-                                            importing = emptyList()
-                                            importOpen = true
-                                        }) { Text("Import a statement") }
+                                        OutlinedButton(onClick = { model.openImport() }) { Text("Import a statement") }
                                     } else {
                                         EmptyState("No transactions match these filters.")
                                         OutlinedButton(onClick = model::clearAll) { Text("Clear filters") }
@@ -379,7 +369,7 @@ fun TransactionsScreen(
         }
     }
     if (adding) AddTransactionSheet(state, model, onDismiss = { adding = false })
-    if (importOpen) ImportSheet(state.accounts, model, onDismiss = { importOpen = false }, initialFiles = importing, accountsLoaded = state.accountsLoaded)
+    if (importState.open) ImportSheet(state.accounts, model, onDismiss = model::closeImport, accountsLoaded = state.accountsLoaded)
     if (confirmRules) {
         AlertDialog(
             onDismissRequest = { confirmRules = false },

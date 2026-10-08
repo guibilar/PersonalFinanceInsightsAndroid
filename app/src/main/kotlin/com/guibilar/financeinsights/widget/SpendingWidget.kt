@@ -37,6 +37,7 @@ import com.guibilar.financeinsights.FinanceApp
 import com.guibilar.financeinsights.MainActivity
 import com.guibilar.financeinsights.core.api.ApiJson
 import com.guibilar.financeinsights.core.api.apiCall
+import com.guibilar.financeinsights.core.api.apiError
 import com.guibilar.financeinsights.core.logic.Money
 import com.guibilar.financeinsights.core.logic.spentThisMonth
 import com.guibilar.financeinsights.core.model.Budget
@@ -45,6 +46,7 @@ import com.guibilar.financeinsights.core.model.Status
 import kotlinx.serialization.Serializable
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -57,6 +59,8 @@ sealed interface WidgetData {
         val budgets: List<Budget>,
         /** When these figures were fetched, "14:05", shown when they couldn't be refreshed since. */
         val asOf: String? = null,
+        /** The month they are for, "2026-10": the last figures stay only within it. */
+        val yearMonth: String? = null,
     ) : WidgetData
     data object SignedOut : WidgetData
     /** Amounts hidden by choice (Settings): the home screen shows none, as anyone can see it. */
@@ -79,12 +83,19 @@ class SpendingWidget : GlanceAppWidget() {
         // Hidden only when asked: the app lock alone used to hide them, which looked like the widget had broken.
         if (app.preferences.hideWidgetAmounts.value) return WidgetData.Hidden
         val api = app.session.backgroundApi() ?: return WidgetData.SignedOut
-        val month = apiCall { api.monthReport() }.getOrNull()
+        val monthResult = apiCall { api.monthReport() }
+        // The session ended (expired, or signed out elsewhere): the figures belong to no one until the app signs in again.
+        if (monthResult.apiError?.isUnauthorized == true) {
+            forget(context)
+            return WidgetData.SignedOut
+        }
+        val month = monthResult.getOrNull()
             // Unreachable (Tailscale off), the last figures stay, with when they are from; better than nothing.
-            ?: return lastLoaded(context)?.takeIf { it.month == thisMonth() } ?: WidgetData.Failed
+            ?: return lastLoaded(context)?.takeIf { it.yearMonth == YearMonth.now().toString() } ?: WidgetData.Failed
         val budgets = apiCall { api.budgets(BudgetFilter(status = Status.Active, page = 1, pageSize = 1000)) }.getOrNull()
         val loaded = WidgetData.Loaded(
             month = thisMonth(),
+            yearMonth = YearMonth.now().toString(),
             spent = spentThisMonth(month),
             budgets = budgets?.items.orEmpty().sortedByDescending { it.percentageUsed }.take(3),
         )

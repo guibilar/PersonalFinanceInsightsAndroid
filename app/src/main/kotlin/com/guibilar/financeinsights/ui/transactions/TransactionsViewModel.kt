@@ -90,6 +90,16 @@ class TransactionsViewModel(
     private val searchText = MutableStateFlow(route.criteria.description.orEmpty())
     private var listJob: Job? = null
     private val breakdown = TransactionsBreakdown(api, viewModelScope, _state)
+    private val statements = StatementImport(
+        viewModelScope,
+        send = { file, accountId, confirmed -> import(file.name, file.bytes, accountId, confirmed) },
+        imported = ::imported,
+        partlyImported = ::partlyImported,
+        say = { changed(it) },
+    )
+
+    /** The import sheet, its files and their uploads. */
+    val importState: StateFlow<ImportState> = statements.state
 
     init {
         // Typing searches after a pause, not on every letter.
@@ -268,6 +278,20 @@ class TransactionsViewModel(
         return error.accountMismatch?.let { ImportOutcome.Mismatch(it) } ?: ImportOutcome.Failed(error.importMessage())
     }
 
+    /** Opens the import; with [files] shared to the app, ready to go. */
+    fun openImport(files: List<PickedFile> = emptyList()) = statements.open(files)
+
+    fun closeImport() = statements.close()
+
+    /** Files picked in the import sheet; [unreadable] of them couldn't be read. */
+    fun pickStatements(files: List<PickedFile>, unreadable: Int = 0) = statements.take(files, unreadable)
+
+    fun chooseImportAccount(id: String) = statements.chooseAccount(id)
+
+    fun importStatements(accountId: String) = statements.importPending(accountId)
+
+    fun importAnyway(file: PickedFile, accountId: String) = statements.importAnyway(file, accountId)
+
     /** Ticks or unticks one; the first starts selecting. */
     fun toggleSelected(id: String) = _state.update {
         it.copy(selected = if (id in it.selected) it.selected - id else it.selected + id)
@@ -308,7 +332,6 @@ class TransactionsViewModel(
         }
     }
 
-    /** Something changed on the server: the list and totals follow, and the person is told. */
     /** Every file picked is in. */
     fun imported(results: List<ImportResult>) = changed(importSummary(results))
 
@@ -318,6 +341,7 @@ class TransactionsViewModel(
         breakdown.reload()
     }
 
+    /** Something changed on the server: the list and totals follow, and the person is told. */
     private fun changed(message: String, actionLabel: String? = null, action: (() -> Unit)? = null) {
         reloadList()
         breakdown.reload()
