@@ -45,7 +45,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.guibilar.financeinsights.core.logic.Change
 import com.guibilar.financeinsights.core.logic.Money
-import com.guibilar.financeinsights.core.logic.shortDay
+import com.guibilar.financeinsights.core.logic.formatDay
 import com.guibilar.financeinsights.core.model.RecurringPayment
 import com.guibilar.financeinsights.core.model.RecurringStatus
 import com.guibilar.financeinsights.core.model.ReviewReport
@@ -174,7 +174,7 @@ private fun PaymentRow(payment: RecurringPayment, modifier: Modifier = Modifier,
                     listOfNotNull(
                         payment.category?.name,
                         payment.cadence.label,
-                        if (payment.status == RecurringStatus.Stopped) "last ${shortDay(payment.lastDate)}" else "next ${shortDay(payment.nextDate)}",
+                        if (payment.status == RecurringStatus.Stopped) "last ${formatDay(payment.lastDate, year = false)}" else "next ${formatDay(payment.nextDate, year = false)}",
                     ).joinToString(" · "),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -349,7 +349,7 @@ private fun ReviewContent(review: ReviewReport, model: ReviewViewModel, openSubs
                 SectionCard("Biggest purchase") {
                     Text("${Money.format(purchase.amount)} at ${purchase.description}", fontWeight = FontWeight.Medium)
                     Text(
-                        listOfNotNull(shortDay(purchase.date), purchase.category?.name).joinToString(" · "),
+                        listOfNotNull(formatDay(purchase.date, year = false), purchase.category?.name).joinToString(" · "),
                         style = MaterialTheme.typography.bodySmall,
                         color = colors.muted,
                     )

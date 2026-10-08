@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import com.guibilar.financeinsights.core.logic.TextLimits
 import com.guibilar.financeinsights.core.logic.description
 import com.guibilar.financeinsights.core.logic.flowsFor
+import com.guibilar.financeinsights.core.logic.formatDay
 import com.guibilar.financeinsights.core.logic.suggestRuleKeyword
 import com.guibilar.financeinsights.core.model.Budget
 import com.guibilar.financeinsights.core.model.CategoryReference
@@ -382,7 +383,7 @@ fun DeletedTransactionSheet(transaction: Transaction, model: TransactionsViewMod
         Column(Modifier.padding(horizontal = 20.dp).navigationBarsPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(transaction.description, style = MaterialTheme.typography.titleMedium)
             Text(
-                "${signedAmount(transaction)} · ${DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.US).format(transaction.day)} · ${transaction.accountName}",
+                "${signedAmount(transaction)} · ${formatDay(transaction.day)} · ${transaction.accountName}",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(

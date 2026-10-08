@@ -2,8 +2,6 @@ package com.guibilar.financeinsights.core.logic
 
 import com.guibilar.financeinsights.core.model.TransactionCriteria
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 /** A date filter as the transactions API takes it: inclusive days, either end left open. */
 data class DateRange(val start: LocalDate? = null, val end: LocalDate? = null) {
@@ -54,15 +52,12 @@ fun matchDatePreset(criteria: TransactionCriteria, today: LocalDate): DateChoice
     return preset?.let { DateChoice.Preset(it) } ?: DateChoice.Custom
 }
 
-private val monthDay = DateTimeFormatter.ofPattern("MMM d", Locale.US)
-private val monthDayYear = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.US)
-
 /** The days a range covers: "Jun 1 – Aug 31, 2026", "Dec 1, 2025 – Feb 28, 2026", "Sep 1 – today". */
 fun describeRange(range: DateRange): String {
-    val start = range.start ?: return range.end?.let { "Until ${monthDayYear.format(it)}" } ?: ""
-    val end = range.end ?: return "${monthDay.format(start)} – today"
-    val startText = if (start.year == end.year) monthDay.format(start) else monthDayYear.format(start)
-    return "$startText – ${monthDayYear.format(end)}"
+    val start = range.start ?: return range.end?.let { "Until ${formatDay(it)}" } ?: ""
+    val end = range.end ?: return "${formatDay(start, year = false)} – today"
+    val startText = formatDay(start, year = start.year != end.year)
+    return "$startText – ${formatDay(end)}"
 }
 
 fun TransactionCriteria.dateRange() = DateRange(startDate?.let(LocalDate::parse), endDate?.let(LocalDate::parse))

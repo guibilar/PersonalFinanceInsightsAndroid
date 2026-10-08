@@ -14,11 +14,6 @@ class InsightsTest {
         assertNull(Change.of(50.0, 0.0))
     }
 
-    @Test
-    fun `an API day reads as that day`() {
-        assertEquals("Oct 20", shortDay("2026-10-20T00:00:00Z"))
-    }
-
     private val today = LocalDate.of(2026, 10, 4)
 
     @Test

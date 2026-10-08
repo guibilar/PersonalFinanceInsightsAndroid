@@ -30,8 +30,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
-import java.util.Locale
+import com.guibilar.financeinsights.core.logic.formatDay
 
 /**
  * A field that opens a list to pick from. [dot] gives an option a colour dot (categories). A long list (categories,
@@ -108,8 +107,6 @@ fun <T> DropdownPicker(
 /** From this many options on, a picker can be searched by typing. */
 private const val SEARCH_FROM = 8
 
-private val fieldDate = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.US)
-
 private fun LocalDate.millis() = atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
 private fun Long.day(): LocalDate = Instant.ofEpochMilli(this).atZone(ZoneOffset.UTC).toLocalDate()
 
@@ -125,7 +122,7 @@ fun DateField(label: String, value: LocalDate?, onChange: (LocalDate) -> Unit, m
     }
     OutlinedTextField(
         interactionSource = interaction,
-        value = value?.let(fieldDate::format) ?: "",
+        value = value?.let { formatDay(it) } ?: "",
         onValueChange = {},
         readOnly = true,
         singleLine = true,

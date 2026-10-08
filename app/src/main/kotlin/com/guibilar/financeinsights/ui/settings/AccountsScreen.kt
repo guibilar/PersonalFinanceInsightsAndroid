@@ -60,6 +60,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.guibilar.financeinsights.core.logic.Money
 import com.guibilar.financeinsights.core.logic.TextLimits
+import com.guibilar.financeinsights.core.logic.formatDay
 import com.guibilar.financeinsights.core.logic.parseAmount
 import com.guibilar.financeinsights.core.logic.accountTypeLabel
 import com.guibilar.financeinsights.core.logic.formatLabel
@@ -180,7 +181,7 @@ fun AccountsScreen(model: AccountsViewModel, contentPadding: PaddingValues, onBa
                                         (if (account.type == AccountType.CreditCard) "Owes " else "") + Money.format(balance.amount),
                                         fontWeight = FontWeight.Medium,
                                     )
-                                    Text(shortDay.format(balance.day), style = MaterialTheme.typography.labelSmall)
+                                    Text(formatDay(balance.day, year = false), style = MaterialTheme.typography.labelSmall)
                                 }
                             }
                         }
@@ -357,8 +358,6 @@ private fun AccountSheet(
     }
 }
 
-private val shortDay = java.time.format.DateTimeFormatter.ofPattern("MMM d", java.util.Locale.US)
-private val longDay = java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy", java.util.Locale.US)
 
 /** An account's balances: enter what it holds (a card: owes) at the end of a day, and the ones entered before. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -430,14 +429,14 @@ private fun BalancesSheet(account: Account, model: AccountsViewModel, onDismiss:
                 list.isEmpty() -> Text("No balances entered yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 else -> list.forEach { balance ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(longDay.format(balance.day), Modifier.weight(1f))
+                        Text(formatDay(balance.day), Modifier.weight(1f))
                         Text(Money.format(balance.amount), fontWeight = FontWeight.Medium)
                         IconButton(onClick = {
                             scope.launch {
                                 failure = model.deleteBalance(account, balance)
                                 refresh()
                             }
-                        }) { Icon(Icons.Outlined.Delete, "Delete the balance of ${longDay.format(balance.day)}") }
+                        }) { Icon(Icons.Outlined.Delete, "Delete the balance of ${formatDay(balance.day)}") }
                     }
                 }
             }

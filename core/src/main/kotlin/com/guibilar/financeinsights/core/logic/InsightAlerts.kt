@@ -8,9 +8,7 @@ import com.guibilar.financeinsights.core.model.ReviewReport
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
-import java.util.Locale
 import java.time.YearMonth
 
 /** A subscription whose fixed price changed: what to tell the person, once. */
@@ -91,7 +89,7 @@ fun importReminder(accounts: List<Account>, today: LocalDate, zone: ZoneId, sent
     return ImportReminder(
         key = key,
         title = "No statements imported in $days days",
-        text = "The last import was ${DateTimeFormatter.ofPattern("MMM d", Locale.US).format(last)}. " +
+        text = "The last import was ${formatDay(last, year = false)}. " +
             "Import your latest statements to keep budgets and net worth up to date.",
     )
 }

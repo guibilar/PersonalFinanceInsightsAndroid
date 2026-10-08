@@ -13,12 +13,9 @@ import com.guibilar.financeinsights.core.model.isoDay
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
-import java.util.Locale
 import kotlin.math.abs
 
-private val shortDate = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.US)
 
 /**
  * This month against a usual one at the same point: the monthly average spread evenly over the month, up to today.
@@ -85,7 +82,7 @@ fun attentionItems(
         add(
             AttentionItem(
                 AttentionKind.Statement,
-                "${account.name}: statements reach ${shortDate.format(statementsReach(account))}. Import last month's",
+                "${account.name}: statements reach ${formatDay(statementsReach(account)!!)}. Import last month's",
             ),
         )
     }
@@ -114,7 +111,7 @@ fun investments(accounts: List<Account>): List<Account> =
 
 /** "Balance on Aug 31, 2026 · $5,300.00 in this year · $1,700.00 room left", under an investment's name. */
 fun investmentLine(account: Account): String = buildList {
-    add(account.balance?.let { "Balance on ${shortDate.format(isoDay(it.date))}" } ?: "No balance yet")
+    add(account.balance?.let { "Balance on ${formatDay(it.date)}" } ?: "No balance yet")
     if (account.plan != RegisteredPlan.None) {
         add("${Money.format(account.depositedThisYear)} in this year")
         account.roomLeft?.let { add(if (it < 0) "over by ${Money.format(-it)}" else "${Money.format(it)} room left") }

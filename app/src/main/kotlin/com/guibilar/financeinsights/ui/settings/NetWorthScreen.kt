@@ -29,20 +29,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.guibilar.financeinsights.core.logic.Money
 import com.guibilar.financeinsights.core.logic.accountTypeLabel
+import com.guibilar.financeinsights.core.logic.formatDay
 import com.guibilar.financeinsights.core.model.NetWorthAccount
 import com.guibilar.financeinsights.core.model.NetWorthReport
 import com.guibilar.financeinsights.core.model.RegisteredPlan
-import com.guibilar.financeinsights.core.model.isoDay
 import com.guibilar.financeinsights.ui.charts.ChartSeries
 import com.guibilar.financeinsights.ui.charts.StackedBarChart
 import com.guibilar.financeinsights.ui.common.ErrorState
 import com.guibilar.financeinsights.ui.common.LoadState
 import com.guibilar.financeinsights.ui.common.Skeleton
 import com.guibilar.financeinsights.ui.theme.LocalChartColors
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
-private val asOf = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.US)
 
 /** Since the end of last month, when that month counted every account counted now; null otherwise. */
 fun sinceLastMonth(report: NetWorthReport): Double? {
@@ -146,7 +143,7 @@ private fun AccountLine(account: NetWorthAccount, openAccounts: () -> Unit) {
     val kind = listOfNotNull(accountTypeLabel(account.type), account.plan.takeIf { it != RegisteredPlan.None }?.label).joinToString(" · ")
     val balance = account.balance
     val note = account.balanceDate?.let {
-        "${if (account.movedSince) "Entered" else "As of"} ${asOf.format(isoDay(it))}${if (account.movedSince) ", moved since" else ""}"
+        "${if (account.movedSince) "Entered" else "As of"} ${formatDay(it)}${if (account.movedSince) ", moved since" else ""}"
     }
     // The text reads as one line to TalkBack; the button stays a button of its own.
     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
