@@ -5,7 +5,6 @@ import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
-import com.guibilar.financeinsights.core.model.ImportResult
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.verticalScroll
@@ -35,11 +34,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -53,24 +50,17 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/** A statement file picked on the phone: its name and contents. */
-class PickedFile(val name: String, val bytes: ByteArray)
-
 /** The statement file types banks export, as phones label them. */
 private val STATEMENT_TYPES = arrayOf(
     "text/csv", "text/comma-separated-values", "application/csv", "text/plain",
     "application/vnd.ms-excel", "application/octet-stream", "application/pdf",
 )
 
-/** One of the files picked, and how its import went. */
-private data class FileImport(val file: PickedFile, val state: FileState = FileState.Waiting, val message: String? = null, val result: ImportResult? = null)
-
-private enum class FileState { Waiting, Importing, Imported, Failed, Mismatch }
-
 /**
  * Imports bank statements (CSVs, or Neo or Wealthsimple PDF statements) into an account, one file after another; rows
  * imported before are skipped. A file that looks like another account's can go ahead anyway, and one that is refused
- * doesn't stop the others. [initialFiles] are files shared to the app.
+ * doesn't stop the others. The files and their uploads are the model's ([TransactionsViewModel.openImport]): they
+ * outlast a rotation, and closing the sheet midway lets them finish.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,94 +68,45 @@ fun ImportSheet(
     accounts: List<Account>,
     model: TransactionsViewModel,
     onDismiss: () -> Unit,
-    initialFiles: List<PickedFile> = emptyList(),
     accountsLoaded: Boolean = true,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val state by model.importState.collectAsState()
     // Accounts without statement files have nothing to import into.
     val importable = accounts.filter { it.format != StatementFormat.Manual }
-    var account by remember { mutableStateOf(importable.singleOrNull()) }
-    // Opened from a shared statement right at launch, the accounts may arrive after the sheet.
-    LaunchedEffect(importable) { if (account == null) account = importable.singleOrNull() }
-    var files by remember { mutableStateOf<List<FileImport>>(emptyList()) }
-    var error by remember { mutableStateOf<String?>(null) }
-    val uploading = files.any { it.state == FileState.Importing }
-    val pending = files.filter { it.state == FileState.Waiting || it.state == FileState.Failed }
+    // The one picked, or the only one there is (the accounts may arrive after the sheet, opened from a shared statement).
+    val account = importable.firstOrNull { it.id == state.accountId } ?: importable.singleOrNull()
+    val files = state.files
+    val uploading = state.uploading
+    val pending = state.pending
     val anyImported = files.any { it.state == FileState.Imported }
 
-    // Picked here or shared to the app, files go through the same checks: a shared one over the limit was uploaded cut
-    // short (it is only read that far).
-    fun take(picked: List<PickedFile>, unreadable: Int = 0) {
-        val tooLarge = picked.filter { it.bytes.size > MAX_STATEMENT_BYTES }
-        error = listOfNotNull(
-            when {
-                unreadable == 0 -> null
-                picked.isEmpty() && unreadable == 1 -> "Could not read that file."
-                else -> "Could not read $unreadable of the files."
-            },
-            when {
-                tooLarge.isEmpty() -> null
-                tooLarge.size == 1 && picked.size == 1 -> "The file is larger than 5 MB."
-                else -> "Left out, larger than 5 MB: ${tooLarge.joinToString { it.name }}."
-            },
-        ).joinToString(" ").ifEmpty { null }
-        files = picked.filter { it.bytes.size <= MAX_STATEMENT_BYTES }.map { FileImport(it) }
+    // Every file is in: the sheet goes, and the model says how it went.
+    LaunchedEffect(state.allImported) {
+        if (state.allImported) {
+            sheet.hide()
+            onDismiss()
+        }
     }
-    // Shared again while the sheet is open, the new files replace the old.
-    LaunchedEffect(initialFiles) { if (initialFiles.isNotEmpty()) take(initialFiles) }
 
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris: List<Uri> ->
         if (uris.isEmpty()) return@rememberLauncherForActivityResult
         scope.launch {
             val read = withContext(Dispatchers.IO) { uris.map { readFile(context, it) } }
-            take(read.filterNotNull(), unreadable = read.count { it == null })
-        }
-    }
-
-    fun update(file: PickedFile, entry: FileImport) {
-        files = files.map { if (it.file === file) entry else it }
-    }
-
-    suspend fun send(file: PickedFile, accountId: String, confirmed: Boolean) {
-        update(file, FileImport(file, FileState.Importing))
-        update(
-            file,
-            when (val outcome = model.import(file.name, file.bytes, accountId, confirmed)) {
-                is ImportOutcome.Imported -> FileImport(file, FileState.Imported, result = outcome.result)
-                is ImportOutcome.Mismatch -> FileImport(file, FileState.Mismatch, outcome.message)
-                is ImportOutcome.Failed -> FileImport(file, FileState.Failed, outcome.message)
-            },
-        )
-    }
-
-    suspend fun finish() {
-        if (files.isNotEmpty() && files.all { it.state == FileState.Imported }) {
-            model.imported(files.map { it.result!! })
-            sheet.hide()
-            onDismiss()
-        } else if (files.any { it.state == FileState.Imported }) {
-            model.partlyImported()
+            model.pickStatements(read.filterNotNull(), unreadable = read.count { it == null })
         }
     }
 
     fun submit() {
         val chosen = account ?: return
-        val toSend = pending.map { it.file }
-        if (toSend.isEmpty() || uploading) return
-        scope.launch {
-            for (file in toSend) send(file, chosen.id, confirmed = false)
-            finish()
-        }
+        model.importStatements(chosen.id)
     }
 
     fun importAnyway(file: PickedFile) {
         val chosen = account ?: return
-        scope.launch {
-            send(file, chosen.id, confirmed = true)
-            finish()
-        }
+        model.importAnyway(file, chosen.id)
     }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheet) {
@@ -194,11 +135,7 @@ fun ImportSheet(
                 options = importable,
                 selected = account,
                 text = { it?.let { a -> "${a.name} · ${accountTypeLabel(a.type)}" } ?: "Choose an account" },
-                onPick = {
-                    account = it
-                    // The warnings were about the previous choice.
-                    files = files.map { f -> if (f.state == FileState.Mismatch) FileImport(f.file) else f }
-                },
+                onPick = { model.chooseImportAccount(it.id) },
             )
             OutlinedButton(onClick = { picker.launch(STATEMENT_TYPES) }, enabled = !uploading, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Outlined.Description, null, Modifier.size(18.dp))
@@ -211,7 +148,7 @@ fun ImportSheet(
                     },
                 )
             }
-            if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error)
+            state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             if (files.size > 1 || files.any { it.state != FileState.Waiting }) {
                 files.forEach { entry -> FileRow(entry, enabled = !uploading, onImportAnyway = { importAnyway(entry.file) }) }
             }

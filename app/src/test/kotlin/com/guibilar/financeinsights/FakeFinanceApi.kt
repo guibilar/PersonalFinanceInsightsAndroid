@@ -183,14 +183,16 @@ class FakeFinanceApi : FinanceApi {
     override suspend fun unlinkTransaction(id: String) = write("unlinkTransaction", id) {}
     override suspend fun applyRules() = write("applyRules", null) { RulesResult(87, 3) }
 
-    override suspend fun importStatement(file: MultipartBody.Part, accountId: RequestBody, confirmed: RequestBody?) =
-        write("importStatement", listOf(accountId.text(), confirmed?.text())) {
+    override suspend fun importStatement(file: MultipartBody.Part, accountId: RequestBody, confirmed: RequestBody?): ImportResult {
+        slow["importStatement"]?.let { kotlinx.coroutines.delay(it) }
+        return write("importStatement", listOf(accountId.text(), confirmed?.text())) {
             when (val answer = importAnswers.removeFirstOrNull()) {
                 is ApiError.Http -> throw answer
                 is ImportResult -> answer
                 else -> ImportResult(read = 10, added = 7, skipped = 3)
             }
         }
+    }
 
     override suspend fun addCategoryRule(rule: CategoryRuleInput) = write("addCategoryRule", rule) {
         CategoryRule("r1", rule.keyword, CategoryReference(rule.categoryId, "Dining", "#1F76B5"), 0)

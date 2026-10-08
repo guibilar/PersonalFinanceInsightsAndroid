@@ -12,6 +12,7 @@ import com.guibilar.financeinsights.core.model.TransactionUpdate
 import com.guibilar.financeinsights.ui.common.UiMessage
 import com.guibilar.financeinsights.ui.transactions.AddOutcome
 import com.guibilar.financeinsights.ui.transactions.ImportOutcome
+import com.guibilar.financeinsights.ui.transactions.PickedFile
 import com.guibilar.financeinsights.ui.transactions.TransactionsViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -154,5 +155,54 @@ class TransactionActionsTest {
         model.imported(listOf((second as ImportOutcome.Imported).result))
         advanceUntilIdle()
         assertEquals("Imported 7 new transactions (3 already imported)", messages.single().text)
+    }
+
+    @Test
+    fun `closing the import while it uploads lets the files finish, and says how it went`() = runTest(dispatcher) {
+        val (model, messages) = model()
+        advanceUntilIdle()
+        api.importAnswers += ImportResult(read = 2, added = 2, skipped = 0)
+        api.importAnswers += ImportResult(read = 3, added = 1, skipped = 2)
+        api.slow["importStatement"] = 100
+
+        model.openImport(listOf(PickedFile("May.csv", ByteArray(10)), PickedFile("June.csv", ByteArray(10))))
+        model.importStatements("a1")
+        model.closeImport()
+        val before = reloads()
+        advanceUntilIdle()
+
+        assertEquals(2, api.sent.count { it.first == "importStatement" })
+        assertEquals("Imported 3 new transactions from 2 files (2 already imported)", messages.single().text)
+        assertTrue(reloads() > before)
+        assertTrue(!model.importState.value.open && model.importState.value.files.isEmpty())
+    }
+
+    @Test
+    fun `closed midway, the files that didn't go in are named`() = runTest(dispatcher) {
+        val (model, messages) = model()
+        advanceUntilIdle()
+        api.importAnswers += ImportResult(read = 2, added = 2, skipped = 0)
+        api.importAnswers += ApiError.Http(400, "Bad Request", null, null, mapOf("file" to listOf("This PDF can't be read.")))
+        api.slow["importStatement"] = 100
+
+        model.openImport(listOf(PickedFile("May.csv", ByteArray(10)), PickedFile("scan.pdf", ByteArray(10))))
+        model.importStatements("a1")
+        model.closeImport()
+        advanceUntilIdle()
+
+        assertEquals("Imported 2 new transactions. Not imported: scan.pdf.", messages.single().text)
+    }
+
+    @Test
+    fun `the import's files outlast the sheet being recreated`() = runTest(dispatcher) {
+        val (model, _) = model()
+        advanceUntilIdle()
+        model.openImport(listOf(PickedFile("May.csv", ByteArray(10))))
+        model.chooseImportAccount("a1")
+
+        // A rotation recreates the sheet; what it shows is the model's.
+        assertEquals(listOf("May.csv"), model.importState.value.files.map { it.file.name })
+        assertEquals("a1", model.importState.value.accountId)
+        assertTrue(model.importState.value.open)
     }
 }

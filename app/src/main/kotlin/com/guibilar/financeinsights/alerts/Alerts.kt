@@ -24,6 +24,7 @@ import com.guibilar.financeinsights.FinanceApp
 import com.guibilar.financeinsights.MainActivity
 import com.guibilar.financeinsights.R
 import com.guibilar.financeinsights.core.api.apiCall
+import com.guibilar.financeinsights.core.api.apiError
 import com.guibilar.financeinsights.core.logic.BudgetAlert
 import com.guibilar.financeinsights.core.logic.budgetAlerts
 import com.guibilar.financeinsights.core.logic.importReminder
@@ -213,19 +214,21 @@ class AlertWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
         val private = preferences.lock.value
         val today = LocalDate.now()
         var retry = false
+        // A failed call is tried again later, unless the session ended: that waits for the app to sign in again.
+        fun <T> kotlin.Result<T>.orRetry(): T? = getOrNull().also {
+            if (it == null && apiError?.isUnauthorized != true) retry = true
+        }
 
         if (preferences.budgetAlerts.value) {
-            val budgets = apiCall { api.budgets(BudgetFilter(status = Status.Active, page = 1, pageSize = 1000)) }.getOrNull()
-            if (budgets == null) retry = true
-            else budgetAlerts(budgets.items, today, sent.all()).forEach { alert ->
+            val budgets = apiCall { api.budgets(BudgetFilter(status = Status.Active, page = 1, pageSize = 1000)) }.orRetry()
+            if (budgets != null) budgetAlerts(budgets.items, today, sent.all()).forEach { alert ->
                 Alerts.notify(applicationContext, alert, private)
                 sent.record(alert)
             }
         }
         if (preferences.priceAlerts.value) {
-            val recurring = apiCall { api.recurring() }.getOrNull()
-            if (recurring == null) retry = true
-            else priceAlerts(recurring, today, sent.all()).forEach { alert ->
+            val recurring = apiCall { api.recurring() }.orRetry()
+            if (recurring != null) priceAlerts(recurring, today, sent.all()).forEach { alert ->
                 Alerts.notifyInsight(
                     applicationContext, alert.key.hashCode(), MainActivity.ACTION_SUBSCRIPTIONS, alert.title, alert.text, private,
                     "A subscription's price changed",
@@ -236,9 +239,8 @@ class AlertWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
         if (preferences.monthlyReview.value) {
             val key = reviewKey(today)
             if (key != null && sent.all()[key] == null) {
-                val review = apiCall { api.review() }.getOrNull()
-                if (review == null) retry = true
-                else {
+                val review = apiCall { api.review() }.orRetry()
+                if (review != null) {
                     val alert = reviewAlert(review)
                     Alerts.notifyInsight(
                         applicationContext, key.hashCode(), MainActivity.ACTION_REVIEW, alert.first, alert.second, private,
@@ -249,9 +251,8 @@ class AlertWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
             }
         }
         if (preferences.importReminders.value) {
-            val accounts = apiCall { api.accounts() }.getOrNull()
-            if (accounts == null) retry = true
-            else importReminder(accounts, today, ZoneId.systemDefault(), sent.all())?.let { reminder ->
+            val accounts = apiCall { api.accounts() }.orRetry()
+            if (accounts != null) importReminder(accounts, today, ZoneId.systemDefault(), sent.all())?.let { reminder ->
                 // One at a time: a later week's reminder replaces the one before.
                 Alerts.notifyInsight(
                     applicationContext, IMPORT_REMINDER_ID, MainActivity.ACTION_IMPORT, reminder.title, reminder.text, private,
