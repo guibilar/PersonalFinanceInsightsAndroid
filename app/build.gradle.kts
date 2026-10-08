@@ -54,6 +54,15 @@ android {
             }
         }
     }
+
+    lint {
+        // A new warning fails the build. The baseline holds the one left on purpose: raising targetSdk changes how
+        // the app behaves, so it is a change of its own.
+        warningsAsErrors = true
+        baseline = file("lint-baseline.xml")
+        // Newer library versions come as Dependabot pull requests, not as lint failures on unrelated changes.
+        disable += setOf("GradleDependency", "NewerVersionAvailable", "AndroidGradlePluginVersion")
+    }
 }
 
 kotlin {

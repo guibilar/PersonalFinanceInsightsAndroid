@@ -1,0 +1,40 @@
+# Weekly dependency updates, grouped so a week brings a few pull requests rather than one per library.
+# CI (unit tests, lint, the debug build) runs on each of them.
+version: 2
+updates:
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      # Kotlin, its Compose compiler and serialization plugins share one version.
+      kotlin:
+        patterns:
+          - "org.jetbrains.kotlin*"
+      # The Compose BOM moves Compose's libraries together.
+      compose:
+        patterns:
+          - "androidx.compose*"
+      # Everything else in one pull request; a major version gets its own.
+      minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+    ignore:
+      # A new Android Gradle plugin major usually needs build changes: moved by hand.
+      - dependency-name: "com.android.application"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        patterns:
+          - "*"
