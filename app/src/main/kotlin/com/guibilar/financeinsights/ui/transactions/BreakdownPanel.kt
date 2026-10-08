@@ -17,10 +17,10 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -30,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -42,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import com.guibilar.financeinsights.core.logic.Money
 import com.guibilar.financeinsights.core.model.Breakdown
 import com.guibilar.financeinsights.core.model.BreakdownInterval
+import com.guibilar.financeinsights.core.model.BreakdownPeriod
 import com.guibilar.financeinsights.ui.charts.PeriodCharts
 import com.guibilar.financeinsights.ui.common.ChoiceRow
 import com.guibilar.financeinsights.ui.common.ErrorState
@@ -154,7 +156,7 @@ private fun OverTime(state: TransactionsState, model: TransactionsViewModel) {
             return@Column
         }
         val income = loaded.isIncome()
-        val amount = { p: com.guibilar.financeinsights.core.model.BreakdownPeriod -> if (income) p.income else p.spending }
+        val amount = { p: BreakdownPeriod -> if (income) p.income else p.spending }
         val color = state.criteria.categoryId?.let { id -> state.categories.firstOrNull { it.id == id } }?.let { parseHexColor(it.color) }
             ?: if (income) colors.income else colors.blue
         val average = if (income) loaded.averageIncome else loaded.averageSpending
@@ -201,7 +203,7 @@ private fun OverTime(state: TransactionsState, model: TransactionsViewModel) {
 
 /** Where the spending went, largest first, a page at a time. */
 @Composable
-private fun Merchants(state: TransactionsState, model: TransactionsViewModel, color: androidx.compose.ui.graphics.Color) {
+private fun Merchants(state: TransactionsState, model: TransactionsViewModel, color: Color) {
     val merchants = state.merchants
     val period = state.period
     // A selected bar's merchants are on their way: the heading says which, with a bar until they come.

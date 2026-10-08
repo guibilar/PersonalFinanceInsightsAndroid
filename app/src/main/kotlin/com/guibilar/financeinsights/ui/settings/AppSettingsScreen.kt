@@ -39,7 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.LifecycleResumeEffect
-import com.guibilar.financeinsights.alerts.BudgetAlerts
+import com.guibilar.financeinsights.alerts.Alerts
 import com.guibilar.financeinsights.data.AppPreferences
 import com.guibilar.financeinsights.data.ThemeChoice
 import com.guibilar.financeinsights.security.AppLock
@@ -72,7 +72,7 @@ fun AppSettingsScreen(preferences: AppPreferences, lock: AppLock?, contentPaddin
 
     fun apply(set: (Boolean) -> Unit, on: Boolean) {
         set(on)
-        BudgetAlerts.reschedule(context, preferences)
+        Alerts.reschedule(context, preferences)
     }
     val askToNotify = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         val set = waiting
@@ -86,7 +86,7 @@ fun AppSettingsScreen(preferences: AppPreferences, lock: AppLock?, contentPaddin
     }
     /** Turns a notification on (asking for the permission first, if need be) or off. */
     fun switch(set: (Boolean) -> Unit, on: Boolean) {
-        if (on && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !BudgetAlerts.canNotify(context)) {
+        if (on && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !Alerts.canNotify(context)) {
             waiting = set
             askToNotify.launch(Manifest.permission.POST_NOTIFICATIONS)
         } else {

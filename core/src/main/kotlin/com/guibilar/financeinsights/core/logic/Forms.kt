@@ -1,9 +1,12 @@
 package com.guibilar.financeinsights.core.logic
 
+import com.guibilar.financeinsights.core.api.ApiError
+import com.guibilar.financeinsights.core.model.AccountType
 import com.guibilar.financeinsights.core.model.Budget
 import com.guibilar.financeinsights.core.model.BudgetPeriod
 import com.guibilar.financeinsights.core.model.Flow
 import com.guibilar.financeinsights.core.model.RulesResult
+import com.guibilar.financeinsights.core.model.StatementFormat
 import com.guibilar.financeinsights.core.model.TransactionType
 import java.time.LocalDate
 import kotlin.math.abs
@@ -163,23 +166,23 @@ val Flow.ruleScope
         Flow.Spending -> ""
     }
 
-fun formatLabel(format: com.guibilar.financeinsights.core.model.StatementFormat) = when (format) {
-    com.guibilar.financeinsights.core.model.StatementFormat.Cibc -> "CIBC"
-    com.guibilar.financeinsights.core.model.StatementFormat.Neo -> "Neo Financial"
-    com.guibilar.financeinsights.core.model.StatementFormat.Wealthsimple -> "Wealthsimple"
-    com.guibilar.financeinsights.core.model.StatementFormat.Manual -> "No files (add by hand)"
+fun formatLabel(format: StatementFormat) = when (format) {
+    StatementFormat.Cibc -> "CIBC"
+    StatementFormat.Neo -> "Neo Financial"
+    StatementFormat.Wealthsimple -> "Wealthsimple"
+    StatementFormat.Manual -> "No files (add by hand)"
 }
 
-fun accountTypeLabel(type: com.guibilar.financeinsights.core.model.AccountType) = when (type) {
-    com.guibilar.financeinsights.core.model.AccountType.Chequing -> "Chequing"
-    com.guibilar.financeinsights.core.model.AccountType.Savings -> "Savings"
-    com.guibilar.financeinsights.core.model.AccountType.CreditCard -> "Credit card"
-    com.guibilar.financeinsights.core.model.AccountType.Investment -> "Investment"
+fun accountTypeLabel(type: AccountType) = when (type) {
+    AccountType.Chequing -> "Chequing"
+    AccountType.Savings -> "Savings"
+    AccountType.CreditCard -> "Credit card"
+    AccountType.Investment -> "Investment"
 }
 
 /** What a password change's refusal says, by field: "currentPassword", "newPassword", or "other". */
-fun passwordErrors(error: com.guibilar.financeinsights.core.api.ApiError): Map<String, String> {
-    if (error is com.guibilar.financeinsights.core.api.ApiError.Http && error.status == 400) {
+fun passwordErrors(error: ApiError): Map<String, String> {
+    if (error is ApiError.Http && error.status == 400) {
         fun first(key: String) = error.fieldErrors.entries.firstOrNull { it.key.equals(key, ignoreCase = true) }?.value?.firstOrNull()
         val current = first("currentPassword")
         val new = first("newPassword")
