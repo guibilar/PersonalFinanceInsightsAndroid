@@ -70,7 +70,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -195,7 +196,7 @@ fun TransactionsScreen(
     // The bar leaves as the list scrolls down and comes back on any scroll up.
     val barBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     // On a wide screen (a tablet, an unfolded foldable) the transaction opens beside the list instead of over it.
-    val twoPane = LocalConfiguration.current.screenWidthDp >= TWO_PANE_FROM_WIDTH
+    val twoPane = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.width.toDp() } >= TWO_PANE_FROM_WIDTH.dp
     val paneTransaction = opened?.takeIf { twoPane && !it.hidden && !state.showDeleted }
     Row(Modifier.fillMaxSize().padding(bottom = contentPadding.calculateBottomPadding())) {
         val fab = rememberFabExpansion()

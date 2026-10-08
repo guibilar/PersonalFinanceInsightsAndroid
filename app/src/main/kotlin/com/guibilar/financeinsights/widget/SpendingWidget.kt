@@ -5,6 +5,7 @@ import android.content.Intent
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.edit
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
@@ -97,7 +98,7 @@ class SpendingWidget : GlanceAppWidget() {
 
     private fun remember(context: Context, loaded: WidgetData.Loaded) {
         val asOf = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm", Locale.US))
-        store(context).edit().putString(KEY_LAST, ApiJson.encodeToString(loaded.copy(asOf = asOf))).apply()
+        store(context).edit { putString(KEY_LAST, ApiJson.encodeToString(loaded.copy(asOf = asOf))) }
     }
 
     private fun lastLoaded(context: Context): WidgetData.Loaded? =
@@ -108,7 +109,7 @@ class SpendingWidget : GlanceAppWidget() {
 
         /** Forgets the last figures: signed out, they belong to no one now. */
         fun forget(context: Context) {
-            context.getSharedPreferences("widget", Context.MODE_PRIVATE).edit().clear().apply()
+            context.getSharedPreferences("widget", Context.MODE_PRIVATE).edit { clear() }
         }
 
         /** Redraws every placed widget with fresh figures; nothing when none is placed. */

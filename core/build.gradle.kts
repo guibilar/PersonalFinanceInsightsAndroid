@@ -21,6 +21,8 @@ dependencies {
     api(libs.retrofit)
     api(libs.okhttp)
     implementation(libs.retrofit.kotlinx.serialization)
+    // @Keep, for R8 in the app's minified build.
+    implementation(libs.androidx.annotation)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

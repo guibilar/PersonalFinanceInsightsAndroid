@@ -55,6 +55,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -109,7 +110,7 @@ private const val APPLY_CONFIRMATION =
 @Composable
 fun RulesScreen(model: RulesViewModel, contentPadding: PaddingValues, onBack: () -> Unit) {
     val state by model.state.collectAsState()
-    var tab by rememberSaveable { mutableStateOf(0) }
+    var tab by rememberSaveable { mutableIntStateOf(0) }
     // Saved, so a sheet stays open (with what was typed) when the phone rotates.
     var editingRule by rememberOpenItem(state.rules.valueOrNull.orEmpty()) { it.id }
     var addingRule by rememberSaveable { mutableStateOf(false) }
