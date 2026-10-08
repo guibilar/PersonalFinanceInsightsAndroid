@@ -5,7 +5,7 @@ import android.content.Intent
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
-import com.guibilar.financeinsights.alerts.BudgetAlerts
+import com.guibilar.financeinsights.alerts.Alerts
 import com.guibilar.financeinsights.data.AppPreferences
 import com.guibilar.financeinsights.data.AuthState
 import com.guibilar.financeinsights.data.Session
@@ -49,7 +49,8 @@ class FinanceApp : Application() {
         session = Session(SessionStore(this))
         preferences = AppPreferences(this)
         lock = AppLock(preferences)
-        BudgetAlerts.createChannel(this)
+        Alerts.createChannel(this)
+        Alerts.keepScheduled(this, preferences)
         // The widget follows signing in and out, and hiding its amounts.
         scope.launch {
             combine(session.state.map { it is AuthState.SignedIn }.distinctUntilChanged(), preferences.hideWidgetAmounts) { _, _ -> }

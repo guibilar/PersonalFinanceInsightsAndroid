@@ -12,10 +12,10 @@ import com.guibilar.financeinsights.core.api.importStatement
 import com.guibilar.financeinsights.core.logic.DateChoice
 import com.guibilar.financeinsights.core.logic.DateRange
 import com.guibilar.financeinsights.core.logic.describeRulesResult
+import com.guibilar.financeinsights.core.logic.importSummary
 import com.guibilar.financeinsights.core.logic.matchDatePreset
 import com.guibilar.financeinsights.core.model.Budget
 import com.guibilar.financeinsights.core.model.ImportResult
-import com.guibilar.financeinsights.core.model.importSummary
 import com.guibilar.financeinsights.core.model.BudgetFilter
 import com.guibilar.financeinsights.core.model.CategoryRuleInput
 import com.guibilar.financeinsights.core.model.CategoryRulePreview

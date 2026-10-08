@@ -54,9 +54,10 @@ import com.guibilar.financeinsights.core.logic.description
 import com.guibilar.financeinsights.core.logic.flowsFor
 import com.guibilar.financeinsights.core.logic.suggestRuleKeyword
 import com.guibilar.financeinsights.core.model.Budget
+import com.guibilar.financeinsights.core.model.CategoryReference
 import com.guibilar.financeinsights.core.model.CategoryRuleInput
 import com.guibilar.financeinsights.core.model.CategoryRulePreview
-import com.guibilar.financeinsights.core.model.CategoryReference
+import com.guibilar.financeinsights.core.model.Flow
 import com.guibilar.financeinsights.core.model.Tag
 import com.guibilar.financeinsights.core.model.Transaction
 import com.guibilar.financeinsights.core.model.TransactionType
@@ -64,10 +65,10 @@ import com.guibilar.financeinsights.core.model.TransactionUpdate
 import com.guibilar.financeinsights.ui.common.DropdownPicker
 import com.guibilar.financeinsights.ui.theme.LocalChartColors
 import com.guibilar.financeinsights.ui.theme.parseHexColor
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 private const val PREVIEW_DEBOUNCE_MS = 300L
 
@@ -306,7 +307,7 @@ fun editUpdate(
     transaction: Transaction,
     description: String,
     categoryId: String,
-    flow: com.guibilar.financeinsights.core.model.Flow,
+    flow: Flow,
     note: String,
     tagIds: List<String>,
 ): TransactionUpdate {

@@ -37,21 +37,34 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.util.concurrent.TimeUnit
 
-/** Budget alerts: a check every few hours (when online) that notifies once a budget passes 80% and 100%. */
-object BudgetAlerts {
-    private const val WORK = "budget-alerts"
+/**
+ * The notifications: a check every few hours (when online) for budgets passing 80% and 100%, price changes, the monthly
+ * review and import reminders.
+ */
+object Alerts {
+    private const val WORK = "alerts"
+
+    /** The work's name before it ran every alert, queued with a worker class that no longer exists. */
+    private const val OLD_WORK = "budget-alerts"
     const val CHANNEL = "budgets"
 
+    private val online = Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
+
+    private fun periodic() = PeriodicWorkRequestBuilder<AlertWorker>(6, TimeUnit.HOURS).setConstraints(online).build()
+
     fun schedule(context: Context) {
-        val online = Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
         val work = WorkManager.getInstance(context)
-        work.enqueueUniquePeriodicWork(
-            WORK,
-            ExistingPeriodicWorkPolicy.UPDATE,
-            PeriodicWorkRequestBuilder<BudgetAlertWorker>(6, TimeUnit.HOURS).setConstraints(online).build(),
-        )
+        work.enqueueUniquePeriodicWork(WORK, ExistingPeriodicWorkPolicy.UPDATE, periodic())
         // And once now, so turning them on shows a budget already past a threshold.
-        work.enqueue(OneTimeWorkRequestBuilder<BudgetAlertWorker>().setConstraints(online).build())
+        work.enqueue(OneTimeWorkRequestBuilder<AlertWorker>().setConstraints(online).build())
+    }
+
+    /** On start: keeps the check queued while any alert is on, moving it off the old work name. */
+    fun keepScheduled(context: Context, preferences: AppPreferences) {
+        if (!preferences.anyAlerts) return
+        val work = WorkManager.getInstance(context)
+        work.cancelUniqueWork(OLD_WORK)
+        work.enqueueUniquePeriodicWork(WORK, ExistingPeriodicWorkPolicy.KEEP, periodic())
     }
 
     fun cancel(context: Context) {
@@ -187,14 +200,14 @@ internal class SentAlerts(context: Context) {
 
 private const val IMPORT_REMINDER_ID = 7_000
 
-class BudgetAlertWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
+class AlertWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         val app = applicationContext as FinanceApp
         val preferences = app.preferences
         // The widget refreshes on the same schedule, alerts or not.
         SpendingWidget.refresh(applicationContext)
         // Without permission to notify, nothing is marked sent: they show once it is given.
-        if (!preferences.anyAlerts || !BudgetAlerts.canNotify(applicationContext)) return Result.success()
+        if (!preferences.anyAlerts || !Alerts.canNotify(applicationContext)) return Result.success()
         val api = app.session.backgroundApi() ?: return Result.success()
         val sent = SentAlerts(applicationContext)
         val private = preferences.lock.value
@@ -205,7 +218,7 @@ class BudgetAlertWorker(context: Context, params: WorkerParameters) : CoroutineW
             val budgets = apiCall { api.budgets(BudgetFilter(status = Status.Active, page = 1, pageSize = 1000)) }.getOrNull()
             if (budgets == null) retry = true
             else budgetAlerts(budgets.items, today, sent.all()).forEach { alert ->
-                BudgetAlerts.notify(applicationContext, alert, private)
+                Alerts.notify(applicationContext, alert, private)
                 sent.record(alert)
             }
         }
@@ -213,7 +226,7 @@ class BudgetAlertWorker(context: Context, params: WorkerParameters) : CoroutineW
             val recurring = apiCall { api.recurring() }.getOrNull()
             if (recurring == null) retry = true
             else priceAlerts(recurring, today, sent.all()).forEach { alert ->
-                BudgetAlerts.notifyInsight(
+                Alerts.notifyInsight(
                     applicationContext, alert.key.hashCode(), MainActivity.ACTION_SUBSCRIPTIONS, alert.title, alert.text, private,
                     "A subscription's price changed",
                 )
@@ -227,7 +240,7 @@ class BudgetAlertWorker(context: Context, params: WorkerParameters) : CoroutineW
                 if (review == null) retry = true
                 else {
                     val alert = reviewAlert(review)
-                    BudgetAlerts.notifyInsight(
+                    Alerts.notifyInsight(
                         applicationContext, key.hashCode(), MainActivity.ACTION_REVIEW, alert.first, alert.second, private,
                         "Last month in review",
                     )
@@ -240,9 +253,9 @@ class BudgetAlertWorker(context: Context, params: WorkerParameters) : CoroutineW
             if (accounts == null) retry = true
             else importReminder(accounts, today, ZoneId.systemDefault(), sent.all())?.let { reminder ->
                 // One at a time: a later week's reminder replaces the one before.
-                BudgetAlerts.notifyInsight(
+                Alerts.notifyInsight(
                     applicationContext, IMPORT_REMINDER_ID, MainActivity.ACTION_IMPORT, reminder.title, reminder.text, private,
-                    "Time to import your statements", BudgetAlerts.REMINDERS_CHANNEL,
+                    "Time to import your statements", Alerts.REMINDERS_CHANNEL,
                 )
                 sent.record(reminder.key, 1)
             }
