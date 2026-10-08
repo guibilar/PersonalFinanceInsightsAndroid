@@ -11,6 +11,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import androidx.core.content.edit
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
@@ -84,7 +85,6 @@ object Alerts {
 
     /** The "Budgets" and "Subscriptions and reviews" channels, in the phone's notification settings. */
     fun createChannel(context: Context) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val manager = context.getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(
             NotificationChannel(CHANNEL, "Budgets", NotificationManager.IMPORTANCE_DEFAULT).apply {
@@ -194,7 +194,7 @@ internal class SentAlerts(context: Context) {
     fun record(alert: BudgetAlert) = record(alert.key, alert.level)
 
     fun record(key: String, level: Int) {
-        prefs.edit().putInt(key, level).apply()
+        prefs.edit { putInt(key, level) }
     }
 }
 

@@ -14,6 +14,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.graphics.toColorInt
 
 /**
  * The chart colours of the web app, stepped for light and dark and checked against their surfaces. The user's
@@ -113,5 +114,5 @@ fun FinanceTheme(
 
 /** A "#RRGGBB" colour from the API; grey when it isn't one. */
 fun parseHexColor(hex: String): Color = runCatching {
-    Color(android.graphics.Color.parseColor(hex))
+    Color(hex.toColorInt())
 }.getOrDefault(Color(0xFF9CA3AF))

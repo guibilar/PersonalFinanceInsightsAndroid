@@ -1,5 +1,6 @@
 package com.guibilar.financeinsights.core.model
 
+import androidx.annotation.Keep
 import kotlinx.serialization.Serializable
 
 /** The kind of an account; each account has one and it can't change. */
@@ -47,7 +48,11 @@ enum class Status { Active, Inactive }
 @Serializable
 enum class BudgetPeriod { Total, Monthly, Yearly, Custom }
 
-/** How long each period of a breakdown is. Weeks start on Monday. */
+/**
+ * How long each period of a breakdown is. Weeks start on Monday. Kept whole in minified builds: navigation finds it by
+ * its class name, as part of the transactions route.
+ */
+@Keep
 @Serializable
 enum class BreakdownInterval(val one: String, val many: String) {
     Week("week", "weeks"),

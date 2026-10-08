@@ -214,7 +214,7 @@ fun DashboardScreen(
 @Composable
 internal fun <T> Loaded(state: LoadState<T>, retry: () -> Unit, lines: Int = 4, content: @Composable (T) -> Unit) {
     when (state) {
-        LoadState.Loading -> Skeleton(lines)
+        LoadState.Loading -> Skeleton(lines = lines)
         is LoadState.Failed -> ErrorState(state.message, retry)
         is LoadState.Loaded -> content(state.value)
     }

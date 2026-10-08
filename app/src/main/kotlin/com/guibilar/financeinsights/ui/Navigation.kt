@@ -31,9 +31,11 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -275,7 +277,7 @@ fun MainScreen(
         quickAction.value = null
     }
     // A rail at the side on a wide screen (a tablet, an unfolded foldable, landscape); the bar below otherwise.
-    val rail = LocalConfiguration.current.screenWidthDp >= RAIL_FROM_WIDTH
+    val rail = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.width.toDp() } >= RAIL_FROM_WIDTH.dp
     fun select(tab: Tab, selected: Boolean) {
         if (!selected) {
             nav.navigate(tab.route) {

@@ -182,7 +182,7 @@ fun EmptyState(message: String, modifier: Modifier = Modifier) {
 
 /** Grey lines that pulse while something loads. */
 @Composable
-fun Skeleton(lines: Int = 3, lineHeight: Dp = 14.dp, modifier: Modifier = Modifier) {
+fun Skeleton(modifier: Modifier = Modifier, lines: Int = 3, lineHeight: Dp = 14.dp) {
     val transition = rememberInfiniteTransition(label = "skeleton")
     val alpha = transition.animateFloat(0.4f, 0.9f, infiniteRepeatable(tween(800), RepeatMode.Reverse), label = "alpha")
     Column(

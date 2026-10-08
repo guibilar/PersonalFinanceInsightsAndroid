@@ -37,6 +37,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.guibilar.financeinsights.core.logic.Money
+import com.guibilar.financeinsights.core.logic.formatDay
 import com.guibilar.financeinsights.core.model.Flow
 import com.guibilar.financeinsights.core.model.Transaction
 import com.guibilar.financeinsights.core.model.TransactionType
@@ -44,11 +45,7 @@ import com.guibilar.financeinsights.ui.common.isLargeText
 import com.guibilar.financeinsights.ui.theme.LocalChartColors
 import com.guibilar.financeinsights.ui.theme.parseHexColor
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
-private val dayFormat = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.US)
-private val shortDayFormat = DateTimeFormatter.ofPattern("MMM d", Locale.US)
 
 /** "+$12.50" for money in, "−$12.50" for money out, as on the web. */
 fun signedAmount(transaction: Transaction): String =
@@ -71,11 +68,11 @@ fun TransactionRow(
     val colors = LocalChartColors.current
     val category = parseHexColor(transaction.category.color)
     val credit = transaction.transactionType == TransactionType.Credit
-    val date = dayFormat.format(transaction.day)
+    val date = formatDay(transaction.day)
     // At large text sizes the description gets two lines and this year's dates drop the year, or the amount and
     // date column leaves the description a few letters ("SHOPPE…").
     val large = isLargeText
-    val shownDate = if (large && transaction.day.year == LocalDate.now().year) shortDayFormat.format(transaction.day) else date
+    val shownDate = if (large && transaction.day.year == LocalDate.now().year) formatDay(transaction.day, year = false) else date
     val flowNote = transaction.flow.takeIf { it != Flow.Spending }?.label
     Row(
         modifier

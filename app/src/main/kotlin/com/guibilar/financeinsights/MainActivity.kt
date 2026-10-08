@@ -10,6 +10,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.core.content.IntentCompat
+import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
@@ -64,7 +65,11 @@ class MainActivity : FragmentActivity() {
 
     private fun take(intent: Intent?) {
         when (intent?.action) {
-            ACTION_ADD_TRANSACTION -> app.quickAction.value = QuickAction.AddTransaction
+            ACTION_ADD_TRANSACTION -> {
+                // Ranks the "Add transaction" shortcut among the ones the launcher offers.
+                ShortcutManagerCompat.reportShortcutUsed(this, "add_transaction")
+                app.quickAction.value = QuickAction.AddTransaction
+            }
             ACTION_BUDGETS -> app.quickAction.value = QuickAction.Budgets
             ACTION_SUBSCRIPTIONS -> app.quickAction.value = QuickAction.Subscriptions
             ACTION_REVIEW -> app.quickAction.value = QuickAction.Review

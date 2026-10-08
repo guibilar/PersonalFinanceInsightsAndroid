@@ -24,7 +24,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.guibilar.financeinsights.core.logic.Change
 import com.guibilar.financeinsights.core.logic.Money
-import com.guibilar.financeinsights.core.logic.shortDay
+import com.guibilar.financeinsights.core.logic.formatDay
 import com.guibilar.financeinsights.core.model.SpendingForecast
 import com.guibilar.financeinsights.ui.common.budgetWarningText
 import com.guibilar.financeinsights.ui.theme.LocalChartColors
@@ -78,7 +78,7 @@ internal fun MonthForecast(forecast: SpendingForecast, openSubscriptions: () -> 
         forecast.upcoming.take(4).forEach { charge ->
             Row(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
                 Text(charge.name, Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium)
-                Text("${shortDay(charge.date)}  ", style = MaterialTheme.typography.bodySmall, color = colors.muted)
+                Text("${formatDay(charge.date, year = false)}  ", style = MaterialTheme.typography.bodySmall, color = colors.muted)
                 Text(Money.format(charge.amount), style = MaterialTheme.typography.bodyMedium)
             }
         }

@@ -2,8 +2,6 @@ package com.guibilar.financeinsights.core.logic
 
 import java.time.LocalDate
 import java.time.YearMonth
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -25,10 +23,6 @@ data class Change(val text: String, val up: Boolean) {
     }
 }
 
-private val shortDay = DateTimeFormatter.ofPattern("MMM d", Locale.US)
-
-/** A calendar day from the API ("2026-10-20T00:00:00Z") as "Oct 20". */
-fun shortDay(iso: String): String = shortDay.format(LocalDate.parse(iso.take(10)))
 
 /** A month review ([month] set) or a year review. */
 data class ReviewPeriod(val year: Int, val month: Int?) {

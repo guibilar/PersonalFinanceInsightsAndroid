@@ -1,6 +1,7 @@
 package com.guibilar.financeinsights.data
 
 import android.content.Context
+import androidx.core.content.edit
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -49,42 +50,42 @@ class AppPreferences(context: Context) {
     val anyAlerts get() = budgetAlerts.value || priceAlerts.value || monthlyReview.value || importReminders.value
 
     fun setTheme(value: ThemeChoice) {
-        prefs.edit().putString(KEY_THEME, value.name).apply()
+        prefs.edit { putString(KEY_THEME, value.name) }
         _theme.value = value
     }
 
     fun setDynamicColor(value: Boolean) {
-        prefs.edit().putBoolean(KEY_DYNAMIC_COLOR, value).apply()
+        prefs.edit { putBoolean(KEY_DYNAMIC_COLOR, value) }
         _dynamicColor.value = value
     }
 
     fun setLock(value: Boolean) {
-        prefs.edit().putBoolean(KEY_LOCK, value).apply()
+        prefs.edit { putBoolean(KEY_LOCK, value) }
         _lock.value = value
     }
 
     fun setHideWidgetAmounts(value: Boolean) {
-        prefs.edit().putBoolean(KEY_HIDE_WIDGET_AMOUNTS, value).apply()
+        prefs.edit { putBoolean(KEY_HIDE_WIDGET_AMOUNTS, value) }
         _hideWidgetAmounts.value = value
     }
 
     fun setBudgetAlerts(value: Boolean) {
-        prefs.edit().putBoolean(KEY_BUDGET_ALERTS, value).apply()
+        prefs.edit { putBoolean(KEY_BUDGET_ALERTS, value) }
         _budgetAlerts.value = value
     }
 
     fun setPriceAlerts(value: Boolean) {
-        prefs.edit().putBoolean(KEY_PRICE_ALERTS, value).apply()
+        prefs.edit { putBoolean(KEY_PRICE_ALERTS, value) }
         _priceAlerts.value = value
     }
 
     fun setMonthlyReview(value: Boolean) {
-        prefs.edit().putBoolean(KEY_MONTHLY_REVIEW, value).apply()
+        prefs.edit { putBoolean(KEY_MONTHLY_REVIEW, value) }
         _monthlyReview.value = value
     }
 
     fun setImportReminders(value: Boolean) {
-        prefs.edit().putBoolean(KEY_IMPORT_REMINDERS, value).apply()
+        prefs.edit { putBoolean(KEY_IMPORT_REMINDERS, value) }
         _importReminders.value = value
     }
 
