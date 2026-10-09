@@ -18,6 +18,7 @@ import com.guibilar.financeinsights.core.model.Transaction
 import com.guibilar.financeinsights.core.model.TransactionFilter
 import com.guibilar.financeinsights.ui.common.LoadState
 import com.guibilar.financeinsights.ui.common.load
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -69,6 +70,7 @@ class DashboardViewModel(private val api: FinanceApi, private val today: () -> L
         load(quiet = true)
     }
     private var shown = false
+    private var loadJob: Job? = null
 
     fun refresh() {
         _state.update { it.copy(refreshing = true) }
@@ -89,7 +91,10 @@ class DashboardViewModel(private val api: FinanceApi, private val today: () -> L
      */
     private fun load(quiet: Boolean = false) {
         fun <T> next(old: LoadState<T>, new: LoadState<T>) = if (quiet && new is LoadState.Failed && old is LoadState.Loaded) old else new
-        viewModelScope.launch {
+        // A load still under way (tabs switched quickly, or pulled to refresh) gives way: its answers are older, and
+        // finishing first it would stop the refresh spinner before the new figures are in.
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
             val reports = listOf(
                 launch { load("Could not load monthly spending.") { api.yearReport() }.let { r -> _state.update { it.copy(year = next(it.year, r)) } } },
                 launch { load("Could not load this month's spending.") { api.monthReport() }.let { r -> _state.update { it.copy(month = next(it.month, r)) } } },

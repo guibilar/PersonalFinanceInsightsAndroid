@@ -49,6 +49,19 @@ fun budgetAlerts(budgets: List<Budget>, today: LocalDate, sent: Map<String, Int>
         )
     }
 
+/**
+ * Budgets back under a level they alerted at in their current period (a refund, or the amount raised): the level
+ * each has now (0 under 80), by key, so crossing again is told again. A custom budget's period never ends, so without
+ * this, raising its amount after it was used up would never alert again.
+ */
+fun budgetLevelsDropped(budgets: List<Budget>, today: LocalDate, sent: Map<String, Int>): Map<String, Int> =
+    budgets.filter { it.status == Status.Active && it.totalAmount > 0 }.mapNotNull { budget ->
+        val key = "${budget.id}:${periodKey(budget.period, today)}"
+        val sentLevel = sent[key] ?: return@mapNotNull null
+        val level = ALERT_LEVELS.lastOrNull { budget.percentageUsed >= it } ?: 0
+        if (level < sentLevel) key to level else null
+    }.toMap()
+
 private fun periodKey(period: BudgetPeriod, today: LocalDate) = when (period) {
     BudgetPeriod.Monthly -> YearMonth.from(today).toString()
     BudgetPeriod.Yearly -> today.year.toString()

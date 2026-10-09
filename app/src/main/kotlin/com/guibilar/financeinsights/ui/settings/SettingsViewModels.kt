@@ -180,6 +180,8 @@ class RulesViewModel(private val api: FinanceApi) : SettingsViewModel() {
     fun applyRules() = viewModelScope.launch {
         val result = apiCall { api.applyRules() }
         say(result.getOrNull()?.let(::describeRulesResult) ?: result.apiError!!.loadMessage("Could not apply the rules."))
+        // What is left in Other changes with them: "Sort them" used to keep counting the merchants just sorted.
+        if (result.isSuccess) reload()
     }
 }
 

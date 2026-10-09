@@ -78,8 +78,11 @@ class Session(
         (_state.value as? AuthState.SignedIn)?.let { return it.api }
         val server = store.server ?: return null
         if (jar.isEmpty) return null
-        return createApi(server, jar) {}
+        // One client per server, reused: each run of the widget or the alerts used to build its own (and its threads).
+        background?.takeIf { it.first == server }?.let { return it.second }
+        return createApi(server, jar) {}.also { background = server to it }
     }
+    @Volatile private var background: Pair<String, FinanceApi>? = null
 
     /** Signs in; the failure's message says why (wrong password, too many attempts, unreachable). */
     suspend fun signIn(serverInput: String, username: String, password: String): Result<Unit> {

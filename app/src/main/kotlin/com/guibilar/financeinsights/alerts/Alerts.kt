@@ -27,10 +27,12 @@ import com.guibilar.financeinsights.core.api.apiCall
 import com.guibilar.financeinsights.core.api.apiError
 import com.guibilar.financeinsights.core.logic.BudgetAlert
 import com.guibilar.financeinsights.core.logic.budgetAlerts
+import com.guibilar.financeinsights.core.logic.budgetLevelsDropped
 import com.guibilar.financeinsights.core.logic.importReminder
 import com.guibilar.financeinsights.core.logic.priceAlerts
 import com.guibilar.financeinsights.core.logic.reviewAlert
 import com.guibilar.financeinsights.core.logic.reviewKey
+import com.guibilar.financeinsights.core.logic.staleAlertKeys
 import com.guibilar.financeinsights.data.AppPreferences
 import com.guibilar.financeinsights.core.model.BudgetFilter
 import com.guibilar.financeinsights.core.model.Status
@@ -197,6 +199,29 @@ internal class SentAlerts(context: Context) {
     fun record(key: String, level: Int) {
         prefs.edit { putInt(key, level) }
     }
+
+    fun forget(keys: Collection<String>) {
+        if (keys.isNotEmpty()) prefs.edit { keys.forEach(::remove) }
+    }
+
+    /**
+     * Whose alerts these are ("server|username"): another account signed in starts over, as its budgets and
+     * subscriptions are its own (and the last one's mustn't keep its alerts quiet).
+     */
+    fun keepFor(owner: String) {
+        val before = prefs.getString(KEY_OWNER, null)
+        if (before == owner) return
+        prefs.edit {
+            // None yet (recorded before owners were): the same account's, most likely; kept, so nothing is told twice.
+            if (before != null) clear()
+            putString(KEY_OWNER, owner)
+        }
+    }
+
+    private companion object {
+        /** A string among the levels: [all] reads only the numbers. */
+        const val KEY_OWNER = "owner"
+    }
 }
 
 private const val IMPORT_REMINDER_ID = 7_000
@@ -210,9 +235,11 @@ class AlertWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
         // Without permission to notify, nothing is marked sent: they show once it is given.
         if (!preferences.anyAlerts || !Alerts.canNotify(applicationContext)) return Result.success()
         val api = app.session.backgroundApi() ?: return Result.success()
-        val sent = SentAlerts(applicationContext)
-        val private = preferences.lock.value
         val today = LocalDate.now()
+        val sent = SentAlerts(applicationContext)
+        sent.keepFor("${app.session.server}|${app.session.lastUsername}")
+        sent.forget(staleAlertKeys(sent.all().keys, today))
+        val private = preferences.lock.value
         var retry = false
         // A failed call is tried again later, unless the session ended: that waits for the app to sign in again.
         fun <T> kotlin.Result<T>.orRetry(): T? = getOrNull().also {
@@ -221,6 +248,9 @@ class AlertWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
 
         if (preferences.budgetAlerts.value) {
             val budgets = apiCall { api.budgets(BudgetFilter(status = Status.Active, page = 1, pageSize = 1000)) }.orRetry()
+            if (budgets != null) budgetLevelsDropped(budgets.items, today, sent.all()).forEach { (key, level) ->
+                if (level == 0) sent.forget(listOf(key)) else sent.record(key, level)
+            }
             if (budgets != null) budgetAlerts(budgets.items, today, sent.all()).forEach { alert ->
                 Alerts.notify(applicationContext, alert, private)
                 sent.record(alert)

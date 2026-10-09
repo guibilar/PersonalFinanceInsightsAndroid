@@ -15,7 +15,7 @@ import java.time.YearMonth
 data class PriceAlert(val key: String, val title: String, val text: String)
 
 /** A price change is told for this long after the first charge at the new price; older ones aren't news. */
-private const val PRICE_NEWS_DAYS = 30L
+internal const val PRICE_NEWS_DAYS = 30L
 
 /** The monthly review is offered in the first week of the month, once. */
 private const val REVIEW_DAYS = 7

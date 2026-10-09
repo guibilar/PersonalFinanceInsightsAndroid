@@ -14,15 +14,15 @@ import com.guibilar.financeinsights.core.model.Status
 import com.guibilar.financeinsights.ui.common.UiMessage
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
@@ -61,13 +61,18 @@ class BudgetsViewModel(private val api: FinanceApi) : ViewModel() {
     private val _messages = Channel<UiMessage>(Channel.BUFFERED)
     val messages: Flow<UiMessage> = _messages.receiveAsFlow()
 
-    private val searchText = MutableStateFlow("")
+    // Every text typed, the same one again included (a StateFlow would drop that): see the debounce in init.
+    private val searchText = MutableSharedFlow<String>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
     private var listJob: Job? = null
 
     init {
-        searchText.drop(1).debounce(SEARCH_DEBOUNCE_MS).distinctUntilChanged()
+        // Compared with the name searched, not the last text: Clear resets the name at once, and the same text typed
+        // again just after must search again (and the clear's own "" mustn't load the list twice).
+        searchText.debounce(SEARCH_DEBOUNCE_MS)
             .onEach { text ->
-                _state.update { it.copy(name = text.trim().ifEmpty { null }) }
+                val name = text.trim().ifEmpty { null }
+                if (name == _state.value.name) return@onEach
+                _state.update { it.copy(name = name) }
                 reload()
             }
             .launchIn(viewModelScope)
@@ -106,7 +111,7 @@ class BudgetsViewModel(private val api: FinanceApi) : ViewModel() {
 
     fun search(text: String) {
         _state.update { it.copy(search = text) }
-        searchText.value = text
+        searchText.tryEmit(text)
     }
 
     fun setStatus(status: Status?) {
@@ -117,7 +122,7 @@ class BudgetsViewModel(private val api: FinanceApi) : ViewModel() {
 
     fun clearAll() {
         _state.update { it.copy(search = "", name = null, status = null) }
-        searchText.value = ""
+        searchText.tryEmit("")
         reload()
     }
 

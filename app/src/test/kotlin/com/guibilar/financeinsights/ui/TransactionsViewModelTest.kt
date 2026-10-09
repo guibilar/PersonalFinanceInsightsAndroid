@@ -91,6 +91,23 @@ class TransactionsViewModelTest {
     }
 
     @Test
+    fun `the same search typed again just after clearing searches again`() = runTest(dispatcher) {
+        val model = model()
+        advanceUntilIdle()
+        model.search("costco")
+        advanceTimeBy(TransactionsViewModel.SEARCH_DEBOUNCE_MS + 1)
+        advanceUntilIdle()
+
+        model.clearAll()
+        model.search("costco")
+        advanceTimeBy(TransactionsViewModel.SEARCH_DEBOUNCE_MS + 1)
+        advanceUntilIdle()
+
+        assertEquals("costco", model.state.value.criteria.description)
+        assertEquals("costco", api.transactionFilters.last().description)
+    }
+
+    @Test
     fun `sorting the same column flips it, another starts its own way`() = runTest(dispatcher) {
         val model = model()
         advanceUntilIdle()
