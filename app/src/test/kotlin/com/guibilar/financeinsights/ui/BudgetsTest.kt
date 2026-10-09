@@ -87,6 +87,22 @@ class BudgetsTest {
     }
 
     @Test
+    fun `the same search typed again just after clearing searches again`() = runTest(dispatcher) {
+        val model = BudgetsViewModel(api)
+        advanceUntilIdle()
+        model.search("groceries")
+        advanceTimeBy(BudgetsViewModel.SEARCH_DEBOUNCE_MS + 1)
+        advanceUntilIdle()
+
+        model.clearAll()
+        model.search("groceries")
+        advanceTimeBy(BudgetsViewModel.SEARCH_DEBOUNCE_MS + 1)
+        advanceUntilIdle()
+
+        assertEquals("groceries", model.state.value.name)
+    }
+
+    @Test
     fun `a category another budget counts is explained, and nothing is added`() = runTest(dispatcher) {
         val model = BudgetsViewModel(api)
         advanceUntilIdle()

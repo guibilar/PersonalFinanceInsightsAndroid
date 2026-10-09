@@ -2,6 +2,7 @@ package com.guibilar.financeinsights
 
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.compose.setContent
@@ -32,6 +33,11 @@ class MainActivity : FragmentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         if (savedInstanceState == null) take(intent)
+        // With the lock on, Recents shows no snapshot of the amounts: the lock only covers them on coming back.
+        // Android 13 on; before it, the only way (FLAG_SECURE) would also block the person's own screenshots.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            lifecycleScope.launch { app.preferences.lock.collect { setRecentsScreenshotEnabled(!it) } }
+        }
         setContent {
             val theme by app.preferences.theme.collectAsState()
             val dynamicColor by app.preferences.dynamicColor.collectAsState()

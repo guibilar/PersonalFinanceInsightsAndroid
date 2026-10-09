@@ -47,14 +47,14 @@ import com.guibilar.financeinsights.ui.common.UiMessage
 import com.guibilar.financeinsights.ui.common.load
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
@@ -87,7 +87,8 @@ class TransactionsViewModel(
     private val _messages = Channel<UiMessage>(Channel.BUFFERED)
     val messages: kotlinx.coroutines.flow.Flow<UiMessage> = _messages.receiveAsFlow()
 
-    private val searchText = MutableStateFlow(route.criteria.description.orEmpty())
+    // Every text typed, the same one again included (a StateFlow would drop that): see the debounce in init.
+    private val searchText = MutableSharedFlow<String>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
     private var listJob: Job? = null
     private val breakdown = TransactionsBreakdown(api, viewModelScope, _state)
     private val statements = StatementImport(
@@ -102,8 +103,9 @@ class TransactionsViewModel(
     val importState: StateFlow<ImportState> = statements.state
 
     init {
-        // Typing searches after a pause, not on every letter.
-        searchText.drop(1).debounce(SEARCH_DEBOUNCE_MS).distinctUntilChanged()
+        // Typing searches after a pause, not on every letter. No distinctUntilChanged: Clear sets the criteria at once,
+        // so text typed again just after (the same as before the clear) must still reach them; setCriteria skips no-ops.
+        searchText.debounce(SEARCH_DEBOUNCE_MS)
             .onEach { text -> setCriteria { copy(description = text.trim().ifEmpty { null }) } }
             .launchIn(viewModelScope)
         reloadList()
@@ -351,7 +353,7 @@ class TransactionsViewModel(
 
     fun search(text: String) {
         _state.update { it.copy(search = text) }
-        searchText.value = text
+        searchText.tryEmit(text)
     }
 
     fun setCategory(id: String?) = setCriteria { copy(categoryId = id) }
@@ -363,7 +365,7 @@ class TransactionsViewModel(
     /** Clears everything but the search field's text, which is cleared too. */
     fun clearAll() {
         _state.update { it.copy(search = "") }
-        searchText.value = ""
+        searchText.tryEmit("")
         setCriteria { TransactionCriteria() }
     }
 

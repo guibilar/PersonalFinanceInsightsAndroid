@@ -5,6 +5,7 @@ import com.guibilar.financeinsights.core.api.ApiError
 import com.guibilar.financeinsights.core.model.AccountUpdate
 import com.guibilar.financeinsights.core.model.CategoryRuleInput
 import com.guibilar.financeinsights.core.model.StatementFormat
+import com.guibilar.financeinsights.core.model.UncategorisedReport
 import com.guibilar.financeinsights.ui.common.LoadState
 import com.guibilar.financeinsights.ui.common.UiMessage
 import com.guibilar.financeinsights.ui.settings.AccountSettingsViewModel
@@ -43,6 +44,18 @@ class SettingsTest {
         val messages = mutableListOf<UiMessage>()
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.messages.collect { messages += it } }
         return messages
+    }
+
+    @Test
+    fun `applying the rules brings the merchants left in Other up to date`() = runTest(dispatcher) {
+        val model = RulesViewModel(api)
+        advanceUntilIdle()
+        api.uncategorisedReport = UncategorisedReport()
+
+        model.applyRules()
+        advanceUntilIdle()
+
+        assertEquals(0, model.state.value.uncategorised?.transactionCount)
     }
 
     @Test
