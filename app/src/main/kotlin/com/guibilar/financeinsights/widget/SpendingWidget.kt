@@ -93,11 +93,14 @@ class SpendingWidget : GlanceAppWidget() {
             // Unreachable (Tailscale off), the last figures stay, with when they are from; better than nothing.
             ?: return lastLoaded(context)?.takeIf { it.yearMonth == YearMonth.now().toString() } ?: WidgetData.Failed
         val budgets = apiCall { api.budgets(BudgetFilter(status = Status.Active, page = 1, pageSize = 1000)) }.getOrNull()
+            ?.items?.sortedByDescending { it.percentageUsed }?.take(3)
+            // The budgets failed alone: the last ones this month stay rather than vanishing as if there were none.
+            ?: lastLoaded(context)?.takeIf { it.yearMonth == YearMonth.now().toString() }?.budgets.orEmpty()
         val loaded = WidgetData.Loaded(
             month = thisMonth(),
             yearMonth = YearMonth.now().toString(),
             spent = spentThisMonth(month),
-            budgets = budgets?.items.orEmpty().sortedByDescending { it.percentageUsed }.take(3),
+            budgets = budgets,
         )
         remember(context, loaded)
         return loaded

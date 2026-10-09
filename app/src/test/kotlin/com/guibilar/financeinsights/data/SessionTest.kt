@@ -51,6 +51,15 @@ class SessionTest {
     }
 
     @Test
+    fun `work in the background reuses one client`() {
+        var built = 0
+        val session = Session(store) { _, _, _ -> built++; api }
+        session.backgroundApi()
+        session.backgroundApi()
+        assertEquals(1, built)
+    }
+
+    @Test
     fun `signing in instead leaves the unreachable screen`() = runTest {
         api.failing += "me"
         session.resume()
