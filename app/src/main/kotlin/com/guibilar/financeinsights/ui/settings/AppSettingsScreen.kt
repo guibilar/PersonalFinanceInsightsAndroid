@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.guibilar.financeinsights.alerts.Alerts
+import com.guibilar.financeinsights.core.logic.Money
 import com.guibilar.financeinsights.data.AppPreferences
 import com.guibilar.financeinsights.data.ThemeChoice
 import com.guibilar.financeinsights.security.AppLock
@@ -60,6 +61,7 @@ fun AppSettingsScreen(preferences: AppPreferences, lock: AppLock?, contentPaddin
     val monthlyReview by preferences.monthlyReview.collectAsState()
     val importReminders by preferences.importReminders.collectAsState()
     val hideWidget by preferences.hideWidgetAmounts.collectAsState()
+    val hideAmounts by preferences.hideAmounts.collectAsState()
     // Checked again on coming back, a screen lock just set up in the phone's settings.
     var lockAvailable by remember { mutableStateOf(canAuthenticate(context)) }
     LifecycleResumeEffect(Unit) {
@@ -141,9 +143,17 @@ fun AppSettingsScreen(preferences: AppPreferences, lock: AppLock?, contentPaddin
                 }
             }
             SwitchRow(
+                "Hide amounts",
+                "Privacy mode: every amount reads \"${Money.HIDDEN}\", here, on the widget and in notifications. " +
+                    "Also on the dashboard's eye button.",
+                hideAmounts,
+            ) { preferences.setHideAmounts(it) }
+            SwitchRow(
                 "Hide amounts on the widget",
-                "The home-screen widget shows no spending or budgets, as anyone can see the home screen.",
-                hideWidget,
+                if (hideAmounts) "Hidden everywhere while privacy mode is on."
+                else "The home-screen widget shows no spending or budgets, as anyone can see the home screen.",
+                hideWidget || hideAmounts,
+                enabled = !hideAmounts,
             ) { preferences.setHideWidgetAmounts(it) }
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
 

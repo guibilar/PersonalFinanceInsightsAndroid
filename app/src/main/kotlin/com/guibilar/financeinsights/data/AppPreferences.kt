@@ -26,6 +26,10 @@ class AppPreferences(context: Context) {
     /** Opening the app asks for a fingerprint, face or the phone's PIN. */
     val lock: StateFlow<Boolean> = _lock.asStateFlow()
 
+    private val _hideAmounts = MutableStateFlow(prefs.getBoolean(KEY_HIDE_AMOUNTS, false))
+    /** Privacy mode: every amount in the app, the widget and the notifications reads "$•••••". */
+    val hideAmounts: StateFlow<Boolean> = _hideAmounts.asStateFlow()
+
     private val _hideWidgetAmounts = MutableStateFlow(prefs.getBoolean(KEY_HIDE_WIDGET_AMOUNTS, false))
     /** The home-screen widget shows no amounts (anyone can see the home screen). Its own choice, not the lock's. */
     val hideWidgetAmounts: StateFlow<Boolean> = _hideWidgetAmounts.asStateFlow()
@@ -64,6 +68,11 @@ class AppPreferences(context: Context) {
         _lock.value = value
     }
 
+    fun setHideAmounts(value: Boolean) {
+        prefs.edit { putBoolean(KEY_HIDE_AMOUNTS, value) }
+        _hideAmounts.value = value
+    }
+
     fun setHideWidgetAmounts(value: Boolean) {
         prefs.edit { putBoolean(KEY_HIDE_WIDGET_AMOUNTS, value) }
         _hideWidgetAmounts.value = value
@@ -94,6 +103,7 @@ class AppPreferences(context: Context) {
         const val KEY_DYNAMIC_COLOR = "dynamicColor"
         const val KEY_LOCK = "lock"
         const val KEY_BUDGET_ALERTS = "budgetAlerts"
+        const val KEY_HIDE_AMOUNTS = "hideAmounts"
         const val KEY_HIDE_WIDGET_AMOUNTS = "hideWidgetAmounts"
         const val KEY_PRICE_ALERTS = "priceAlerts"
         const val KEY_MONTHLY_REVIEW = "monthlyReview"

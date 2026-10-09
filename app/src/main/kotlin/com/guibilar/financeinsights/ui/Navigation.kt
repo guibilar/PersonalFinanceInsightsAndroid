@@ -327,7 +327,10 @@ fun MainScreen(
             NavHost(nav, startDestination = DashboardRoute, modifier = Modifier.weight(1f)) {
                 composable<DashboardRoute> {
                     val model = viewModel { DashboardViewModel(api) }
+                    val amountsHidden = preferences?.hideAmounts?.collectAsState()?.value ?: false
                     DashboardScreen(
+                        amountsHidden = amountsHidden,
+                        toggleAmounts = preferences?.let { { it.setHideAmounts(!amountsHidden) } },
                         model = model,
                         account = account,
                         onSignOut = onSignOut,
