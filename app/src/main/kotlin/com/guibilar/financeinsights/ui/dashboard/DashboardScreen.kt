@@ -15,6 +15,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.UploadFile
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -80,6 +82,9 @@ fun DashboardScreen(
     openAccounts: () -> Unit = {},
     /** The transactions, with the import open. */
     openImport: () -> Unit = {},
+    /** Privacy mode, and its quick switch (none without the app's settings, as in previews). */
+    amountsHidden: Boolean = false,
+    toggleAmounts: (() -> Unit)? = null,
 ) {
     val state by model.state.collectAsState()
     // Back from the background on a new day: today moves on.
@@ -97,6 +102,12 @@ fun DashboardScreen(
                 }
             },
             actions = {
+                if (toggleAmounts != null) {
+                    IconButton(onClick = toggleAmounts) {
+                        if (amountsHidden) Icon(Icons.Outlined.VisibilityOff, "Show amounts")
+                        else Icon(Icons.Outlined.Visibility, "Hide amounts")
+                    }
+                }
                 IconButton(onClick = openImport) { Icon(Icons.Outlined.UploadFile, "Import statements") }
                 AccountMenuButton(account, onSignOut)
             },

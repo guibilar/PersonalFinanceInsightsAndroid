@@ -13,7 +13,19 @@ object Money {
         NumberFormat.getCurrencyInstance(Locale.US).apply { currency = Currency.getInstance("USD") }
     }
 
+    /** What every amount reads in privacy mode: the same length whatever the amount, so its size doesn't show either. */
+    const val HIDDEN = "$•••••"
+
+    /**
+     * Privacy mode, asked each time an amount is formatted. A function so the app can back it with Compose state:
+     * the screens that formatted an amount then redraw when it's switched.
+     */
+    @Volatile
+    var hidden: () -> Boolean = { false }
+
+    /** "$1,234.56", "-$5.00"; "$•••••" in privacy mode. */
     fun format(amount: Double): String {
+        if (hidden()) return if (amount < 0 && round(amount * 100) != 0.0) "-$HIDDEN" else HIDDEN
         // Locale.US gives "$" and "-$5.00"; CAD in en-CA reads the same, and avoids "CA$" on some devices.
         val text = format.get().format(abs(amount))
         return if (amount < 0 && round(amount * 100) != 0.0) "-$text" else text
@@ -23,8 +35,9 @@ object Money {
     fun plain(amount: Double): String =
         if (amount % 1.0 == 0.0) amount.toLong().toString() else String.format(Locale.US, "%.2f", amount)
 
-    /** "$5K", "$1.2K", "$950": for axis ticks, which carry the values that aren't labelled. */
+    /** "$5K", "$1.2K", "$950": for axis ticks, which carry the values that aren't labelled. Blank in privacy mode. */
     fun compact(amount: Double): String {
+        if (hidden()) return ""
         // No sign on what rounds to nothing: "-$0" read oddly.
         val sign = if (amount < 0 && round(amount) != 0.0) "-" else ""
         val value = abs(amount)

@@ -2,10 +2,12 @@ package com.guibilar.financeinsights
 
 import android.app.Application
 import android.content.Intent
+import androidx.compose.runtime.mutableStateOf
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
 import com.guibilar.financeinsights.alerts.Alerts
+import com.guibilar.financeinsights.core.logic.Money
 import com.guibilar.financeinsights.data.AppPreferences
 import com.guibilar.financeinsights.data.AuthState
 import com.guibilar.financeinsights.data.Session
@@ -49,11 +51,19 @@ class FinanceApp : Application() {
         session = Session(SessionStore(this))
         preferences = AppPreferences(this)
         lock = AppLock(preferences)
+        // Privacy mode, read as Compose state: every screen that formatted an amount redraws when it's switched.
+        val amountsHidden = mutableStateOf(preferences.hideAmounts.value)
+        Money.hidden = { amountsHidden.value }
         Alerts.createChannel(this)
         Alerts.keepScheduled(this, preferences)
+        scope.launch { preferences.hideAmounts.collect { amountsHidden.value = it } }
         // The widget follows signing in and out, and hiding its amounts.
         scope.launch {
-            combine(session.state.map { it is AuthState.SignedIn }.distinctUntilChanged(), preferences.hideWidgetAmounts) { _, _ -> }
+            combine(
+                session.state.map { it is AuthState.SignedIn }.distinctUntilChanged(),
+                preferences.hideWidgetAmounts,
+                preferences.hideAmounts,
+            ) { _, _, _ -> }
                 .drop(1)
                 .collect {
                     if (session.state.value !is AuthState.SignedIn) SpendingWidget.forget(this@FinanceApp)

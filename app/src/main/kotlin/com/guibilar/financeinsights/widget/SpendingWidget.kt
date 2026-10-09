@@ -81,7 +81,7 @@ class SpendingWidget : GlanceAppWidget() {
     private suspend fun load(context: Context): WidgetData {
         val app = context.applicationContext as FinanceApp
         // Hidden only when asked: the app lock alone used to hide them, which looked like the widget had broken.
-        if (app.preferences.hideWidgetAmounts.value) return WidgetData.Hidden
+        if (app.preferences.hideWidgetAmounts.value || app.preferences.hideAmounts.value) return WidgetData.Hidden
         val api = app.session.backgroundApi() ?: return WidgetData.SignedOut
         val monthResult = apiCall { api.monthReport() }
         // The session ended (expired, or signed out elsewhere): the figures belong to no one until the app signs in again.
