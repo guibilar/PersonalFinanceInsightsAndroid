@@ -3,9 +3,11 @@ package com.guibilar.financeinsights.ui.settings
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -16,6 +18,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -39,6 +42,8 @@ import com.guibilar.financeinsights.ui.charts.StackedBarChart
 import com.guibilar.financeinsights.ui.common.ErrorState
 import com.guibilar.financeinsights.ui.common.LoadState
 import com.guibilar.financeinsights.ui.common.Skeleton
+import com.guibilar.financeinsights.ui.common.TWO_COLUMNS_WIDTH
+import com.guibilar.financeinsights.ui.common.WIDE_CONTENT_WIDTH
 import com.guibilar.financeinsights.ui.theme.LocalChartColors
 
 
@@ -58,7 +63,7 @@ fun NetWorthScreen(model: NetWorthViewModel, contentPadding: PaddingValues, onBa
         model.resumed()
         onPauseOrDispose {}
     }
-    SettingsScaffold("Net worth", onBack, contentPadding, model.messages) {
+    SettingsScaffold("Net worth", onBack, contentPadding, model.messages, maxContentWidth = WIDE_CONTENT_WIDTH) {
         when (val current = state) {
             LoadState.Loading -> Box(Modifier.padding(16.dp)) { Skeleton(lines = 6, lineHeight = 28.dp) }
             is LoadState.Failed -> ErrorState(current.message, model::reload)
@@ -69,7 +74,6 @@ fun NetWorthScreen(model: NetWorthViewModel, contentPadding: PaddingValues, onBa
 
 @Composable
 private fun NetWorth(report: NetWorthReport, openAccounts: () -> Unit) {
-    val colors = LocalChartColors.current
     var selected by rememberSaveable { mutableStateOf<Int?>(null) }
     if (report.accounts.none { it.balance != null }) {
         Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -83,54 +87,78 @@ private fun NetWorth(report: NetWorthReport, openAccounts: () -> Unit) {
         }
         return
     }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 24.dp)) {
-        item {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Net worth", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(Money.format(report.netWorth), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold)
-                sinceLastMonth(report)?.let { change ->
-                    Text(
-                        "${if (change >= 0) "+" else "−"}${Money.format(kotlin.math.abs(change))} since last month",
-                        color = if (change >= 0) colors.positive else colors.negative,
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
+    BoxWithConstraints {
+        if (maxWidth >= TWO_COLUMNS_WIDTH) {
+            // On a tablet: the totals and the months on one side, the accounts beside them.
+            Row(Modifier.fillMaxSize()) {
+                LazyColumn(Modifier.weight(1f).fillMaxHeight(), contentPadding = PaddingValues(bottom = 24.dp)) {
+                    item { Summary(report) }
+                    if (report.months.size > 1) item { Months(report, selected) { selected = it } }
                 }
-                Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                    Figure("Assets", Money.format(report.assets))
-                    Figure("Owed on cards", Money.format(report.liabilities))
+                VerticalDivider()
+                LazyColumn(Modifier.weight(1f).fillMaxHeight(), contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp)) {
+                    items(report.accounts, key = { it.id }) { account -> AccountLine(account, openAccounts) }
                 }
             }
-        }
-        if (report.months.size > 1) {
-            item {
-                Column(Modifier.padding(horizontal = 16.dp)) {
-                    StackedBarChart(
-                        labels = report.months.map { it.month.take(3) },
-                        series = listOf(ChartSeries("Net worth", colors.net, report.months.map { it.netWorth })),
-                        description = "Net worth at the end of each month: " +
-                            report.months.joinToString("; ") { "${it.month} ${Money.format(it.netWorth)}" },
-                        selected = selected,
-                        onSelect = { selected = it },
-                    )
-                    val month = selected?.let { report.months.getOrNull(it) } ?: report.months.last()
-                    Text(
-                        "${month.month}: ${Money.format(month.netWorth)} · assets ${Money.format(month.assets)} · owed ${Money.format(month.liabilities)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 8.dp),
-                    )
-                    if (report.months.any { it.accountsCounted < report.accounts.count { a -> a.balance != null } }) {
-                        Text(
-                            "Earlier months leave out accounts whose history starts later.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
+        } else {
+            LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 24.dp)) {
+                item { Summary(report) }
+                if (report.months.size > 1) item { Months(report, selected) { selected = it } }
+                item { HorizontalDivider(Modifier.padding(top = 16.dp)) }
+                items(report.accounts, key = { it.id }) { account -> AccountLine(account, openAccounts) }
             }
         }
-        item { HorizontalDivider(Modifier.padding(top = 16.dp)) }
-        items(report.accounts, key = { it.id }) { account -> AccountLine(account, openAccounts) }
+    }
+}
+
+/** Today's net worth, how it moved since last month, and what it is made of. */
+@Composable
+private fun Summary(report: NetWorthReport) {
+    val colors = LocalChartColors.current
+    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text("Net worth", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(Money.format(report.netWorth), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold)
+        sinceLastMonth(report)?.let { change ->
+            Text(
+                "${if (change >= 0) "+" else "−"}${Money.format(kotlin.math.abs(change))} since last month",
+                color = if (change >= 0) colors.positive else colors.negative,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+        Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+            Figure("Assets", Money.format(report.assets))
+            Figure("Owed on cards", Money.format(report.liabilities))
+        }
+    }
+}
+
+/** Net worth at the end of each month, a tap on one showing what it was made of. */
+@Composable
+private fun Months(report: NetWorthReport, selected: Int?, onSelect: (Int?) -> Unit) {
+    val colors = LocalChartColors.current
+    Column(Modifier.padding(horizontal = 16.dp)) {
+        StackedBarChart(
+            labels = report.months.map { it.month.take(3) },
+            series = listOf(ChartSeries("Net worth", colors.net, report.months.map { it.netWorth })),
+            description = "Net worth at the end of each month: " +
+                report.months.joinToString("; ") { "${it.month} ${Money.format(it.netWorth)}" },
+            selected = selected,
+            onSelect = onSelect,
+        )
+        val month = selected?.let { report.months.getOrNull(it) } ?: report.months.last()
+        Text(
+            "${month.month}: ${Money.format(month.netWorth)} · assets ${Money.format(month.assets)} · owed ${Money.format(month.liabilities)}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 8.dp),
+        )
+        if (report.months.any { it.accountsCounted < report.accounts.count { a -> a.balance != null } }) {
+            Text(
+                "Earlier months leave out accounts whose history starts later.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 

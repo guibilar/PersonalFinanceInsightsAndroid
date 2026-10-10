@@ -63,6 +63,16 @@ Five tabs: Home, Transactions, Budgets, Net worth and More.
 - **Widget and shortcut:** a home-screen widget shows this month's spending and the fullest budgets. Long-pressing the
   app's icon offers "Add transaction".
 
+## Tablets and foldables
+
+From a small tablet's width (or a phone on its side) the tabs are a rail at the side. On a tablet:
+
+- Home's cards sit in two columns, under the four headline tiles in one row;
+- Transactions keep a pane beside the list, where a tapped transaction opens;
+- Budgets are cards side by side;
+- Net worth shows the totals and the months beside each account's balance;
+- More, Settings and the setup pages are a centred column rather than rows across the whole screen.
+
 ## Reaching the server
 
 The backend is only on your tailnet, so the phone needs the [Tailscale app](https://tailscale.com/download/android)

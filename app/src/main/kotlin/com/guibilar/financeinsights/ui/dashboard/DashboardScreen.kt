@@ -11,7 +11,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.UploadFile
@@ -50,6 +53,9 @@ import com.guibilar.financeinsights.ui.common.ColorDot
 import com.guibilar.financeinsights.ui.common.EmptyState
 import com.guibilar.financeinsights.ui.common.ErrorState
 import com.guibilar.financeinsights.ui.common.LoadState
+import com.guibilar.financeinsights.ui.common.ReadableColumn
+import com.guibilar.financeinsights.ui.common.TWO_COLUMNS_WIDTH
+import com.guibilar.financeinsights.ui.common.WIDE_CONTENT_WIDTH
 import com.guibilar.financeinsights.ui.common.SectionCard
 import com.guibilar.financeinsights.ui.common.Skeleton
 import com.guibilar.financeinsights.ui.transactions.TransactionRow
@@ -113,106 +119,114 @@ fun DashboardScreen(
             },
         )
         PullToRefreshBox(isRefreshing = state.refreshing, onRefresh = model::refresh, modifier = Modifier.fillMaxSize()) {
-            LazyColumn(
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                item { HeadlineTiles(state, openNetWorth, openBudgets) }
-                val attention = if (state.attentionLoaded) {
-                    attentionItems(state.unsorted, state.budgets.valueOrNull?.items.orEmpty(), state.recurring, state.accounts, state.today)
-                } else emptyList()
-                if (attention.isNotEmpty()) {
-                    item {
-                        NeedsAttention(attention) { kind ->
-                            when (kind) {
-                                AttentionKind.Budget -> openBudgets()
-                                AttentionKind.Statement -> openImport()
-                                AttentionKind.Price -> openSubscriptions()
-                                AttentionKind.Unsorted -> openRules()
-                            }
-                        }
-                    }
-                }
-                item {
-                    SectionCard(
-                        "Where the month is heading",
-                        subtitle = "If $monthName goes as usual",
-                        action = {
-                            TextButton(onClick = openReview) {
-                                Text("Last month")
-                                Spacer(Modifier.width(4.dp))
-                                Icon(Icons.AutoMirrored.Outlined.ArrowForward, null)
-                            }
-                        },
+            // On a tablet the cards sit in two columns, each card going where there is room, and the page stops
+            // growing past what can be taken in at a glance.
+            ReadableColumn(WIDE_CONTENT_WIDTH) {
+                BoxWithConstraints {
+                    LazyVerticalStaggeredGrid(
+                        columns = StaggeredGridCells.Fixed(if (maxWidth >= TWO_COLUMNS_WIDTH) 2 else 1),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalItemSpacing = 12.dp,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxSize(),
                     ) {
-                        Loaded(state.forecast, model::retryForecast) { forecast -> MonthForecast(forecast, openSubscriptions) }
-                    }
-                }
-                item { ByCategory(state, monthName, model, openTransactions) }
-                item {
-                    SectionCard(
-                        "Budgets at a glance",
-                        action = {
-                            TextButton(onClick = openBudgets) {
-                                Text("Manage")
-                                Spacer(Modifier.width(4.dp))
-                                Icon(Icons.AutoMirrored.Outlined.ArrowForward, null)
-                            }
-                        },
-                    ) {
-                        Loaded(state.budgets, model::retryBudgets) { page ->
-                            if (page.items.isEmpty()) EmptyState("No active budgets yet.")
-                            else BudgetOverview(page.items)
-                        }
-                    }
-                }
-                item {
-                    SectionCard("Income and spending", subtitle = "Per month, this year") {
-                        Loaded(state.cashFlow, model::retryCashFlow, lines = 6) { report ->
-                            if (report.months.isEmpty()) EmptyState("Nothing recorded this year yet.")
-                            else CashFlow(report)
-                        }
-                    }
-                }
-                item {
-                    SectionCard("Monthly spending", subtitle = "By category, this year") {
-                        Loaded(state.year, model::retryYear, lines = 6) { report ->
-                            if (report.monthlyData.isEmpty()) EmptyState("No spending recorded this year yet.")
-                            else MonthlySpending(report, state.today, openTransactions)
-                        }
-                    }
-                }
-                val held = investments(state.accounts)
-                if (held.isNotEmpty()) {
-                    item {
-                        SectionCard(
-                            "Investments",
-                            subtitle = "What they hold, and this year's room",
-                            action = {
-                                TextButton(onClick = openAccounts) {
-                                    Text("Accounts")
-                                    Spacer(Modifier.width(4.dp))
-                                    Icon(Icons.AutoMirrored.Outlined.ArrowForward, null)
+                        item(span = StaggeredGridItemSpan.FullLine) { HeadlineTiles(state, openNetWorth, openBudgets) }
+                        val attention = if (state.attentionLoaded) {
+                            attentionItems(state.unsorted, state.budgets.valueOrNull?.items.orEmpty(), state.recurring, state.accounts, state.today)
+                        } else emptyList()
+                        if (attention.isNotEmpty()) {
+                            item(span = StaggeredGridItemSpan.FullLine) {
+                                NeedsAttention(attention) { kind ->
+                                    when (kind) {
+                                        AttentionKind.Budget -> openBudgets()
+                                        AttentionKind.Statement -> openImport()
+                                        AttentionKind.Price -> openSubscriptions()
+                                        AttentionKind.Unsorted -> openRules()
+                                    }
                                 }
-                            },
-                        ) { Investments(held) }
-                    }
-                }
-                item {
-                    SectionCard(
-                        "Recent transactions",
-                        action = {
-                            TextButton(onClick = { openTransactions(TransactionsRoute()) }) {
-                                Text("View all")
-                                Spacer(Modifier.width(4.dp))
-                                Icon(Icons.AutoMirrored.Outlined.ArrowForward, null)
                             }
-                        },
-                    ) {
-                        Loaded(state.recent, model::retryRecent) { page ->
-                            if (page.items.isEmpty()) EmptyState("No transactions yet. Import a statement to start.")
-                            else RecentTransactions(page.items)
+                        }
+                        item {
+                            SectionCard(
+                                "Where the month is heading",
+                                subtitle = "If $monthName goes as usual",
+                                action = {
+                                    TextButton(onClick = openReview) {
+                                        Text("Last month")
+                                        Spacer(Modifier.width(4.dp))
+                                        Icon(Icons.AutoMirrored.Outlined.ArrowForward, null)
+                                    }
+                                },
+                            ) {
+                                Loaded(state.forecast, model::retryForecast) { forecast -> MonthForecast(forecast, openSubscriptions) }
+                            }
+                        }
+                        item { ByCategory(state, monthName, model, openTransactions) }
+                        item {
+                            SectionCard(
+                                "Budgets at a glance",
+                                action = {
+                                    TextButton(onClick = openBudgets) {
+                                        Text("Manage")
+                                        Spacer(Modifier.width(4.dp))
+                                        Icon(Icons.AutoMirrored.Outlined.ArrowForward, null)
+                                    }
+                                },
+                            ) {
+                                Loaded(state.budgets, model::retryBudgets) { page ->
+                                    if (page.items.isEmpty()) EmptyState("No active budgets yet.")
+                                    else BudgetOverview(page.items)
+                                }
+                            }
+                        }
+                        item {
+                            SectionCard("Income and spending", subtitle = "Per month, this year") {
+                                Loaded(state.cashFlow, model::retryCashFlow, lines = 6) { report ->
+                                    if (report.months.isEmpty()) EmptyState("Nothing recorded this year yet.")
+                                    else CashFlow(report)
+                                }
+                            }
+                        }
+                        item {
+                            SectionCard("Monthly spending", subtitle = "By category, this year") {
+                                Loaded(state.year, model::retryYear, lines = 6) { report ->
+                                    if (report.monthlyData.isEmpty()) EmptyState("No spending recorded this year yet.")
+                                    else MonthlySpending(report, state.today, openTransactions)
+                                }
+                            }
+                        }
+                        val held = investments(state.accounts)
+                        if (held.isNotEmpty()) {
+                            item {
+                                SectionCard(
+                                    "Investments",
+                                    subtitle = "What they hold, and this year's room",
+                                    action = {
+                                        TextButton(onClick = openAccounts) {
+                                            Text("Accounts")
+                                            Spacer(Modifier.width(4.dp))
+                                            Icon(Icons.AutoMirrored.Outlined.ArrowForward, null)
+                                        }
+                                    },
+                                ) { Investments(held) }
+                            }
+                        }
+                        item {
+                            SectionCard(
+                                "Recent transactions",
+                                action = {
+                                    TextButton(onClick = { openTransactions(TransactionsRoute()) }) {
+                                        Text("View all")
+                                        Spacer(Modifier.width(4.dp))
+                                        Icon(Icons.AutoMirrored.Outlined.ArrowForward, null)
+                                    }
+                                },
+                            ) {
+                                Loaded(state.recent, model::retryRecent) { page ->
+                                    if (page.items.isEmpty()) EmptyState("No transactions yet. Import a statement to start.")
+                                    else RecentTransactions(page.items)
+                                }
+                            }
                         }
                     }
                 }

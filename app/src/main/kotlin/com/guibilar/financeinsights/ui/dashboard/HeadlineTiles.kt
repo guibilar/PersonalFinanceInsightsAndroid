@@ -1,6 +1,7 @@
 package com.guibilar.financeinsights.ui.dashboard
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
@@ -137,13 +138,24 @@ internal fun HeadlineTiles(state: DashboardState, openNetWorth: () -> Unit, open
             )
         },
     )
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        // Two a row, as tall as the taller one; one a row when the text is large, so amounts aren't cut off.
-        val perRow = if (isLargeText) 1 else 2
-        tiles.chunked(perRow).forEach { row ->
-            Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                row.forEach { tile -> tile(Modifier.weight(1f).fillMaxHeight()) }
+    BoxWithConstraints {
+        // Two a row, as tall as the taller one; one a row when the text is large, so amounts aren't cut off. On a
+        // tablet, all four in one row (two when the text is large).
+        val wide = maxWidth >= ALL_IN_A_ROW_WIDTH
+        val perRow = when {
+            isLargeText -> if (wide) 2 else 1
+            wide -> 4
+            else -> 2
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            tiles.chunked(perRow).forEach { row ->
+                Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    row.forEach { tile -> tile(Modifier.weight(1f).fillMaxHeight()) }
+                }
             }
         }
     }
 }
+
+/** From this width on, the four tiles fit in one row. */
+private val ALL_IN_A_ROW_WIDTH = 700.dp

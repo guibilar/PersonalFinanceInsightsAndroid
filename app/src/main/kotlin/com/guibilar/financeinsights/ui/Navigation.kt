@@ -31,9 +31,6 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalWindowInfo
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -58,6 +55,8 @@ import com.guibilar.financeinsights.security.AppLock
 import com.guibilar.financeinsights.security.authenticate
 import com.guibilar.financeinsights.security.canAuthenticate
 import com.guibilar.financeinsights.ui.budgets.BudgetsScreen
+import com.guibilar.financeinsights.ui.common.MEDIUM_WIDTH
+import com.guibilar.financeinsights.ui.common.windowWidth
 import com.guibilar.financeinsights.ui.budgets.BudgetsViewModel
 import com.guibilar.financeinsights.ui.dashboard.DashboardScreen
 import com.guibilar.financeinsights.ui.dashboard.DashboardViewModel
@@ -212,9 +211,6 @@ data class AccountInfo(val username: String, val server: String)
 
 private const val SIGNED_IN_KEY = "signed-in"
 
-/** From this width (dp) on, the tabs are a rail at the side. */
-private const val RAIL_FROM_WIDTH = 600
-
 private data class Tab(val label: String, val icon: ImageVector, val route: Any, val matches: (androidx.navigation.NavDestination) -> Boolean)
 
 private val tabs = listOf(
@@ -277,7 +273,7 @@ fun MainScreen(
         quickAction.value = null
     }
     // A rail at the side on a wide screen (a tablet, an unfolded foldable, landscape); the bar below otherwise.
-    val rail = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.width.toDp() } >= RAIL_FROM_WIDTH.dp
+    val rail = windowWidth() >= MEDIUM_WIDTH
     fun select(tab: Tab, selected: Boolean) {
         if (!selected) {
             nav.navigate(tab.route) {
