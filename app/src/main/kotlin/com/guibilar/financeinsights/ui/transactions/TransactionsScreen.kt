@@ -26,6 +26,7 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.TouchApp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -63,8 +64,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -75,6 +74,7 @@ import com.guibilar.financeinsights.core.model.Transaction
 import com.guibilar.financeinsights.core.model.TransactionSortField
 import com.guibilar.financeinsights.ui.AccountInfo
 import com.guibilar.financeinsights.ui.common.AccountMenuButton
+import com.guibilar.financeinsights.ui.common.EXPANDED_WIDTH
 import com.guibilar.financeinsights.ui.common.EmptyState
 import com.guibilar.financeinsights.ui.common.ErrorState
 import com.guibilar.financeinsights.ui.common.FitText
@@ -83,6 +83,7 @@ import com.guibilar.financeinsights.ui.common.ShowMessages
 import com.guibilar.financeinsights.ui.common.Skeleton
 import com.guibilar.financeinsights.ui.common.rememberFabExpansion
 import com.guibilar.financeinsights.ui.common.rememberOpenItem
+import com.guibilar.financeinsights.ui.common.windowWidth
 
 internal val SORT_LABELS = mapOf(
     TransactionSortField.Date to "Date",
@@ -170,7 +171,7 @@ fun TransactionsScreen(
     // The bar leaves as the list scrolls down and comes back on any scroll up.
     val barBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     // On a wide screen (a tablet, an unfolded foldable) the transaction opens beside the list instead of over it.
-    val twoPane = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.width.toDp() } >= TWO_PANE_FROM_WIDTH.dp
+    val twoPane = windowWidth() >= EXPANDED_WIDTH
     val paneTransaction = opened?.takeIf { twoPane && !it.hidden && !state.showDeleted }
     Row(Modifier.fillMaxSize().padding(bottom = contentPadding.calculateBottomPadding())) {
         val fab = rememberFabExpansion()
@@ -331,10 +332,11 @@ fun TransactionsScreen(
             SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(bottom = if (state.showDeleted) 0.dp else FAB_CLEARANCE))
         }
 
-        if (paneTransaction != null) {
+        // The pane stays while nothing is open, so the list keeps its width as transactions are opened and closed.
+        if (twoPane && !state.showDeleted) {
             VerticalDivider()
             Surface(Modifier.width(PANE_WIDTH).fillMaxHeight(), color = MaterialTheme.colorScheme.surfaceContainerLow) {
-                Column {
+                if (paneTransaction == null) NothingOpen() else Column {
                     Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 4.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text("Transaction", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                         IconButton(onClick = { opened = null }) { Icon(Icons.Outlined.Close, "Close") }
@@ -398,6 +400,23 @@ fun TransactionsScreen(
 /** Keeps a message clear of the Add button. */
 private val FAB_CLEARANCE: Dp = 72.dp
 
-/** From this width (dp) on, a transaction opens in a pane beside the list. */
-private const val TWO_PANE_FROM_WIDTH = 840
 private val PANE_WIDTH = 420.dp
+
+/** The pane beside the list, before a transaction is picked. */
+@Composable
+private fun NothingOpen() {
+    Column(
+        Modifier.fillMaxSize().padding(32.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(Icons.Outlined.TouchApp, null, Modifier.size(40.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            "Pick a transaction to see it here, and to change its category, note or tags.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 12.dp),
+        )
+    }
+}

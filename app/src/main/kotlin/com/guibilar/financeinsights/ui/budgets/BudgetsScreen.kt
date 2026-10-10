@@ -16,9 +16,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridItemSpanScope
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
@@ -83,6 +87,9 @@ import com.guibilar.financeinsights.ui.common.EmptyState
 import com.guibilar.financeinsights.ui.common.ErrorState
 import com.guibilar.financeinsights.ui.common.FitText
 import com.guibilar.financeinsights.ui.common.PillBar
+import com.guibilar.financeinsights.ui.common.READABLE_WIDTH
+import com.guibilar.financeinsights.ui.common.ReadableColumn
+import com.guibilar.financeinsights.ui.common.WIDE_CONTENT_WIDTH
 import kotlin.math.roundToInt
 import com.guibilar.financeinsights.core.model.BudgetPeriod
 import com.guibilar.financeinsights.core.model.BudgetForecast
@@ -99,6 +106,12 @@ import kotlin.math.abs
 /** Warning amber: nearly at the limit. */
 private val WARNING = BUDGET_WARNING
 
+/** As narrow as a budget's card gets: a tablet fits two or three a row, a phone one. */
+private val BUDGET_CARD_MIN_WIDTH = 340.dp
+
+/** A grid item across the whole row (a message, the loading spinner). */
+private val fullLine: LazyGridItemSpanScope.() -> GridItemSpan = { GridItemSpan(maxLineSpan) }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BudgetsScreen(model: BudgetsViewModel, account: AccountInfo, onSignOut: suspend () -> Unit, contentPadding: PaddingValues) {
@@ -112,7 +125,7 @@ fun BudgetsScreen(model: BudgetsViewModel, account: AccountInfo, onSignOut: susp
     var adding by rememberSaveable { mutableStateOf(false) }
     var deleting by rememberOpenItem(state.items) { it.id }
     val snackbar = remember { SnackbarHostState() }
-    val listState = rememberLazyListState()
+    val listState = rememberLazyGridState()
     ShowMessages(model.messages, snackbar)
 
     val nearEnd by remember {
@@ -130,52 +143,59 @@ fun BudgetsScreen(model: BudgetsViewModel, account: AccountInfo, onSignOut: susp
                 title = { FitText("Budgets", fontWeight = FontWeight.SemiBold, minFontSize = 14.sp) },
                 actions = { AccountMenuButton(account, onSignOut) },
             )
-            OutlinedTextField(
-                value = state.search,
-                onValueChange = model::search,
-                placeholder = { Placeholder("Search budgets") },
-                leadingIcon = { Icon(Icons.Outlined.Search, null) },
-                trailingIcon = { if (state.search.isNotEmpty()) IconButton(onClick = { model.search("") }) { Icon(Icons.Outlined.Close, "Clear search") } },
-                singleLine = true,
-                shape = RoundedCornerShape(28.dp),
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-            )
-            Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf(null to "All", Status.Active to "Active", Status.Inactive to "Inactive").forEach { (status, label) ->
-                    FilterChip(state.status == status, onClick = { model.setStatus(status) }, label = { Text(label) })
-                }
-            }
-            PullToRefreshBox(isRefreshing = state.refreshing, onRefresh = model::refresh, modifier = Modifier.fillMaxSize()) {
-                LazyColumn(
-                    state = listState,
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 88.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxSize().alpha(if (state.loading && state.items.isNotEmpty()) 0.5f else 1f),
-                ) {
-                    when {
-                        state.loading && state.items.isEmpty() -> item { Skeleton(lines = 6, lineHeight = 32.dp) }
-                        state.error != null -> item { ErrorState(state.error!!, model::refresh) }
-                        state.items.isEmpty() -> item {
-                            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                                if (state.hasCriteria) {
-                                    EmptyState("No budgets match these filters.")
-                                    OutlinedButton(onClick = model::clearAll) { Text("Clear filters") }
-                                } else {
-                                    EmptyState("No budgets yet. A budget sets a limit, for a month, a year, some dates, or a trip.")
-                                    OutlinedButton(onClick = { adding = true }) { Text("New budget") }
-                                }
-                            }
+            // On a tablet the budgets are cards side by side, on a page no wider than can be taken in at a glance.
+            ReadableColumn(WIDE_CONTENT_WIDTH) {
+                Column {
+                    OutlinedTextField(
+                        value = state.search,
+                        onValueChange = model::search,
+                        placeholder = { Placeholder("Search budgets") },
+                        leadingIcon = { Icon(Icons.Outlined.Search, null) },
+                        trailingIcon = { if (state.search.isNotEmpty()) IconButton(onClick = { model.search("") }) { Icon(Icons.Outlined.Close, "Clear search") } },
+                        singleLine = true,
+                        shape = RoundedCornerShape(28.dp),
+                        modifier = Modifier.widthIn(max = READABLE_WIDTH).fillMaxWidth().padding(horizontal = 16.dp),
+                    )
+                    Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf(null to "All", Status.Active to "Active", Status.Inactive to "Inactive").forEach { (status, label) ->
+                            FilterChip(state.status == status, onClick = { model.setStatus(status) }, label = { Text(label) })
                         }
-                        else -> {
-                            items(state.items, key = { it.id }) { budget ->
-                                BudgetCard(budget, onEdit = { editing = budget }, onDelete = { deleting = budget }, projection = state.projections[budget.id])
-                            }
-                            if (state.loadingMore) {
-                                item { Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { CircularProgressIndicator(Modifier.size(24.dp)) } }
-                            } else if (state.moreFailed) {
-                                item {
-                                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                        TextButton(onClick = model::loadMore) { Text("Could not load more. Try again") }
+                    }
+                    PullToRefreshBox(isRefreshing = state.refreshing, onRefresh = model::refresh, modifier = Modifier.fillMaxSize()) {
+                        LazyVerticalGrid(
+                            columns = GridCells.Adaptive(minSize = BUDGET_CARD_MIN_WIDTH),
+                            state = listState,
+                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 88.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.fillMaxSize().alpha(if (state.loading && state.items.isNotEmpty()) 0.5f else 1f),
+                        ) {
+                            when {
+                                state.loading && state.items.isEmpty() -> item(span = fullLine) { Skeleton(lines = 6, lineHeight = 32.dp) }
+                                state.error != null -> item(span = fullLine) { ErrorState(state.error!!, model::refresh) }
+                                state.items.isEmpty() -> item(span = fullLine) {
+                                    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                                        if (state.hasCriteria) {
+                                            EmptyState("No budgets match these filters.")
+                                            OutlinedButton(onClick = model::clearAll) { Text("Clear filters") }
+                                        } else {
+                                            EmptyState("No budgets yet. A budget sets a limit, for a month, a year, some dates, or a trip.")
+                                            OutlinedButton(onClick = { adding = true }) { Text("New budget") }
+                                        }
+                                    }
+                                }
+                                else -> {
+                                    items(state.items, key = { it.id }) { budget ->
+                                        BudgetCard(budget, onEdit = { editing = budget }, onDelete = { deleting = budget }, projection = state.projections[budget.id])
+                                    }
+                                    if (state.loadingMore) {
+                                        item(span = fullLine) { Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { CircularProgressIndicator(Modifier.size(24.dp)) } }
+                                    } else if (state.moreFailed) {
+                                        item(span = fullLine) {
+                                            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                                TextButton(onClick = model::loadMore) { Text("Could not load more. Try again") }
+                                            }
+                                        }
                                     }
                                 }
                             }

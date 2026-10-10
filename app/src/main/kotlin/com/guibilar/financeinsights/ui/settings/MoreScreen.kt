@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import com.guibilar.financeinsights.ui.common.FitText
+import com.guibilar.financeinsights.ui.common.ReadableColumn
 
 /** Where the rest of the app lives: insights (subscriptions, reviews), setup (accounts, categories, tags, rules, settings), and the signed-in account. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -51,25 +52,28 @@ fun MoreScreen(
 ) {
     Column(Modifier.fillMaxSize().padding(bottom = contentPadding.calculateBottomPadding())) {
         TopAppBar(title = { FitText("More", fontWeight = FontWeight.SemiBold, minFontSize = 14.sp) })
-        Column(Modifier.verticalScroll(rememberScrollState())) {
-            Group("Insights")
-            Entry(Icons.Outlined.Autorenew, "Subscriptions", "Payments that come again and again, and what they cost", openSubscriptions)
-            Entry(Icons.Outlined.CalendarMonth, "Review", "A month or a year against the one before", openReview)
-            HorizontalDivider(Modifier.padding(vertical = 8.dp))
-            Group("Setup")
-            Entry(Icons.Outlined.AccountBalance, "Accounts", "The bank accounts statements are imported into", openAccounts)
-            Entry(Icons.Outlined.Palette, "Categories", "Names and colours, everywhere they show", openCategories)
-            Entry(Icons.Outlined.Tag, "Tags", "Your own labels across categories", openTags)
-            Entry(Icons.AutoMirrored.Outlined.Rule, "Rules", "What sets each transaction's category, and what it counts as", openRules)
-            Entry(Icons.Outlined.Settings, "Settings", "Theme, app lock, budget alerts", openSettings)
-            HorizontalDivider(Modifier.padding(vertical = 8.dp))
-            Entry(Icons.Outlined.ManageAccounts, username, "Password, sessions, signing out", openAccount)
-            Text(
-                "Finance Insights $version",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(16.dp),
-            )
+        // On a tablet, a centred column rather than rows stretched across the screen.
+        ReadableColumn {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                Group("Insights")
+                Entry(Icons.Outlined.Autorenew, "Subscriptions", "Payments that come again and again, and what they cost", openSubscriptions)
+                Entry(Icons.Outlined.CalendarMonth, "Review", "A month or a year against the one before", openReview)
+                HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                Group("Setup")
+                Entry(Icons.Outlined.AccountBalance, "Accounts", "The bank accounts statements are imported into", openAccounts)
+                Entry(Icons.Outlined.Palette, "Categories", "Names and colours, everywhere they show", openCategories)
+                Entry(Icons.Outlined.Tag, "Tags", "Your own labels across categories", openTags)
+                Entry(Icons.AutoMirrored.Outlined.Rule, "Rules", "What sets each transaction's category, and what it counts as", openRules)
+                Entry(Icons.Outlined.Settings, "Settings", "Theme, app lock, budget alerts", openSettings)
+                HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                Entry(Icons.Outlined.ManageAccounts, username, "Password, sessions, signing out", openAccount)
+                Text(
+                    "Finance Insights $version",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(16.dp),
+                )
+            }
         }
     }
 }

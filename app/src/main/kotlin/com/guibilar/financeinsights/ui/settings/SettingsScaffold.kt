@@ -28,9 +28,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.guibilar.financeinsights.ui.common.FitText
+import com.guibilar.financeinsights.ui.common.READABLE_WIDTH
+import com.guibilar.financeinsights.ui.common.ReadableColumn
 import com.guibilar.financeinsights.ui.common.ShowMessages
 import com.guibilar.financeinsights.ui.common.UiMessage
 import com.guibilar.financeinsights.ui.common.rememberFabExpansion
@@ -48,6 +51,8 @@ fun SettingsScaffold(
     addLabel: String? = null,
     onAdd: () -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {},
+    /** On a tablet, the content is a centred column this wide at most (unbounded for a page that lays out its own). */
+    maxContentWidth: Dp = READABLE_WIDTH,
     content: @Composable () -> Unit,
 ) {
     val snackbar = remember { SnackbarHostState() }
@@ -60,7 +65,7 @@ fun SettingsScaffold(
                 navigationIcon = { if (onBack != null) IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back") } },
                 actions = actions,
             )
-            content()
+            ReadableColumn(maxContentWidth, content)
         }
         if (addLabel != null) {
             ExtendedFloatingActionButton(
