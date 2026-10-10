@@ -22,8 +22,11 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -57,7 +60,7 @@ fun StackedBarChart(
         modifier
             .fillMaxWidth()
             .height(height)
-            .semantics { contentDescription = description }
+            .barSemantics(description, labels, selected, onSelect)
             .pointerInput(labels, selected) {
                 detectTapGestures { offset ->
                     val plot = Rect(AxisWidth.toPx(), 0f, size.width.toFloat(), size.height.toFloat())
@@ -115,7 +118,7 @@ fun GroupedBarChart(
         modifier
             .fillMaxWidth()
             .height(height)
-            .semantics { contentDescription = description }
+            .barSemantics(description, labels, selected, onSelect)
             .pointerInput(labels, selected) {
                 detectTapGestures { offset ->
                     val plot = Rect(AxisWidth.toPx(), 0f, size.width.toFloat(), size.height.toFloat())
@@ -222,4 +225,24 @@ private fun DrawScope.roundedBar(color: Color, left: Float, top: Float, width: F
     if (height <= 0f || width <= 0f) return
     val radius = min(min(width / 2, height / 2), 4.dp.toPx())
     drawRoundRect(color, Offset(left, top), Size(width, height), CornerRadius(radius, radius))
+}
+
+/**
+ * The chart's summary, and a TalkBack action per bar ("Show Sep 2026"): picking a bar is otherwise a tap at a spot on
+ * the canvas, and what the picked one shows (its categories, its figures) is out of reach without one.
+ */
+private fun Modifier.barSemantics(
+    description: String,
+    labels: List<String>,
+    selected: Int?,
+    onSelect: (Int?) -> Unit,
+): Modifier = semantics {
+    contentDescription = description
+    selected?.let { labels.getOrNull(it) }?.let { stateDescription = "$it shown" }
+    customActions = labels.mapIndexed { i, label ->
+        CustomAccessibilityAction(if (i == selected) "Stop showing $label" else "Show $label") {
+            onSelect(if (i == selected) null else i)
+            true
+        }
+    }
 }

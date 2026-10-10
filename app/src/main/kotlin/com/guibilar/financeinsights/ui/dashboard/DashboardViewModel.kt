@@ -73,7 +73,8 @@ class DashboardViewModel(private val api: FinanceApi, private val today: () -> L
     private var loadJob: Job? = null
 
     fun refresh() {
-        _state.update { it.copy(refreshing = true) }
+        // After midnight into a new month the reports come back for it: "today" moves on with them.
+        _state.update { it.copy(refreshing = true, today = today()) }
         load()
     }
 

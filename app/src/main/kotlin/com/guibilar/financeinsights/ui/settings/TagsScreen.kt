@@ -1,5 +1,6 @@
 package com.guibilar.financeinsights.ui.settings
 
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -61,6 +62,10 @@ private fun usage(tag: Tag) = "${tag.transactionCount} ${if (tag.transactionCoun
 @Composable
 fun TagsScreen(model: TagsViewModel, contentPadding: PaddingValues, onBack: () -> Unit, openTransactions: (Tag) -> Unit) {
     val state by model.state.collectAsState()
+    LifecycleResumeEffect(model) {
+        model.resumed()
+        onPauseOrDispose {}
+    }
     val tags = state.valueOrNull.orEmpty()
     var editing by rememberOpenItem(tags) { it.id }
     var adding by rememberSaveable { mutableStateOf(false) }
@@ -181,8 +186,12 @@ private fun TagSheet(
                         failure = onSave(name)
                         saving = false
                         if (failure == null) {
-                            sheet.hide()
-                            onDismiss()
+                            // Closed even if the sheet leaves the screen while it slides away.
+                            try {
+                                sheet.hide()
+                            } finally {
+                                onDismiss()
+                            }
                         }
                     }
                 },

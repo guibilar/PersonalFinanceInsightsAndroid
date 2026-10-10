@@ -39,7 +39,14 @@ internal class TransactionsBreakdown(
         breakdownJob = scope.launch {
             val current = stateFlow.value
             val result = load("Could not total these transactions.") { api.breakdown(BreakdownInput.of(current.criteria, current.interval)) }
-            stateFlow.update { it.copy(breakdown = result, breakdownLoading = false) }
+            // A bar tapped on the old chart while this loaded named a period of the old one.
+            merchantsJob?.cancel()
+            stateFlow.update {
+                it.copy(
+                    breakdown = result, breakdownLoading = false,
+                    selectedPeriod = null, periodMerchants = emptyList(), periodMerchantCount = 0, loadingMerchants = false,
+                )
+            }
         }
     }
 

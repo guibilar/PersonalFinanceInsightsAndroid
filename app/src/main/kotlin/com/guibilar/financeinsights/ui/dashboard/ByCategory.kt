@@ -174,6 +174,15 @@ private fun CategoryAverages(report: CategorizedReport, today: LocalDate) {
     val colors = LocalChartColors.current
     val byName = report.categories.associateBy { it.name }
     val rows = categoryAverages(report, today)
+    if (rows.isEmpty()) {
+        Text(
+            "No month of the year is over yet to compare with.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(vertical = 8.dp),
+        )
+        return
+    }
     Text(
         averageCaption(report.monthlyData.map { it.month }, today),
         style = MaterialTheme.typography.bodySmall,

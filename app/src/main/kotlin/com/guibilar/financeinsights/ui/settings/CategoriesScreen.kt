@@ -1,5 +1,6 @@
 package com.guibilar.financeinsights.ui.settings
 
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -84,6 +85,10 @@ private fun usage(category: Category) =
 @Composable
 fun CategoriesScreen(model: CategoriesViewModel, contentPadding: PaddingValues, onBack: () -> Unit) {
     val state by model.state.collectAsState()
+    LifecycleResumeEffect(model) {
+        model.resumed()
+        onPauseOrDispose {}
+    }
     val categories = state.valueOrNull.orEmpty()
     // Saved, so a sheet stays open (with what was typed) when the phone rotates.
     var editing by rememberOpenItem(categories) { it.id }
@@ -227,8 +232,12 @@ private fun CategorySheet(
                         failure = onSave(CategoryInput(name.trim(), color))
                         saving = false
                         if (failure == null) {
-                            sheet.hide()
-                            onDismiss()
+                            // Closed even if the sheet leaves the screen while it slides away.
+                            try {
+                                sheet.hide()
+                            } finally {
+                                onDismiss()
+                            }
                         }
                     }
                 },
@@ -257,7 +266,9 @@ private fun CategorySheet(
 @Composable
 private fun DeleteCategoryDialog(category: Category, categories: List<Category>, onConfirm: (Category?) -> Unit, onDismiss: () -> Unit) {
     val targets = categories.filter { it.id != category.id }
-    var target by remember { mutableStateOf(targets.firstOrNull { it.isFallback } ?: targets.firstOrNull()) }
+    // By id, saved: the dialog stays open when the phone rotates, and so does the choice.
+    var targetId by rememberSaveable { mutableStateOf((targets.firstOrNull { it.isFallback } ?: targets.firstOrNull())?.id) }
+    val target = targets.firstOrNull { it.id == targetId }
     val inUse = category.transactionCount + category.ruleCount > 0
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -277,7 +288,7 @@ private fun DeleteCategoryDialog(category: Category, categories: List<Category>,
                             Row(
                                 Modifier
                                     .fillMaxWidth()
-                                    .selectable(selected = option.id == target?.id, role = Role.RadioButton) { target = option }
+                                    .selectable(selected = option.id == target?.id, role = Role.RadioButton) { targetId = option.id }
                                     .padding(vertical = 6.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {

@@ -7,9 +7,11 @@ import com.guibilar.financeinsights.core.api.ServerAddress
 import com.guibilar.financeinsights.core.api.apiCall
 import com.guibilar.financeinsights.core.api.createFinanceApi
 import com.guibilar.financeinsights.core.model.LoginInput
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.withContext
 
 sealed interface AuthState {
     /** Checking a stored session with the server. */
@@ -98,9 +100,13 @@ class Session(
     }
 
     suspend fun signOut() {
-        (_state.value as? AuthState.SignedIn)?.api?.let { api -> apiCall { api.logout() } }
-        jar.clear()
-        _state.value = AuthState.SignedOut()
+        // To the end even when the screen that asked goes away meanwhile (Back, another tab): cancelled halfway, the
+        // phone would stay signed in, cookie and all, after the person chose to sign out.
+        withContext(NonCancellable) {
+            (_state.value as? AuthState.SignedIn)?.api?.let { api -> apiCall { api.logout() } }
+            jar.clear()
+            _state.value = AuthState.SignedOut()
+        }
     }
 
     /** A call answered 401: the session ended elsewhere (signed out, password changed, expired). */

@@ -89,7 +89,7 @@ class TransactionActionsTest {
 
         assertNull(error)
         assertEquals(listOf("updateTransaction", "addCategoryRule", "applyRules"), api.sent.map { it.first })
-        assertEquals("Transaction updated. Rule “STARBUCKS” added and 3 other transactions updated", messages.single().text)
+        assertEquals("Transaction updated. Rule “STARBUCKS” added and 3 transactions updated by the rules", messages.single().text)
     }
 
     @Test

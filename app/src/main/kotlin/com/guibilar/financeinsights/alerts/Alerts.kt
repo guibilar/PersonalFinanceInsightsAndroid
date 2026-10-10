@@ -15,6 +15,7 @@ import androidx.core.content.edit
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
@@ -51,6 +52,7 @@ object Alerts {
     /** The work's name before it ran every alert, queued with a worker class that no longer exists. */
     private const val OLD_WORK = "budget-alerts"
     const val CHANNEL = "budgets"
+    private const val NOW_WORK = "alerts-now"
 
     private val online = Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
 
@@ -59,8 +61,9 @@ object Alerts {
     fun schedule(context: Context) {
         val work = WorkManager.getInstance(context)
         work.enqueueUniquePeriodicWork(WORK, ExistingPeriodicWorkPolicy.UPDATE, periodic())
-        // And once now, so turning them on shows a budget already past a threshold.
-        work.enqueue(OneTimeWorkRequestBuilder<AlertWorker>().setConstraints(online).build())
+        // And once now, so turning them on shows a budget already past a threshold. One at a time: switches turned on
+        // one after another would queue checks running together, each sending what the others haven't recorded yet.
+        work.enqueueUniqueWork(NOW_WORK, ExistingWorkPolicy.REPLACE, OneTimeWorkRequestBuilder<AlertWorker>().setConstraints(online).build())
     }
 
     /** On start: keeps the check queued while any alert is on, moving it off the old work name. */
@@ -128,6 +131,8 @@ object Alerts {
             .setSmallIcon(R.drawable.ic_stat_wallet)
             .setContentTitle(title)
             .setContentText(text)
+            // The same alert posted again (same id) replaces it quietly.
+            .setOnlyAlertOnce(true)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setContentIntent(open)
             .setAutoCancel(true)
@@ -165,6 +170,7 @@ object Alerts {
             .setSmallIcon(R.drawable.ic_stat_wallet)
             .setContentTitle(alert.title)
             .setContentText(alert.text)
+            .setOnlyAlertOnce(true)
             .setStyle(NotificationCompat.BigTextStyle().bigText(alert.text))
             .setContentIntent(open)
             .setAutoCancel(true)

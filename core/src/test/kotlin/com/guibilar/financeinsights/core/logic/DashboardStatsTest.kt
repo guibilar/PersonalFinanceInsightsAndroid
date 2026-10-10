@@ -66,6 +66,20 @@ class DashboardStatsTest {
     }
 
     @Test
+    fun `compares no category in January, with no month of the year over`() {
+        val year = report("Jan 2026" to mapOf("Groceries" to 300.0))
+        assertEquals(emptyList<CategoryAverage>(), categoryAverages(year, LocalDate.of(2026, 1, 20)))
+    }
+
+    @Test
+    fun `gives no percentage against nothing, or against refunds that outweighed the spending`() {
+        assertEquals(null, percentChange(100.0, null))
+        assertEquals(null, percentChange(100.0, 0.0))
+        assertEquals(null, percentChange(300.0, -200.0))
+        assertEquals(50.0, percentChange(150.0, 100.0)!!, 0.001)
+    }
+
+    @Test
     fun `formats money like the web app`() {
         assertEquals("$1,234.56", Money.format(1234.56))
         assertEquals("-$5.00", Money.format(-5.0))

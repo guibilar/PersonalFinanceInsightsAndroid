@@ -129,7 +129,8 @@ private fun CashFlowTable(report: CashFlowReport) {
             Text(month.month.take(3), Modifier.weight(1.1f), fontWeight = FontWeight.Medium)
             values.forEachIndexed { i, value ->
                 Text(
-                    Money.compact(value),
+                    // Hidden in privacy mode, the cell says so rather than going blank.
+                    Money.compact(value).ifEmpty { Money.HIDDEN },
                     Modifier.weight(1f),
                     textAlign = androidx.compose.ui.text.style.TextAlign.End,
                     color = if (i == 2 && value < 0) colors.negative else MaterialTheme.colorScheme.onSurface,

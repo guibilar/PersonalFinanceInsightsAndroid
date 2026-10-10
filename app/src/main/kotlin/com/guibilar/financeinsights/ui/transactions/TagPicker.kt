@@ -22,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -61,6 +62,9 @@ fun TagPicker(
     var error by remember { mutableStateOf<String?>(null) }
     val byId = tags.associateBy { it.id }
     val chosen = selected.mapNotNull { byId[it] }.sortedBy { it.name.lowercase() }
+    // A tag created by name lands after a request: tags picked meanwhile stay picked.
+    val latestSelected by rememberUpdatedState(selected)
+    val latestOnChange by rememberUpdatedState(onChange)
     val typed = tidyTagName(text)
     val match = tags.named(typed)
     val offered = tags.filter { it.id !in selected && (typed.isEmpty() || it.name.contains(typed, ignoreCase = true)) }.take(8)
@@ -82,7 +86,7 @@ fun TagPicker(
         scope.launch {
             onCreate(typed).fold(
                 onSuccess = {
-                    onChange(selected + it.id)
+                    latestOnChange(latestSelected + it.id)
                     text = ""
                 },
                 onFailure = { error = it.message },

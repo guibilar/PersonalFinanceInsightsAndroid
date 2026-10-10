@@ -39,6 +39,16 @@ class RecurringViewModel(private val api: FinanceApi) : ViewModel() {
         _refreshing.value = true
         reload()
     }
+
+    /** Back from a payment's transactions, another tab or the background: what changed there counts. */
+    fun resumed() {
+        if (!shown) {
+            shown = true
+            return
+        }
+        reload()
+    }
+    private var shown = false
 }
 
 /** A review: [period] (null: the last complete month), stepping back and forth. */
@@ -49,6 +59,9 @@ class ReviewViewModel(
 ) : ViewModel() {
     private val _state = MutableStateFlow<LoadState<ReviewReport>>(LoadState.Loading)
     val state: StateFlow<LoadState<ReviewReport>> = _state.asStateFlow()
+    /** Another period on its way: the one showing stays (dimmed), so the switcher keeps TalkBack's focus. */
+    private val _loading = MutableStateFlow(false)
+    val loading: StateFlow<Boolean> = _loading.asStateFlow()
     private var period: ReviewPeriod? = initial
     private var job: Job? = null
 
@@ -59,8 +72,12 @@ class ReviewViewModel(
     /** What the shown review is of, once it is here. */
     val shown: ReviewPeriod? get() = (_state.value as? LoadState.Loaded)?.value?.let { ReviewPeriod(it.year, it.month) }
 
-    fun previous() = shown?.step(-1, today(), earliest())
-    fun next() = shown?.step(1, today(), earliest())
+    fun previous() = from()?.step(-1, today(), earliest())
+    fun next() = from()?.step(1, today(), earliest())
+
+    // From the one shown (the API's answer), but while another is on its way from that one: two quick taps go
+    // two steps, not the same one twice.
+    private fun from() = if (_loading.value) period ?: shown else shown
 
     private fun earliest() = (_state.value as? LoadState.Loaded)?.value?.earliest
 
@@ -69,6 +86,22 @@ class ReviewViewModel(
         period = to
         reload()
     }
+
+    /** The review the screen opens on: the way out of a period that failed to load. */
+    fun latest() {
+        period = null
+        reload()
+    }
+
+    /** Back from Subscriptions, another tab or the background: what changed there counts. */
+    fun resumed() {
+        if (!resumedBefore) {
+            resumedBefore = true
+            return
+        }
+        reload()
+    }
+    private var resumedBefore = false
 
     /** The other kind of review over the same time: this month's year, or that year's last month there is. */
     fun switchTo(year: Boolean) {
@@ -79,9 +112,10 @@ class ReviewViewModel(
 
     fun reload() {
         job?.cancel()
-        _state.value = LoadState.Loading
+        if (_state.value is LoadState.Loaded) _loading.value = true else _state.value = LoadState.Loading
         job = viewModelScope.launch {
             _state.value = load("Could not load the review.") { api.review(period?.year, period?.month) }
+            _loading.value = false
         }
     }
 }

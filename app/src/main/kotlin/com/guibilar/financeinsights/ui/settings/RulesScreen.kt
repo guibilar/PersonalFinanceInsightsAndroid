@@ -1,5 +1,6 @@
 package com.guibilar.financeinsights.ui.settings
 
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -49,6 +50,10 @@ private const val APPLY_CONFIRMATION =
 @Composable
 fun RulesScreen(model: RulesViewModel, contentPadding: PaddingValues, onBack: () -> Unit) {
     val state by model.state.collectAsState()
+    LifecycleResumeEffect(model) {
+        model.resumed()
+        onPauseOrDispose {}
+    }
     var tab by rememberSaveable { mutableIntStateOf(0) }
     // Saved, so a sheet stays open (with what was typed) when the phone rotates.
     var editingRule by rememberOpenItem(state.rules.valueOrNull.orEmpty()) { it.id }

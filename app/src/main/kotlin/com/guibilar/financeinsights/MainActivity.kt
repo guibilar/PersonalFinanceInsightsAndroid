@@ -1,5 +1,7 @@
 package com.guibilar.financeinsights
 
+import androidx.compose.runtime.DisposableEffect
+import androidx.activity.SystemBarStyle
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -45,6 +47,15 @@ class MainActivity : FragmentActivity() {
                 ThemeChoice.System -> isSystemInDarkTheme()
                 ThemeChoice.Light -> false
                 ThemeChoice.Dark -> true
+            }
+            // The bars' icons follow the app's choice, not the phone's: dark icons on the app's dark background
+            // (the phone light, the app set to Dark) can't be read.
+            DisposableEffect(dark) {
+                enableEdgeToEdge(
+                    statusBarStyle = SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT) { dark },
+                    navigationBarStyle = SystemBarStyle.auto(LIGHT_SCRIM, DARK_SCRIM) { dark },
+                )
+                onDispose {}
             }
             FinanceTheme(darkTheme = dark, dynamicColor = dynamicColor) {
                 FinanceRoot(app.session, app.sharedStatement, app.quickAction, app.lock, app.preferences)
@@ -116,3 +127,7 @@ class MainActivity : FragmentActivity() {
         const val ACTION_IMPORT = "com.guibilar.financeinsights.IMPORT"
     }
 }
+
+// The scrims androidx.activity uses for 3-button navigation by default.
+private val LIGHT_SCRIM = android.graphics.Color.argb(0xe6, 0xFF, 0xFF, 0xFF)
+private val DARK_SCRIM = android.graphics.Color.argb(0x80, 0x1b, 0x1b, 0x1b)
