@@ -3,7 +3,6 @@ package com.guibilar.financeinsights.ui
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.isSelectable
@@ -25,7 +24,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** The settings, the lock, and the wide-screen layout (rail, list beside the transaction). */
+/** The settings, the lock, and the tabs on a narrow phone. (The tablet layouts are in TabletLayoutTest.) */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class FeaturesScreenshotTest {
@@ -69,16 +68,5 @@ class FeaturesScreenshotTest {
         compose.waitForIdle()
         compose.onNodeWithText("Home").assertExists()
         shoot("tabs-net-worth")
-    }
-
-    @Test
-    @Config(qualifiers = "w1280dp-h800dp-land-mdpi")
-    fun tabletTransactionBesideTheList() {
-        show { MainScreen(FakeFinanceApi(), account, {}) }
-        compose.onNodeWithText("Transactions").performClick()
-        compose.waitForIdle()
-        compose.onNode(hasContentDescription("NO FRILLS #3121", substring = true)).performClick()
-        compose.onNodeWithText("Counts as").assertExists()
-        shoot("tablet-two-pane")
     }
 }

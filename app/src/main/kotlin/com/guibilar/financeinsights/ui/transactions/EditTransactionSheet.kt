@@ -97,12 +97,11 @@ fun EditTransactionSheet(
 }
 
 /**
- * What [EditTransactionSheet] shows, also shown beside the list on a wide screen. [onClose] runs once it is saved,
- * linked or deleted.
+ * What [EditTransactionSheet] shows. [onClose] runs once it is saved, linked or deleted.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun EditTransaction(
+private fun EditTransaction(
     transaction: Transaction,
     categories: List<CategoryReference>,
     budgets: List<Budget>,

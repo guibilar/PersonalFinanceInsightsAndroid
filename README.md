@@ -32,8 +32,7 @@ Five tabs: Home, Transactions, Budgets, Net worth and More.
   see that period. "Where it went" lists the merchants, more on request.
 
   Tap a transaction to correct its description, category (optionally adding a rule so similar ones follow), what
-  it counts as, its note and tags, or to link it to a budget. On a tablet or an unfolded phone it opens beside the
-  list. Swipe a row:
+  it counts as, its note and tags, or to link it to a budget. Swipe a row:
   - left to delete it, with Undo; deleted ones can be restored from the ⋮ menu;
   - right to change its category.
 
@@ -68,9 +67,9 @@ Five tabs: Home, Transactions, Budgets, Net worth and More.
 From a small tablet's width (or a phone on its side) the tabs are a rail at the side. On a tablet:
 
 - Home's cards sit in two columns, under the four headline tiles in one row;
-- Transactions keep a pane beside the list, where a tapped transaction opens;
+- Transactions are a centred list, a tapped one opening over it as on a phone;
 - Budgets are cards side by side;
-- Net worth shows the totals and the months beside each account's balance;
+- Net worth's figures are tiles in a row, over cards for the months and the accounts;
 - More, Settings and the setup pages are a centred column rather than rows across the whole screen.
 
 ## Reaching the server
