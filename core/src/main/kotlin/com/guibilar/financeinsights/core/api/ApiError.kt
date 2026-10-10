@@ -15,7 +15,10 @@ import java.io.IOException
  */
 sealed class ApiError(message: String) : Exception(message) {
     /** No answer: offline, Tailscale off, or the wrong address. */
-    class Unreachable(cause: IOException) : ApiError("Can't reach the server. Check your connection and that Tailscale is on.") {
+    class Unreachable(
+        cause: IOException,
+        message: String = "Can't reach the server. Check your connection and that Tailscale is on.",
+    ) : ApiError(message) {
         init {
             initCause(cause)
         }
@@ -62,7 +65,13 @@ sealed class ApiError(message: String) : Exception(message) {
             is ApiError -> error
             is kotlin.coroutines.cancellation.CancellationException -> throw error
             is HttpException -> fromResponse(error.code(), error.response()?.errorBody()?.string())
-            is IOException -> Unreachable(error)
+            // Android refuses http:// (cleartext) by default: said as such, not as a connection problem.
+            is IOException ->
+                if (error is java.net.UnknownServiceException && error.message.orEmpty().contains("CLEARTEXT", ignoreCase = true)) {
+                    Unreachable(error, "This address starts with http://. The app only connects to https:// addresses.")
+                } else {
+                    Unreachable(error)
+                }
             else -> Unexpected(error)
         }
 

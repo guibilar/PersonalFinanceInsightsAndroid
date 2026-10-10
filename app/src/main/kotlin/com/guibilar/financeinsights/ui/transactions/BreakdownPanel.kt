@@ -254,7 +254,10 @@ private fun Merchants(state: TransactionsState, model: TransactionsViewModel, co
                 Text(if (state.loadingMerchants) "Loading…" else "Show ${minOf(left, TransactionsViewModel.MERCHANTS_PAGE_SIZE)} more")
             }
         }
-        if (state.moreMerchants.isNotEmpty()) TextButton(onClick = model::showFewerMerchants) { Text("Show fewer") }
+        // For a bar picked, its own merchants beyond the first page; otherwise the whole range's.
+        val expanded = if (state.period != null) state.periodMerchants.size > TransactionsViewModel.MERCHANTS_PAGE_SIZE
+        else state.moreMerchants.isNotEmpty()
+        if (expanded) TextButton(onClick = model::showFewerMerchants) { Text("Show fewer") }
     }
     Text(
         if (state.merchantsFailed) "Could not load more. Try again." else "${merchants.size} of ${merchants.size + left} places",

@@ -69,7 +69,8 @@ fun SignInScreen(
     // Not saved with the screen's state (which can be written to disk); re-typed after the app is restarted.
     var password by remember { mutableStateOf("") }
     var showPassword by rememberSaveable { mutableStateOf(false) }
-    var error by remember { mutableStateOf(initialMessage) }
+    // Saved: a wrong password said, then the phone rotated, still says so.
+    var error by rememberSaveable { mutableStateOf(initialMessage) }
     var busy by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val focus = LocalFocusManager.current

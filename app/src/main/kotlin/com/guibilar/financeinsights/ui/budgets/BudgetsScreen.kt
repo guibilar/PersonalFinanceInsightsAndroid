@@ -189,7 +189,8 @@ fun BudgetsScreen(model: BudgetsViewModel, account: AccountInfo, onSignOut: susp
             icon = { Icon(Icons.Outlined.Add, null) },
             text = { Text("New budget") },
             expanded = fab.expanded,
-            modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+            // Collapsed (after a scroll) it shows only the icon: TalkBack still says what it adds.
+            modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp).semantics { contentDescription = "New budget" },
         )
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(bottom = 72.dp))
     }

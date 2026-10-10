@@ -1,5 +1,6 @@
 package com.guibilar.financeinsights.ui.settings
 
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -112,6 +113,10 @@ fun parseBalance(text: String): Double? {
 @Composable
 fun AccountsScreen(model: AccountsViewModel, contentPadding: PaddingValues, onBack: () -> Unit) {
     val state by model.state.collectAsState()
+    LifecycleResumeEffect(model) {
+        model.resumed()
+        onPauseOrDispose {}
+    }
     val accounts = state.valueOrNull.orEmpty()
     // Saved, so a sheet stays open (with what was typed) when the phone rotates.
     var editing by rememberOpenItem(accounts) { it.id }
@@ -236,9 +241,15 @@ private fun AccountSheet(
     var type by rememberSaveable { mutableStateOf(account?.type ?: AccountType.Chequing) }
     var format by rememberSaveable { mutableStateOf(account?.format ?: StatementFormat.Cibc) }
     var plan by rememberSaveable { mutableStateOf(account?.plan ?: RegisteredPlan.None) }
-    var room by rememberSaveable { mutableStateOf(account?.contributionRoom?.let { Money.plain(it) } ?: "") }
     val thisYear = remember { java.time.LocalDate.now().year }
-    var roomYear by rememberSaveable { mutableStateOf((account?.contributionRoomYear ?: thisYear).toString()) }
+    // Last year's room is no use this year: the field asks for this year's (left empty, the old one stays as it is).
+    val roomIsOld = (account?.contributionRoomYear ?: thisYear) < thisYear
+    var room by rememberSaveable {
+        mutableStateOf(if (roomIsOld) "" else account?.contributionRoom?.let { Money.plain(it) } ?: "")
+    }
+    var roomYear by rememberSaveable {
+        mutableStateOf((if (roomIsOld) thisYear else account?.contributionRoomYear ?: thisYear).toString())
+    }
     val hasPlan = type.holdsSavings && plan != RegisteredPlan.None
     val roomError = when {
         !hasPlan || room.isBlank() -> null
@@ -328,8 +339,12 @@ private fun AccountSheet(
                         )
                         saving = false
                         if (failure == null) {
-                            sheet.hide()
-                            onDismiss()
+                            // Closed even if the sheet leaves the screen while it slides away.
+                            try {
+                                sheet.hide()
+                            } finally {
+                                onDismiss()
+                            }
                         }
                     }
                 },
@@ -370,6 +385,7 @@ private fun BalancesSheet(account: Account, model: AccountsViewModel, onDismiss:
     var amount by rememberSaveable { mutableStateOf("") }
     var saving by remember { mutableStateOf(false) }
     var failure by remember { mutableStateOf<String?>(null) }
+    var deletingId by rememberSaveable { mutableStateOf<String?>(null) }
     suspend fun refresh() {
         val loaded = model.balances(account)
         balances = loaded ?: balances
@@ -431,14 +447,26 @@ private fun BalancesSheet(account: Account, model: AccountsViewModel, onDismiss:
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(formatDay(balance.day), Modifier.weight(1f))
                         Text(Money.format(balance.amount), fontWeight = FontWeight.Medium)
-                        IconButton(onClick = {
-                            scope.launch {
-                                failure = model.deleteBalance(account, balance)
-                                refresh()
-                            }
-                        }) { Icon(Icons.Outlined.Delete, "Delete the balance of ${formatDay(balance.day)}") }
+                        // Asked first, as on the web: a balance deleted can't be brought back.
+                        IconButton(onClick = { deletingId = balance.id }) {
+                            Icon(Icons.Outlined.Delete, "Delete the balance of ${formatDay(balance.day)}")
+                        }
                     }
                 }
+            }
+            balances?.firstOrNull { it.id == deletingId }?.let { balance ->
+                ConfirmDelete(
+                    "Delete this balance?",
+                    "The balance of ${formatDay(balance.day)}, ${Money.format(balance.amount)}, is deleted.",
+                    onConfirm = {
+                        deletingId = null
+                        scope.launch {
+                            failure = model.deleteBalance(account, balance)
+                            refresh()
+                        }
+                    },
+                    onDismiss = { deletingId = null },
+                )
             }
             Spacer(Modifier.height(8.dp))
         }

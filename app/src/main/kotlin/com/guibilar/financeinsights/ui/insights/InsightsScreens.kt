@@ -1,5 +1,7 @@
 package com.guibilar.financeinsights.ui.insights
 
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import androidx.compose.material3.TextButton
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -70,6 +72,10 @@ import kotlinx.coroutines.flow.emptyFlow
 fun RecurringScreen(model: RecurringViewModel, contentPadding: PaddingValues, onBack: () -> Unit, openTransactions: (String) -> Unit) {
     val state by model.state.collectAsState()
     val refreshing by model.refreshing.collectAsState()
+    LifecycleResumeEffect(model) {
+        model.resumed()
+        onPauseOrDispose {}
+    }
     SettingsScaffold("Subscriptions", onBack, contentPadding, emptyFlow()) {
         PullToRefreshBox(isRefreshing = refreshing, onRefresh = model::refresh, modifier = Modifier.fillMaxSize()) {
             when (val current = state) {
@@ -208,11 +214,22 @@ private fun Badge(text: String, background: Color, foreground: Color) {
 @Composable
 fun ReviewScreen(model: ReviewViewModel, contentPadding: PaddingValues, onBack: () -> Unit, openSubscriptions: () -> Unit) {
     val state by model.state.collectAsState()
+    val loading by model.loading.collectAsState()
+    LifecycleResumeEffect(model) {
+        model.resumed()
+        onPauseOrDispose {}
+    }
     SettingsScaffold("Review", onBack, contentPadding, emptyFlow()) {
         when (val current = state) {
             LoadState.Loading -> Box(Modifier.padding(16.dp)) { Skeleton(lines = 8, lineHeight = 28.dp) }
-            is LoadState.Failed -> ErrorState(current.message, model::reload)
-            is LoadState.Loaded -> ReviewContent(current.value, model, openSubscriptions)
+            is LoadState.Failed -> Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                ErrorState(current.message, model::reload)
+                // The period itself may be what failed: a way back that doesn't ask for it again.
+                TextButton(onClick = model::latest) { Text("Back to the latest month") }
+            }
+            is LoadState.Loaded -> Box(Modifier.alpha(if (loading) 0.6f else 1f)) {
+                ReviewContent(current.value, model, openSubscriptions)
+            }
         }
     }
 }

@@ -138,7 +138,7 @@ class InsightsTest {
             listOf("addCategoryRule" to CategoryRuleInput("FARMERS FRIDGE", dining.id), "applyRules" to null),
             api.sent,
         )
-        assertEquals(listOf("Rule “FARMERS FRIDGE” added: 3 transactions now in Dining"), messages)
+        assertEquals(listOf("Rule “FARMERS FRIDGE” added for Dining: 3 transactions updated by the rules"), messages)
     }
 
     @Test
@@ -175,6 +175,21 @@ class InsightsTest {
         assertEquals(25 to Flow.Transfer, sent.transactionIds.size to sent.flow)
         assertTrue(model.state.value.selected.isEmpty())
         assertEquals(listOf("Updated 25 transactions"), messages)
+    }
+
+    @Test
+    fun `a bulk change over 500 transactions goes in batches the API takes`() = runTest(dispatcher) {
+        val model = TransactionsViewModel(api, TransactionsRoute()) { today }
+        val messages = collect(model.messages)
+        advanceUntilIdle()
+        (1..1200).forEach { model.toggleSelected("t$it") }
+
+        model.bulk(TransactionBulkUpdate(emptyList(), flow = Flow.Transfer))
+        advanceUntilIdle()
+
+        val batches = api.sent.filter { it.first == "bulkUpdate" }.map { (it.second as TransactionBulkUpdate).transactionIds.size }
+        assertEquals(listOf(500, 500, 200), batches)
+        assertEquals(listOf("Updated 1200 transactions"), messages)
     }
 
     @Test

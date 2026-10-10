@@ -1,5 +1,6 @@
 package com.guibilar.financeinsights.ui.settings
 
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -53,6 +54,10 @@ fun sinceLastMonth(report: NetWorthReport): Double? {
 @Composable
 fun NetWorthScreen(model: NetWorthViewModel, contentPadding: PaddingValues, onBack: (() -> Unit)?, openAccounts: () -> Unit) {
     val state by model.state.collectAsState()
+    LifecycleResumeEffect(model) {
+        model.resumed()
+        onPauseOrDispose {}
+    }
     SettingsScaffold("Net worth", onBack, contentPadding, model.messages) {
         when (val current = state) {
             LoadState.Loading -> Box(Modifier.padding(16.dp)) { Skeleton(lines = 6, lineHeight = 28.dp) }
@@ -151,7 +156,13 @@ private fun AccountLine(account: NetWorthAccount, openAccounts: () -> Unit) {
             Modifier.weight(1f).clearAndSetSemantics {
                 contentDescription = listOfNotNull(
                     account.name, kind,
-                    balance?.let { (if (account.isLiability) "owes " else "") + Money.format(it) } ?: "no balance yet", note,
+                    balance?.let {
+                        when {
+                            account.isLiability && it < 0 -> "credit of ${Money.format(-it)}"
+                            account.isLiability -> "owes ${Money.format(it)}"
+                            else -> Money.format(it)
+                        }
+                    } ?: "no balance yet", note,
                 ).joinToString(", ")
             },
             verticalAlignment = Alignment.CenterVertically,
@@ -162,10 +173,16 @@ private fun AccountLine(account: NetWorthAccount, openAccounts: () -> Unit) {
             }
             if (balance != null) {
                 Column(horizontalAlignment = Alignment.End) {
+                    // A card's balance is what it owes; below zero (overpaid, a refund) it's a credit.
+                    val credit = account.isLiability && balance < 0
                     Text(
-                        (if (account.isLiability) "−" else "") + Money.format(balance),
+                        when {
+                            credit -> "${Money.format(-balance)} credit"
+                            account.isLiability -> "−" + Money.format(balance)
+                            else -> Money.format(balance)
+                        },
                         fontWeight = FontWeight.SemiBold,
-                        color = if (account.isLiability) colors.negative else MaterialTheme.colorScheme.onSurface,
+                        color = if (account.isLiability && !credit) colors.negative else MaterialTheme.colorScheme.onSurface,
                     )
                     note?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 }

@@ -28,6 +28,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -62,37 +63,51 @@ fun AppSettingsScreen(preferences: AppPreferences, lock: AppLock?, contentPaddin
     val importReminders by preferences.importReminders.collectAsState()
     val hideWidget by preferences.hideWidgetAmounts.collectAsState()
     val hideAmounts by preferences.hideAmounts.collectAsState()
-    // Checked again on coming back, a screen lock just set up in the phone's settings.
+    var alertsNote by remember { mutableStateOf<String?>(null) }
+    val blockedNote = "Notifications are off for this app. Allow them in the phone's settings to get these."
+    // Checked again on coming back: a screen lock just set up in the phone's settings, or notifications turned off
+    // there while a switch here still reads On.
     var lockAvailable by remember { mutableStateOf(canAuthenticate(context)) }
     LifecycleResumeEffect(Unit) {
         lockAvailable = canAuthenticate(context)
+        if (preferences.anyAlerts && !Alerts.canNotify(context)) alertsNote = blockedNote
         onPauseOrDispose {}
     }
-    var alertsNote by remember { mutableStateOf<String?>(null) }
+    // Each notification switch, by a key that survives the phone rotating while the permission is asked for.
+    val setters = remember(preferences) {
+        mapOf<String, (Boolean) -> Unit>(
+            "budgets" to preferences::setBudgetAlerts,
+            "prices" to preferences::setPriceAlerts,
+            "review" to preferences::setMonthlyReview,
+            "imports" to preferences::setImportReminders,
+        )
+    }
     // The notification switched on while the permission was asked for.
-    var waiting by remember { mutableStateOf<((Boolean) -> Unit)?>(null) }
+    var waiting by rememberSaveable { mutableStateOf<String?>(null) }
 
     fun apply(set: (Boolean) -> Unit, on: Boolean) {
         set(on)
         Alerts.reschedule(context, preferences)
     }
     val askToNotify = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        val set = waiting
+        val set = waiting?.let(setters::get)
         waiting = null
         if (granted) {
             alertsNote = null
             set?.let { apply(it, true) }
         } else {
-            alertsNote = "Notifications are off for this app. Allow them in the phone's settings to get these."
+            alertsNote = blockedNote
         }
     }
     /** Turns a notification on (asking for the permission first, if need be) or off. */
-    fun switch(set: (Boolean) -> Unit, on: Boolean) {
+    fun switch(key: String, on: Boolean) {
+        val set = setters.getValue(key)
         if (on && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !Alerts.canNotify(context)) {
-            waiting = set
+            waiting = key
             askToNotify.launch(Manifest.permission.POST_NOTIFICATIONS)
         } else {
-            alertsNote = null
+            // Before Android 13 nothing is asked: notifications blocked in the phone's settings are said so.
+            alertsNote = if (on && !Alerts.canNotify(context)) blockedNote else null
             apply(set, on)
         }
     }
@@ -126,7 +141,8 @@ fun AppSettingsScreen(preferences: AppPreferences, lock: AppLock?, contentPaddin
                 if (lockAvailable) "Ask for a fingerprint, face or the phone's PIN on opening, and after a minute away."
                 else "Set up a screen lock on the phone first.",
                 locking,
-                enabled = lockAvailable,
+                // On with the phone's screen lock since removed: it can still be turned off here.
+                enabled = lockAvailable || locking,
             ) { on ->
                 val activity = hostActivity as? FragmentActivity
                 if (!on) {
@@ -162,22 +178,22 @@ fun AppSettingsScreen(preferences: AppPreferences, lock: AppLock?, contentPaddin
                 "Budget alerts",
                 "A notification when a budget passes 80% and when it's used up, once each period. Checked every few hours.",
                 alerts,
-            ) { switch(preferences::setBudgetAlerts, it) }
+            ) { switch("budgets", it) }
             SwitchRow(
                 "Subscription price changes",
                 "A notification when a subscription or bill with a fixed price starts charging a different amount.",
                 priceAlerts,
-            ) { switch(preferences::setPriceAlerts, it) }
+            ) { switch("prices", it) }
             SwitchRow(
                 "Monthly review",
                 "Early each month, the month before: what was spent against the month before it, and where most went.",
                 monthlyReview,
-            ) { switch(preferences::setMonthlyReview, it) }
+            ) { switch("review", it) }
             SwitchRow(
                 "Import reminders",
                 "A notification when no statement has been imported for more than a week, and once a week after that until one is.",
                 importReminders,
-            ) { switch(preferences::setImportReminders, it) }
+            ) { switch("imports", it) }
             alertsNote?.let {
                 Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(horizontal = 16.dp))
             }

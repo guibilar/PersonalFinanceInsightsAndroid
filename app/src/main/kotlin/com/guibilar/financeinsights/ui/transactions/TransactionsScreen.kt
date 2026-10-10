@@ -1,5 +1,7 @@
 package com.guibilar.financeinsights.ui.transactions
 
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -322,7 +324,8 @@ fun TransactionsScreen(
                     icon = { Icon(Icons.Outlined.Add, null) },
                     text = { Text("Add") },
                     expanded = fab.expanded,
-                    modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+                    // Collapsed (after a scroll) it shows only the icon: TalkBack still says what it adds.
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp).semantics { contentDescription = "Add transaction" },
                 )
             }
             SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(bottom = if (state.showDeleted) 0.dp else FAB_CLEARANCE))
@@ -336,8 +339,9 @@ fun TransactionsScreen(
                         Text("Transaction", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                         IconButton(onClick = { opened = null }) { Icon(Icons.Outlined.Close, "Close") }
                     }
-                    // A new transaction picked starts its own edits.
-                    key(paneTransaction.id) {
+                    // A new transaction picked starts its own edits, and so does a new copy of this one (changed by a
+                    // bulk edit or the rules while open): edits started from the old one would put its values back.
+                    key(paneTransaction) {
                         EditTransaction(
                             transaction = paneTransaction,
                             categories = state.categories.map { it.reference },

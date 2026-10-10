@@ -226,8 +226,13 @@ fun BudgetFormSheet(
                         error = onSave(input)
                         saving = false
                         if (error == null) {
-                            sheet.hide()
-                            onDismiss()
+                            // Closed even if the sheet leaves the screen while it slides away (the reload after a
+                            // save can take it), or its item stays open, to come back by itself.
+                            try {
+                                sheet.hide()
+                            } finally {
+                                onDismiss()
+                            }
                         }
                     }
                 },

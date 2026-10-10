@@ -1,5 +1,7 @@
 package com.guibilar.financeinsights.ui.settings
 
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -66,7 +68,8 @@ fun SettingsScaffold(
                 icon = { Icon(Icons.Outlined.Add, null) },
                 text = { Text(addLabel) },
                 expanded = fab.expanded,
-                modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+                // Collapsed (after a scroll) it shows only the icon: TalkBack still says what it adds.
+                modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp).semantics { contentDescription = addLabel },
             )
         }
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(bottom = if (addLabel != null) 72.dp else 0.dp))

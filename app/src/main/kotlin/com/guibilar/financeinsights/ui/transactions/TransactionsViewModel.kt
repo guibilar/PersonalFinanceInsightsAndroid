@@ -58,6 +58,7 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
@@ -137,7 +138,7 @@ class TransactionsViewModel(
     }
 
     /** Adds a tag from the edit sheet, by a name no tag has yet; the tag, or why not (a 409 says the name is taken). */
-    suspend fun createTag(name: String): Result<Tag> {
+    private suspend fun createTagNow(name: String): Result<Tag> {
         val result = apiCall { api.addTag(TagInput(name)) }
         val error = result.apiError ?: run {
             val tag = result.getOrThrow()
@@ -192,8 +193,22 @@ class TransactionsViewModel(
         breakdown.reload()
     }
 
+    /**
+     * The sheets' saves (add, edit, link, unlink, a new tag) run in the view model's scope, not the sheet's: closing
+     * the sheet (or rotating) while one is on its way cancels the waiting, not the save, so the list still reloads
+     * and says what happened.
+     */
+    suspend fun add(input: TransactionInput): AddOutcome = outlivingSheet { addNow(input) }
+    suspend fun saveEdit(transaction: Transaction, update: TransactionUpdate, rule: CategoryRuleInput?): String? =
+        outlivingSheet { saveEditNow(transaction, update, rule) }
+    suspend fun link(transaction: Transaction, budget: Budget): String? = outlivingSheet { linkNow(transaction, budget) }
+    suspend fun unlink(transaction: Transaction): String? = outlivingSheet { unlinkNow(transaction) }
+    suspend fun createTag(name: String): Result<Tag> = outlivingSheet { createTagNow(name) }
+
+    private suspend fun <T> outlivingSheet(block: suspend () -> T): T = viewModelScope.async { block() }.await()
+
     /** Adds a transaction by hand; [TransactionInput.allowDuplicate] adds it although an identical one exists. */
-    suspend fun add(input: TransactionInput): AddOutcome {
+    private suspend fun addNow(input: TransactionInput): AddOutcome {
         val result = apiCall { api.addTransaction(input) }
         val error = result.apiError ?: run {
             val added = result.getOrThrow()
@@ -210,7 +225,7 @@ class TransactionsViewModel(
      * Saves an edit. With [rule], similar transactions follow: the rule goes first, then the rules are applied,
      * with one message for it all. The transaction is saved either way; null when that failed (the message says why).
      */
-    suspend fun saveEdit(transaction: Transaction, update: TransactionUpdate, rule: CategoryRuleInput?): String? {
+    private suspend fun saveEditNow(transaction: Transaction, update: TransactionUpdate, rule: CategoryRuleInput?): String? {
         val saved = apiCall { api.updateTransaction(transaction.id, update) }
         saved.apiError?.let { return it.validationOr(it.loadMessage("Could not update the transaction.")) }
         if (rule == null) {
@@ -226,7 +241,8 @@ class TransactionsViewModel(
         val updated = applied.getOrNull()?.updated
         changed(
             if (updated == null) "Transaction updated and rule “${rule.keyword}” added, but the rules could not be applied."
-            else "Transaction updated. Rule “${rule.keyword}” added and $updated other ${if (updated == 1) "transaction" else "transactions"} updated",
+            // Applying runs every rule: the count is all it changed, not only transactions like this one.
+            else "Transaction updated. Rule “${rule.keyword}” added and $updated ${if (updated == 1) "transaction" else "transactions"} updated by the rules",
         )
         return null
     }
@@ -256,14 +272,14 @@ class TransactionsViewModel(
     }
 
     /** Links it to a budget; null when done, or why not (the budget was closed meanwhile, say). */
-    suspend fun link(transaction: Transaction, budget: Budget): String? {
+    private suspend fun linkNow(transaction: Transaction, budget: Budget): String? {
         val result = apiCall { api.linkTransaction(TransactionLink(transaction.id, budget.id)) }
         result.apiError?.let { return it.conflictOr(it.loadMessage("Could not link the transaction.")) }
         changed("Linked to “${budget.name}”")
         return null
     }
 
-    suspend fun unlink(transaction: Transaction): String? {
+    private suspend fun unlinkNow(transaction: Transaction): String? {
         val result = apiCall { api.unlinkTransaction(transaction.id) }
         result.apiError?.let { return it.loadMessage("Could not unlink the transaction.") }
         changed("Transaction unlinked")
@@ -313,15 +329,24 @@ class TransactionsViewModel(
         val ids = _state.value.selected.toList()
         if (ids.isEmpty()) return
         viewModelScope.launch {
-            val result = apiCall { api.bulkUpdate(change.copy(transactionIds = ids)) }
-            val error = result.apiError
-            if (error == null) {
+            // The API takes up to 500 at a time; "Select all" after scrolling far can tick more.
+            var updated = 0
+            val notes = mutableListOf<String>()
+            for (chunk in ids.chunked(BULK_LIMIT)) {
+                val result = apiCall { api.bulkUpdate(change.copy(transactionIds = chunk)) }
+                val error = result.apiError
+                if (error != null) {
+                    val why = error.conflictOr(error.validationOr(error.loadMessage("Could not change the transactions.")))
+                    // Earlier batches went through: the list shows them, and the message says how far it got.
+                    if (updated > 0) changed("Updated $updated, then stopped: $why") else _messages.trySend(UiMessage(why))
+                    return@launch
+                }
                 val done = result.getOrThrow()
-                clearSelection()
-                changed((listOf("Updated ${done.updated} ${if (done.updated == 1) "transaction" else "transactions"}") + done.notes).joinToString(". "))
-            } else {
-                _messages.trySend(UiMessage(error.conflictOr(error.validationOr(error.loadMessage("Could not change the transactions.")))))
+                updated += done.updated
+                notes += done.notes
             }
+            clearSelection()
+            changed((listOf("Updated $updated ${if (updated == 1) "transaction" else "transactions"}") + notes.distinct()).joinToString(". "))
         }
     }
 
@@ -423,7 +448,9 @@ class TransactionsViewModel(
     fun toggleBreakdown() = _state.update { it.copy(breakdownOpen = !it.breakdownOpen) }
 
     fun setInterval(interval: BreakdownInterval) {
-        if (interval == _state.value.interval) return
+        // Against the interval shown (the API may chart a long range by a longer one), not only the one asked for.
+        val shown = _state.value.breakdown.valueOrNull?.interval ?: _state.value.interval
+        if (interval == _state.value.interval && interval == shown) return
         _state.update { it.copy(interval = interval) }
         breakdown.reload()
     }
@@ -431,7 +458,8 @@ class TransactionsViewModel(
     /** A period of the chart: list just its transactions, a step closer (a month's weeks, a year's months). */
     fun showPeriod(period: BreakdownPeriod) {
         _state.update { it.copy(interval = closer(it.breakdown.valueOrNull?.interval ?: it.interval)) }
-        setCriteria { copy(startDate = period.start.take(10), endDate = period.end.take(10)) }
+        // The range may already be just that period ("Last month" by month): only the closer look changes then.
+        if (!changeCriteria { copy(startDate = period.start.take(10), endDate = period.end.take(10)) }) breakdown.reload()
     }
 
     fun retryBreakdown() = breakdown.reload()
@@ -448,12 +476,18 @@ class TransactionsViewModel(
 
 
     private fun setCriteria(change: TransactionCriteria.() -> TransactionCriteria) {
+        changeCriteria(change)
+    }
+
+    /** Applies new criteria; false when they are the same, and nothing was loaded again. */
+    private fun changeCriteria(change: TransactionCriteria.() -> TransactionCriteria): Boolean {
         val before = _state.value.criteria
         val after = before.change()
-        if (after == before) return
+        if (after == before) return false
         _state.update { it.copy(criteria = after) }
         reloadList()
         breakdown.reload()
+        return true
     }
 
     /** The first page again; the old rows stay (dimmed in the UI) until it arrives, unless [clear]. */
@@ -486,6 +520,9 @@ class TransactionsViewModel(
             .copy(hidden = if (state.showDeleted) true else null)
 
     companion object {
+        /** The most transactions one bulk change takes (the API's limit). */
+        const val BULK_LIMIT = 500
+
         const val PAGE_SIZE = 50
         const val MERCHANTS_PAGE_SIZE = 8
         const val SEARCH_DEBOUNCE_MS = 350L

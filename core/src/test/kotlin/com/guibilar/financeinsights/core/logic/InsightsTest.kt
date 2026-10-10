@@ -25,6 +25,13 @@ class InsightsTest {
     }
 
     @Test
+    fun `a review stops at 2000 when there is no data to stop at`() {
+        assertNull(ReviewPeriod(2000, 1).step(-1, today, null))
+        assertNull(ReviewPeriod(2000, null).step(-1, today, null))
+        assertEquals(ReviewPeriod(2000, 1), ReviewPeriod(2000, 2).step(-1, today, null))
+    }
+
+    @Test
     fun `a year review steps a year at a time, a year with any data being there`() {
         assertEquals(ReviewPeriod(2025, null), ReviewPeriod(2026, null).step(-1, today, "2025-11"))
         assertNull(ReviewPeriod(2025, null).step(-1, today, "2025-11"))

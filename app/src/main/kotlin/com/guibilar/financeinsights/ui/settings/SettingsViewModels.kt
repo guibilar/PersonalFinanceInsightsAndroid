@@ -27,6 +27,7 @@ import com.guibilar.financeinsights.core.model.UncategorisedReport
 import com.guibilar.financeinsights.ui.common.LoadState
 import com.guibilar.financeinsights.ui.common.UiMessage
 import com.guibilar.financeinsights.ui.common.load
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -45,15 +46,43 @@ abstract class SettingsViewModel : ViewModel() {
         _messages.trySend(UiMessage(text))
     }
 
-    /** Runs a change; null when done (after [then]), or what to tell the person: the API's 409 or 400 reason first. */
-    protected suspend fun change(fallback: String, call: suspend () -> Unit, then: () -> Unit): String? {
+    /**
+     * Runs a change; null when done (after [then]), or what to tell the person: the API's 409 or 400 reason first.
+     * It runs to the end even when the sheet that asked is closed or the phone rotates meanwhile (see [outlivingScreen]).
+     */
+    protected suspend fun change(fallback: String, call: suspend () -> Unit, then: () -> Unit): String? = outlivingScreen {
         val result = apiCall { call() }
-        val error = result.apiError ?: run {
+        val error = result.apiError
+        if (error == null) {
             then()
-            return null
+            null
+        } else {
+            error.conflictOr(error.validationOr(error.loadMessage(fallback)))
         }
-        return error.conflictOr(error.validationOr(error.loadMessage(fallback)))
     }
+
+    /**
+     * Work a sheet started, in the view model's scope rather than the sheet's: closing the sheet (or rotating) cancels
+     * the waiting, not the work, so a rule added is also applied and the list reloaded.
+     */
+    protected suspend fun <T> outlivingScreen(block: suspend () -> T): T = viewModelScope.async { block() }.await()
+
+    /**
+     * Shown again: back on its tab (the More tab keeps its screens), or from a screen opened above it. What changed
+     * meanwhile (a rule made from a transaction, a statement imported) shows. The first time is the screen opening,
+     * just after the view model loaded it.
+     */
+    fun resumed() {
+        if (!shown) {
+            shown = true
+            return
+        }
+        reloadOnResume()
+    }
+    private var shown = false
+
+    /** What [resumed] loads again; nothing by default. */
+    protected open fun reloadOnResume() {}
 }
 
 data class RulesState(
@@ -78,6 +107,8 @@ class RulesViewModel(private val api: FinanceApi) : SettingsViewModel() {
         reload()
     }
 
+    override fun reloadOnResume() = reload()
+
     fun reload() {
         viewModelScope.launch {
             val rules = load("Could not load the category rules.") { api.categoryRules() }
@@ -100,19 +131,20 @@ class RulesViewModel(private val api: FinanceApi) : SettingsViewModel() {
      * done (with a message saying how many moved), or why not. A rule into Other keeps them there on purpose: the
      * merchant isn't listed again.
      */
-    suspend fun sortMerchant(keyword: String, category: Category): String? {
+    suspend fun sortMerchant(keyword: String, category: Category): String? = outlivingScreen sort@{
         val trimmed = keyword.trim().uppercase()
-        if (trimmed.isEmpty()) return "Enter a keyword."
+        if (trimmed.isEmpty()) return@sort "Enter a keyword."
         val added = apiCall { api.addCategoryRule(CategoryRuleInput(trimmed, category.id)) }
-        added.apiError?.let { return it.conflictOr(it.validationOr(it.loadMessage("Could not add the rule."))) }
+        added.apiError?.let { return@sort it.conflictOr(it.validationOr(it.loadMessage("Could not add the rule."))) }
         val applied = apiCall { api.applyRules() }.getOrNull()
         say(
             if (applied == null) "Rule “$trimmed” added, but the rules could not be applied."
             else if (category.isFallback) "Rule “$trimmed” added: it stays in ${category.name} and isn't listed here any more"
-            else "Rule “$trimmed” added: ${applied.updated} ${if (applied.updated == 1) "transaction" else "transactions"} now in ${category.name}",
+            // Applying runs every rule, so the count is all it changed, not only this merchant's.
+            else "Rule “$trimmed” added for ${category.name}: ${applied.updated} ${if (applied.updated == 1) "transaction" else "transactions"} updated by the rules",
         )
         reload()
-        return null
+        null
     }
 
     /**
@@ -194,6 +226,8 @@ class CategoriesViewModel(private val api: FinanceApi) : SettingsViewModel() {
         reload()
     }
 
+    override fun reloadOnResume() = reload()
+
     fun reload() {
         viewModelScope.launch { _state.value = load("Could not load the categories.") { api.categories() } }
     }
@@ -228,6 +262,8 @@ class AccountsViewModel(private val api: FinanceApi) : SettingsViewModel() {
     init {
         reload()
     }
+
+    override fun reloadOnResume() = reload()
 
     fun reload() {
         viewModelScope.launch { _state.value = load("Could not load the accounts.") { api.accounts() } }
@@ -301,6 +337,8 @@ class TagsViewModel(private val api: FinanceApi) : SettingsViewModel() {
         reload()
     }
 
+    override fun reloadOnResume() = reload()
+
     fun reload() {
         viewModelScope.launch { _state.value = load("Could not load the tags.") { api.tags() } }
     }
@@ -338,6 +376,12 @@ class NetWorthViewModel(private val api: FinanceApi) : SettingsViewModel() {
     }
 
     fun reload() {
-        viewModelScope.launch { _state.value = load("Could not work out your net worth.") { api.netWorth() } }
+        viewModelScope.launch {
+            val result = load("Could not work out your net worth.") { api.netWorth() }
+            // A failed reload on coming back keeps what was showing.
+            if (result !is LoadState.Failed || _state.value !is LoadState.Loaded) _state.value = result
+        }
     }
+
+    override fun reloadOnResume() = reload()
 }

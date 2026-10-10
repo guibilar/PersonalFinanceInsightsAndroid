@@ -31,10 +31,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
@@ -85,6 +87,8 @@ internal fun CategoryRules(state: RulesState, model: RulesViewModel, onEdit: (Ca
                 }
             }
         }
+        // All sorted: closed for good, not open again by itself the next time something lands in Other.
+        LaunchedEffect(unsorted == null) { if (unsorted == null) sorting = false }
         if (sorting && unsorted != null) UnsortedSheet(unsorted, state.categories.filter { !it.isFallback } + state.categories.filter { it.isFallback }, model) { sorting = false }
         Text(
             "The first rule whose keyword is in a description sets the transaction's category.",
@@ -170,6 +174,11 @@ private fun RuleList(visible: List<CategoryRule>, moving: Boolean, model: RulesV
         model.moveTo(rule, visible[newIndex].position)
     }
 
+    // The drag handlers below outlive this composition (a row keeps its node by key): they call these, the latest,
+    // so a drag after a search, a save or a reload works on the list shown, not the one there was when it began.
+    val dragBy by rememberUpdatedState<(Float) -> Unit>(::onDrag)
+    val drop by rememberUpdatedState<() -> Unit>(::onDrop)
+
     LazyColumn(state = listState, contentPadding = PaddingValues(bottom = 88.dp), modifier = Modifier.fillMaxSize()) {
         items(order, key = { it.id }) { rule ->
             val dragged = rule.id == dragging
@@ -201,10 +210,10 @@ private fun RuleList(visible: List<CategoryRule>, moving: Boolean, model: RulesV
                                     },
                                     onDrag = { change, amount ->
                                         change.consume()
-                                        onDrag(amount.y)
+                                        dragBy(amount.y)
                                     },
-                                    onDragEnd = { onDrop() },
-                                    onDragCancel = { onDrop() },
+                                    onDragEnd = { drop() },
+                                    onDragCancel = { drop() },
                                 )
                             },
                     )

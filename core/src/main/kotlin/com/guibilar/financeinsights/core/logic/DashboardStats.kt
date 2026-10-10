@@ -20,9 +20,12 @@ fun monthOf(label: String): YearMonth? {
 
 fun spentThisMonth(currentMonth: CategorizedReport): Double = currentMonth.monthlyData.firstOrNull()?.total ?: 0.0
 
-/** Percentage change from [previous] to [current], or null when there is nothing to compare with. */
+/**
+ * Percentage change from [previous] to [current], or null when there is nothing to compare with: no figure, or one at
+ * or below zero (refunds outweighing the spending), against which a percentage reads the wrong way round.
+ */
 fun percentChange(current: Double, previous: Double?): Double? =
-    if (previous == null || previous == 0.0) null else (current - previous) / previous * 100
+    if (previous == null || previous <= 0.0) null else (current - previous) / previous * 100
 
 /**
  * The part of last month the API compares this month with: day 1 up to today's day of the month, or the whole
@@ -89,11 +92,15 @@ data class CategoryAverage(
     val change: Double?,
 )
 
-/** Each category's monthly average over the finished months, with this month next to it, largest average first. */
+/**
+ * Each category's monthly average over the finished months, with this month next to it, largest average first. None
+ * while no month of the year is over (January): the running month would be compared with itself.
+ */
 fun categoryAverages(year: CategorizedReport, today: LocalDate): List<CategoryAverage> {
     val months = year.monthlyData
-    val finished = finishedMonths(months.map { it.month }, today).map { months[it] }
     val current = YearMonth.from(today)
+    if (months.none { monthOf(it.month)?.isBefore(current) == true }) return emptyList()
+    val finished = finishedMonths(months.map { it.month }, today).map { months[it] }
     val running = months.firstOrNull { monthOf(it.month) == current }
     return months.flatMap { it.categoryValues.keys }.distinct()
         .map { category ->

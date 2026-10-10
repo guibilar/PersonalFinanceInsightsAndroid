@@ -30,14 +30,15 @@ data class ReviewPeriod(val year: Int, val month: Int?) {
 
     /**
      * The review after or before ([step] 1 or -1); null past the running month, or before the first month with data
-     * ([earliest], "2025-03"). A year is there while any of its months is.
+     * ([earliest], "2025-03"), or before 2000 (the API's first year: with no data yet there is no other floor). A year is
+     * there while any of its months is.
      */
     fun step(step: Int, today: LocalDate, earliest: String?): ReviewPeriod? {
         val next = if (month == null) ReviewPeriod(year + step, null)
         else YearMonth.of(year, month).plusMonths(step.toLong()).let { ReviewPeriod(it.year, it.monthValue) }
         val first = YearMonth.of(next.year, next.month ?: 1)
         val last = YearMonth.of(next.year, next.month ?: 12)
-        if (first > YearMonth.from(today)) return null
+        if (first > YearMonth.from(today) || next.year < 2000) return null
         if (earliest != null && last < YearMonth.parse(earliest)) return null
         return next
     }

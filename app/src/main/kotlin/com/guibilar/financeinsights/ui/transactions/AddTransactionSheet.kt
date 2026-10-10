@@ -117,8 +117,12 @@ fun AddTransactionSheet(state: TransactionsState, model: TransactionsViewModel, 
             )
             when (val outcome = model.add(input)) {
                 AddOutcome.Added -> {
-                    sheet.hide()
-                    onDismiss()
+                    // Closed even if the sheet leaves the screen while it slides away.
+                    try {
+                        sheet.hide()
+                    } finally {
+                        onDismiss()
+                    }
                 }
                 is AddOutcome.Duplicate -> duplicate = outcome.message
                 is AddOutcome.Failed -> error = outcome.message

@@ -42,7 +42,10 @@ internal fun MonthForecast(forecast: SpendingForecast, openSubscriptions: () -> 
     val usual = forecast.usual
     val change = usual?.let { Change.of(forecast.projected, it) }
     Text(
-        if (change == null || usual == null) "No complete month yet to compare with."
+        if (usual == null) "No complete month yet to compare with."
+        // Complete months there are, but refunds outweighed the spending: no fair percentage to give.
+        else if (change == null) "A usual month came to ${Money.format(usual)} (the average of the last " +
+            "${if (forecast.usualMonths == 1) "month" else "${forecast.usualMonths} months"})."
         else "${change.than("usual")} (${Money.format(usual)}, the average of the last " +
             "${if (forecast.usualMonths == 1) "month" else "${forecast.usualMonths} months"})",
         style = MaterialTheme.typography.bodySmall,
