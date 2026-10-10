@@ -14,9 +14,6 @@ import androidx.compose.ui.unit.dp
 /** From this window width on (a small tablet, an unfolded foldable, a phone on its side), the tabs are a rail. */
 val MEDIUM_WIDTH = 600.dp
 
-/** From this window width on (a tablet, a large foldable), there is room for two panes side by side. */
-val EXPANDED_WIDTH = 840.dp
-
 /** As wide as a column of text and settings gets: wider, lines are hard to follow and rows lose their ends. */
 val READABLE_WIDTH = 720.dp
 

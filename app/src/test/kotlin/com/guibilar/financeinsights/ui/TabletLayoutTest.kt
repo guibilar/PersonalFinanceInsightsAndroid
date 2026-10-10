@@ -32,7 +32,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.time.LocalDate
 
-/** On a tablet held sideways, the pages use the width: cards side by side, panes beside each other, centred columns. */
+/** On a tablet held sideways, the pages use the width: cards side by side, tiles in a row, centred columns. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w1280dp-h800dp-land-mdpi")
@@ -81,13 +81,15 @@ class TabletLayoutTest {
     }
 
     @Test
-    fun `net worth's totals and accounts are beside each other`() {
+    fun `net worth's figures are tiles in a row, over the months and the accounts`() {
         val model = NetWorthViewModel(api)
         show { NetWorthScreen(model, PaddingValues(), onBack = null, openAccounts = {}) }
-        val total = compose.onNode(hasText("Owed on cards")).getUnclippedBoundsInRoot()
-        val account = compose.onNode(hasContentDescription("Chequing", substring = true)).getUnclippedBoundsInRoot()
-        assertTrue(account.left > total.right)
-        assertTrue("the accounts start at the top, not under the chart", account.top < total.bottom)
+        val assets = bounds("Assets")
+        assertEquals("one row", assets.top, bounds("Owed on cards").top)
+        val months = bounds("Over the last twelve months")
+        val accounts = bounds("Accounts")
+        assertTrue(months.top > assets.bottom && accounts.top > months.bottom)
+        assertTrue("a centred column", assets.left > 200.dp)
         shoot("tablet-net-worth")
     }
 
@@ -100,17 +102,15 @@ class TabletLayoutTest {
     }
 
     @Test
-    fun `the transactions keep a pane beside the list before one is picked`() {
+    fun `a transaction opens over a centred list`() {
         show { MainScreen(FakeFinanceApi(), account, {}) }
         compose.onNode(hasText("Transactions") and isSelectable()).performClick()
         compose.waitForIdle()
-        compose.onNodeWithText("Pick a transaction", substring = true).assertExists()
-        val listWidth = bounds("Search descriptions and notes").width
-        shoot("tablet-transactions-empty-pane")
+        assertTrue("a centred column", bounds("Search descriptions and notes").left > 200.dp)
+        shoot("tablet-transactions")
         compose.onNode(hasContentDescription("NO FRILLS #3121", substring = true)).performClick()
         compose.waitForIdle()
         compose.onNodeWithText("Counts as").assertExists()
-        compose.onNodeWithText("Pick a transaction", substring = true).assertDoesNotExist()
-        assertEquals("the list keeps its width", listWidth, bounds("Search descriptions and notes").width)
+        shoot("tablet-transaction-sheet")
     }
 }
