@@ -12,6 +12,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.guibilar.financeinsights.FakeFinanceApi
 import com.guibilar.financeinsights.data.AppPreferences
+import com.guibilar.financeinsights.data.FinancePreferences
 import com.guibilar.financeinsights.data.ThemeChoice
 import com.guibilar.financeinsights.ui.settings.AppSettingsScreen
 import com.guibilar.financeinsights.ui.signin.LockScreen
@@ -46,7 +47,8 @@ class FeaturesScreenshotTest {
     @Config(qualifiers = "w400dp-h900dp-xxhdpi")
     fun settings() {
         val preferences = AppPreferences(ApplicationProvider.getApplicationContext())
-        show { AppSettingsScreen(preferences, null, PaddingValues(), onBack = {}) }
+        val financePreferences = FinancePreferences(ApplicationProvider.getApplicationContext())
+        show { AppSettingsScreen(preferences, financePreferences, null, PaddingValues(), onBack = {}) }
         compose.onNodeWithText("Dark").performClick()
         assertEquals(ThemeChoice.Dark, preferences.theme.value)
         shoot("settings")

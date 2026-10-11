@@ -6,16 +6,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ShowChart
-import androidx.compose.material.icons.outlined.AccountBalanceWallet
-import androidx.compose.material.icons.outlined.Dashboard
-import androidx.compose.material.icons.outlined.Menu
-import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
@@ -25,121 +19,48 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.sp
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.toRoute
 import com.guibilar.financeinsights.BuildConfig
 import com.guibilar.financeinsights.QuickAction
 import com.guibilar.financeinsights.core.api.FinanceApi
-import com.guibilar.financeinsights.core.model.BreakdownInterval
-import com.guibilar.financeinsights.core.model.TransactionCriteria
 import com.guibilar.financeinsights.data.AppPreferences
 import com.guibilar.financeinsights.data.AuthState
+import com.guibilar.financeinsights.data.FinancePreferences
 import com.guibilar.financeinsights.data.Session
 import com.guibilar.financeinsights.security.AppLock
 import com.guibilar.financeinsights.security.authenticate
 import com.guibilar.financeinsights.security.canAuthenticate
-import com.guibilar.financeinsights.ui.budgets.BudgetsScreen
 import com.guibilar.financeinsights.ui.common.MEDIUM_WIDTH
 import com.guibilar.financeinsights.ui.common.windowWidth
-import com.guibilar.financeinsights.ui.budgets.BudgetsViewModel
-import com.guibilar.financeinsights.ui.dashboard.DashboardScreen
-import com.guibilar.financeinsights.ui.dashboard.DashboardViewModel
-import com.guibilar.financeinsights.ui.insights.RecurringScreen
-import com.guibilar.financeinsights.ui.insights.RecurringViewModel
-import com.guibilar.financeinsights.ui.insights.ReviewScreen
-import com.guibilar.financeinsights.ui.insights.ReviewViewModel
-import com.guibilar.financeinsights.core.logic.ReviewPeriod
 import com.guibilar.financeinsights.ui.settings.AccountSettingsScreen
 import com.guibilar.financeinsights.ui.settings.AccountSettingsViewModel
-import com.guibilar.financeinsights.ui.settings.AccountsScreen
-import com.guibilar.financeinsights.ui.settings.AccountsViewModel
 import com.guibilar.financeinsights.ui.settings.AppSettingsScreen
-import com.guibilar.financeinsights.ui.settings.CategoriesScreen
-import com.guibilar.financeinsights.ui.settings.CategoriesViewModel
-import com.guibilar.financeinsights.ui.settings.MoreScreen
-import com.guibilar.financeinsights.ui.settings.RulesScreen
-import com.guibilar.financeinsights.ui.settings.RulesViewModel
-import com.guibilar.financeinsights.ui.settings.TagsScreen
-import com.guibilar.financeinsights.ui.settings.NetWorthScreen
-import com.guibilar.financeinsights.ui.settings.NetWorthViewModel
-import com.guibilar.financeinsights.ui.settings.TagsViewModel
 import com.guibilar.financeinsights.ui.signin.LockScreen
 import com.guibilar.financeinsights.ui.signin.SignInScreen
 import com.guibilar.financeinsights.ui.signin.UnreachableScreen
 import com.guibilar.financeinsights.ui.transactions.PickedFile
-import com.guibilar.financeinsights.ui.transactions.TransactionsScreen
-import com.guibilar.financeinsights.ui.transactions.TransactionsViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.serialization.Serializable
 
-@Serializable
-data object DashboardRoute
-
-@Serializable
-data object BudgetsRoute
-
-@Serializable
-data object MoreRoute
-
-@Serializable
-data object RulesRoute
-
-@Serializable
-data object CategoriesRoute
-
-@Serializable
-data object AccountsRoute
+// The app's pages. The finance pages and their routes are the finance module's (financeGraph).
 
 @Serializable
 data object AccountSettingsRoute
 
 @Serializable
 data object AppSettingsRoute
-
-@Serializable
-data object SubscriptionsRoute
-
-@Serializable
-data object TagsRoute
-
-@Serializable
-data object NetWorthRoute
-
-/** A month's review, or a year's without [month]; the last complete month without either. */
-@Serializable
-data class ReviewRoute(val year: Int? = null, val month: Int? = null)
-
-/** The transactions list, optionally opened on criteria (the dashboard's links) with its "Over time" chart. */
-@Serializable
-data class TransactionsRoute(
-    val categoryId: String? = null,
-    /** A tag's transactions (from Tags). */
-    val tagId: String? = null,
-    /** Part of the description: a merchant's transactions. */
-    val description: String? = null,
-    val startDate: String? = null,
-    val endDate: String? = null,
-    val overTime: Boolean = false,
-    val interval: BreakdownInterval? = null,
-) {
-    val criteria get() = TransactionCriteria(description = description, categoryId = categoryId, tagId = tagId, startDate = startDate, endDate = endDate)
-}
 
 /** Signed in or not decides what shows; signing out (or the session ending) brings back the sign-in screen. */
 @Composable
@@ -149,6 +70,7 @@ fun FinanceRoot(
     quickAction: MutableStateFlow<QuickAction?> = MutableStateFlow(null),
     lock: AppLock? = null,
     preferences: AppPreferences? = null,
+    financePreferences: FinancePreferences? = null,
 ) {
     val state by session.state.collectAsState()
     val locked = lock?.locked?.collectAsState()?.value == true
@@ -199,6 +121,7 @@ fun FinanceRoot(
                     sharedStatement = sharedStatement,
                     quickAction = quickAction,
                     preferences = preferences,
+                    financePreferences = financePreferences,
                     lock = lock,
                 )
             }
@@ -206,24 +129,19 @@ fun FinanceRoot(
     }
 }
 
-/** Who is signed in where, for the account menu. */
-data class AccountInfo(val username: String, val server: String)
-
 private const val SIGNED_IN_KEY = "signed-in"
 
-private data class Tab(val label: String, val icon: ImageVector, val route: Any, val matches: (androidx.navigation.NavDestination) -> Boolean)
+private data class Tab(val label: String, val icon: ImageVector, val route: Any, val matches: (NavDestination) -> Boolean)
 
-private val tabs = listOf(
-    Tab("Home", Icons.Outlined.Dashboard, DashboardRoute) { it.hasRoute<DashboardRoute>() },
-    Tab("Transactions", Icons.Outlined.ReceiptLong, TransactionsRoute()) { it.hasRoute<TransactionsRoute>() },
-    Tab("Budgets", Icons.Outlined.AccountBalanceWallet, BudgetsRoute) { it.hasRoute<BudgetsRoute>() },
-    Tab("Net worth", Icons.AutoMirrored.Outlined.ShowChart, NetWorthRoute) { it.hasRoute<NetWorthRoute>() },
-    Tab("More", Icons.Outlined.Menu, MoreRoute) {
-        it.hasRoute<MoreRoute>() || it.hasRoute<RulesRoute>() || it.hasRoute<CategoriesRoute>() ||
-            it.hasRoute<AccountsRoute>() || it.hasRoute<AccountSettingsRoute>() || it.hasRoute<AppSettingsRoute>() ||
-            it.hasRoute<SubscriptionsRoute>() || it.hasRoute<ReviewRoute>() || it.hasRoute<TagsRoute>()
-    },
-)
+// The finance tabs; More also holds the app's own pages (the account and the app's settings).
+private val tabs = financeTabs.map { tab ->
+    val matches: (NavDestination) -> Boolean = if (tab.route == MoreRoute) {
+        { destination -> tab.matches(destination) || destination.hasRoute<AccountSettingsRoute>() || destination.hasRoute<AppSettingsRoute>() }
+    } else {
+        tab.matches
+    }
+    Tab(tab.label, tab.icon, tab.route, matches)
+}
 
 @Composable
 fun MainScreen(
@@ -234,53 +152,17 @@ fun MainScreen(
     quickAction: MutableStateFlow<QuickAction?> = MutableStateFlow(null),
     preferences: AppPreferences? = null,
     lock: AppLock? = null,
+    financePreferences: FinancePreferences? = null,
 ) {
     val nav = rememberNavController()
     val entry by nav.currentBackStackEntryAsState()
-    val statement by sharedStatement.collectAsState()
-    // A statement shared to the app opens the transactions, where the import takes it.
-    LaunchedEffect(statement) {
-        if (statement != null && entry?.destination?.hasRoute<TransactionsRoute>() != true) {
-            nav.navigate(TransactionsRoute()) { popUpTo<DashboardRoute>() }
-        }
-    }
-    // The launcher shortcut and widget's Add, and a budget alert's tap.
-    val action by quickAction.collectAsState()
-    var addRequested by rememberSaveable { mutableStateOf(false) }
-    // The dashboard's import button and the import reminder: the transactions open with the import sheet.
-    var importRequested by rememberSaveable { mutableStateOf(false) }
-    LaunchedEffect(action) {
-        when (action) {
-            QuickAction.AddTransaction -> {
-                if (entry?.destination?.hasRoute<TransactionsRoute>() != true) nav.navigate(TransactionsRoute()) { popUpTo<DashboardRoute>() }
-                addRequested = true
-            }
-            QuickAction.Budgets -> nav.navigate(BudgetsRoute) {
-                popUpTo(nav.graph.findStartDestination().id) { saveState = true }
-                launchSingleTop = true
-                restoreState = true
-            }
-            // From a notification: the page, Back returning to the dashboard.
-            QuickAction.Subscriptions -> nav.navigate(SubscriptionsRoute) { popUpTo<DashboardRoute>() }
-            QuickAction.Review -> nav.navigate(ReviewRoute()) { popUpTo<DashboardRoute>() }
-            // The import reminder: the transactions, with the import open.
-            QuickAction.Import -> {
-                importRequested = true
-                if (entry?.destination?.hasRoute<TransactionsRoute>() != true) nav.navigate(TransactionsRoute()) { popUpTo<DashboardRoute>() }
-            }
-            null -> {}
-        }
-        quickAction.value = null
-    }
+    // Shared statements and quick actions open their finance pages.
+    val requests = rememberFinanceRequests(nav, sharedStatement, quickAction)
     // A rail at the side on a wide screen (a tablet, an unfolded foldable, landscape); the bar below otherwise.
     val rail = windowWidth() >= MEDIUM_WIDTH
     fun select(tab: Tab, selected: Boolean) {
         if (!selected) {
-            nav.navigate(tab.route) {
-                popUpTo(nav.graph.findStartDestination().id) { saveState = true }
-                launchSingleTop = true
-                restoreState = true
-            }
+            nav.openTab(tab.route)
         } else if (entry?.destination?.hasRoute(tab.route::class) == false) {
             // The tab again, from a page inside it (Rules under More): back to the tab's first page.
             nav.popBackStack(tab.route, inclusive = false)
@@ -320,118 +202,27 @@ fun MainScreen(
                     Spacer(Modifier.weight(1f))
                 }
             }
-            NavHost(nav, startDestination = DashboardRoute, modifier = Modifier.weight(1f)) {
-                composable<DashboardRoute> {
-                    val model = viewModel { DashboardViewModel(api) }
-                    val amountsHidden = preferences?.hideAmounts?.collectAsState()?.value ?: false
-                    DashboardScreen(
-                        amountsHidden = amountsHidden,
-                        toggleAmounts = preferences?.let { { it.setHideAmounts(!amountsHidden) } },
-                        model = model,
-                        account = account,
-                        onSignOut = onSignOut,
-                        contentPadding = padding,
-                        openTransactions = { route ->
-                            // A new list on these criteria, Back returning to the dashboard.
-                            nav.navigate(route) { popUpTo<DashboardRoute>() }
-                        },
-                        openBudgets = {
-                            nav.navigate(BudgetsRoute) {
-                                popUpTo(nav.graph.findStartDestination().id) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
-                        openRules = { nav.navigate(RulesRoute) },
-                        openReview = { nav.navigate(ReviewRoute()) },
-                        openSubscriptions = { nav.navigate(SubscriptionsRoute) },
-                        openNetWorth = { tabs.first { it.route == NetWorthRoute }.let { select(it, false) } },
-                        openAccounts = { nav.navigate(AccountsRoute) },
-                        openImport = {
-                            importRequested = true
-                            nav.navigate(TransactionsRoute()) { popUpTo<DashboardRoute>() }
-                        },
-                    )
-                }
-                composable<MoreRoute> {
-                    MoreScreen(
-                        username = account.username,
-                        version = BuildConfig.VERSION_NAME,
-                        contentPadding = padding,
-                        openRules = { nav.navigate(RulesRoute) },
-                        openCategories = { nav.navigate(CategoriesRoute) },
-                        openTags = { nav.navigate(TagsRoute) },
-                        openAccounts = { nav.navigate(AccountsRoute) },
-                        openAccount = { nav.navigate(AccountSettingsRoute) },
-                        openSettings = { nav.navigate(AppSettingsRoute) },
-                        openSubscriptions = { nav.navigate(SubscriptionsRoute) },
-                        openReview = { nav.navigate(ReviewRoute()) },
-                    )
-                }
-                composable<SubscriptionsRoute> {
-                    RecurringScreen(
-                        viewModel { RecurringViewModel(api) },
-                        padding,
-                        onBack = { nav.popBackStack() },
-                        openTransactions = { name -> nav.navigate(TransactionsRoute(description = name)) },
-                    )
-                }
-                composable<ReviewRoute> { backStack ->
-                    val route = backStack.toRoute<ReviewRoute>()
-                    val model = viewModel { ReviewViewModel(api, route.year?.let { ReviewPeriod(it, route.month) }) }
-                    ReviewScreen(model, padding, onBack = { nav.popBackStack() }, openSubscriptions = { nav.navigate(SubscriptionsRoute) })
-                }
+            NavHost(nav, startDestination = FinanceStartRoute, modifier = Modifier.weight(1f)) {
+                financeGraph(
+                    nav = nav,
+                    api = api,
+                    account = account,
+                    onSignOut = onSignOut,
+                    contentPadding = padding,
+                    requests = requests,
+                    appVersion = BuildConfig.VERSION_NAME,
+                    openAccount = { nav.navigate(AccountSettingsRoute) },
+                    openSettings = { nav.navigate(AppSettingsRoute) },
+                    amountsHidden = preferences?.hideAmounts,
+                    setAmountsHidden = preferences?.let { it::setHideAmounts },
+                )
                 composable<AppSettingsRoute> {
-                    if (preferences != null) AppSettingsScreen(preferences, lock, padding, onBack = { nav.popBackStack() })
-                }
-                composable<RulesRoute> {
-                    RulesScreen(viewModel { RulesViewModel(api) }, padding, onBack = { nav.popBackStack() })
-                }
-                composable<CategoriesRoute> {
-                    CategoriesScreen(viewModel { CategoriesViewModel(api) }, padding, onBack = { nav.popBackStack() })
-                }
-                composable<NetWorthRoute> {
-                    NetWorthScreen(
-                        viewModel { NetWorthViewModel(api) },
-                        padding,
-                        // A tab: nothing to go back to.
-                        onBack = null,
-                        openAccounts = { nav.navigate(AccountsRoute) },
-                    )
-                }
-                composable<TagsRoute> {
-                    TagsScreen(
-                        viewModel { TagsViewModel(api) },
-                        padding,
-                        onBack = { nav.popBackStack() },
-                        openTransactions = { tag -> nav.navigate(TransactionsRoute(tagId = tag.id)) },
-                    )
-                }
-                composable<AccountsRoute> {
-                    AccountsScreen(viewModel { AccountsViewModel(api) }, padding, onBack = { nav.popBackStack() })
+                    if (preferences != null && financePreferences != null) {
+                        AppSettingsScreen(preferences, financePreferences, lock, padding, onBack = { nav.popBackStack() })
+                    }
                 }
                 composable<AccountSettingsRoute> {
                     AccountSettingsScreen(viewModel { AccountSettingsViewModel(api) }, account, onSignOut, padding, onBack = { nav.popBackStack() })
-                }
-                composable<BudgetsRoute> {
-                    val model = viewModel { BudgetsViewModel(api) }
-                    BudgetsScreen(model = model, account = account, onSignOut = onSignOut, contentPadding = padding)
-                }
-                composable<TransactionsRoute> { backStack ->
-                    val route = backStack.toRoute<TransactionsRoute>()
-                    val model = viewModel { TransactionsViewModel(api, route) }
-                    TransactionsScreen(
-                        model = model,
-                        account = account,
-                        onSignOut = onSignOut,
-                        contentPadding = padding,
-                        sharedFiles = statement,
-                        onSharedFileTaken = { sharedStatement.value = null },
-                        addRequested = addRequested,
-                        onAddTaken = { addRequested = false },
-                        importRequested = importRequested,
-                        onImportTaken = { importRequested = false },
-                    )
                 }
             }
         }

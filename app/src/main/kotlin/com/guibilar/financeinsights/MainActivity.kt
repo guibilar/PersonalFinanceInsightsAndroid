@@ -58,7 +58,7 @@ class MainActivity : FragmentActivity() {
                 onDispose {}
             }
             FinanceTheme(darkTheme = dark, dynamicColor = dynamicColor) {
-                FinanceRoot(app.session, app.sharedStatement, app.quickAction, app.lock, app.preferences)
+                FinanceRoot(app.session, app.sharedStatement, app.quickAction, app.lock, app.preferences, app.financePreferences)
             }
         }
     }
@@ -84,17 +84,13 @@ class MainActivity : FragmentActivity() {
         // Reopened from Recents after Back closed it, the app is handed the intent that first started it again: a
         // statement shared back then (no longer readable), or a shortcut's or notification's page. Not asked for now.
         if (intent == null || (intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) != 0) return
-        when (intent.action) {
-            ACTION_ADD_TRANSACTION -> {
+        when (val action = QuickAction.of(intent.action)) {
+            null -> takeStatement(intent)
+            else -> {
                 // Ranks the "Add transaction" shortcut among the ones the launcher offers.
-                ShortcutManagerCompat.reportShortcutUsed(this, "add_transaction")
-                app.quickAction.value = QuickAction.AddTransaction
+                if (action == QuickAction.AddTransaction) ShortcutManagerCompat.reportShortcutUsed(this, "add_transaction")
+                app.quickAction.value = action
             }
-            ACTION_BUDGETS -> app.quickAction.value = QuickAction.Budgets
-            ACTION_SUBSCRIPTIONS -> app.quickAction.value = QuickAction.Subscriptions
-            ACTION_REVIEW -> app.quickAction.value = QuickAction.Review
-            ACTION_IMPORT -> app.quickAction.value = QuickAction.Import
-            else -> takeStatement(intent)
         }
     }
 
@@ -117,14 +113,6 @@ class MainActivity : FragmentActivity() {
                 Toast.makeText(this@MainActivity, text, Toast.LENGTH_LONG).show()
             }
         }
-    }
-
-    companion object {
-        const val ACTION_ADD_TRANSACTION = "com.guibilar.financeinsights.ADD_TRANSACTION"
-        const val ACTION_BUDGETS = "com.guibilar.financeinsights.BUDGETS"
-        const val ACTION_SUBSCRIPTIONS = "com.guibilar.financeinsights.SUBSCRIPTIONS"
-        const val ACTION_REVIEW = "com.guibilar.financeinsights.REVIEW"
-        const val ACTION_IMPORT = "com.guibilar.financeinsights.IMPORT"
     }
 }
 

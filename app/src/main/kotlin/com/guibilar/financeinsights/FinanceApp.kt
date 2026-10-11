@@ -7,9 +7,11 @@ import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
 import com.guibilar.financeinsights.alerts.Alerts
+import com.guibilar.financeinsights.core.api.FinanceApi
 import com.guibilar.financeinsights.core.logic.Money
 import com.guibilar.financeinsights.data.AppPreferences
 import com.guibilar.financeinsights.data.AuthState
+import com.guibilar.financeinsights.data.FinancePreferences
 import com.guibilar.financeinsights.data.Session
 import com.guibilar.financeinsights.data.SessionStore
 import com.guibilar.financeinsights.security.AppLock
@@ -23,16 +25,16 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
-/** Something asked of the app from outside it: the launcher shortcut, the widget, a notification. */
-enum class QuickAction { AddTransaction, Budgets, Subscriptions, Review, Import }
-
-class FinanceApp : Application() {
+class FinanceApp : Application(), FinanceHost {
     /** One per process: the screens reach the API through it. */
     lateinit var session: Session
         private set
 
     lateinit var preferences: AppPreferences
         private set
+
+    private lateinit var finance: FinancePreferences
+    override val financePreferences get() = finance
 
     lateinit var lock: AppLock
         private set
@@ -50,18 +52,19 @@ class FinanceApp : Application() {
         super.onCreate()
         session = Session(SessionStore(this))
         preferences = AppPreferences(this)
+        finance = FinancePreferences(this)
         lock = AppLock(preferences)
         // Privacy mode, read as Compose state: every screen that formatted an amount redraws when it's switched.
         val amountsHidden = mutableStateOf(preferences.hideAmounts.value)
         Money.hidden = { amountsHidden.value }
         Alerts.createChannel(this)
-        Alerts.keepScheduled(this, preferences)
+        Alerts.keepScheduled(this, financePreferences)
         scope.launch { preferences.hideAmounts.collect { amountsHidden.value = it } }
         // The widget follows signing in and out, and hiding its amounts.
         scope.launch {
             combine(
                 session.state.map { it is AuthState.SignedIn }.distinctUntilChanged(),
-                preferences.hideWidgetAmounts,
+                financePreferences.hideWidgetAmounts,
                 preferences.hideAmounts,
             ) { _, _, _ -> }
                 .drop(1)
@@ -78,9 +81,16 @@ class FinanceApp : Application() {
                 ShortcutInfoCompat.Builder(this, "add_transaction")
                     .setShortLabel("Add transaction")
                     .setIcon(IconCompat.createWithResource(this, R.drawable.ic_shortcut_add))
-                    .setIntent(Intent(this, MainActivity::class.java).setAction(MainActivity.ACTION_ADD_TRANSACTION))
+                    .setIntent(Intent(this, MainActivity::class.java).setAction(QuickAction.AddTransaction.intentAction))
                     .build(),
             ),
         )
     }
+
+    // What the finance module asks of the app, for the widget and the notifications.
+    override val mainActivity get() = MainActivity::class.java
+    override val amountsHidden get() = preferences.hideAmounts.value
+    override val notificationsPrivate get() = preferences.lock.value
+    override val accountKey get() = "${session.server}|${session.lastUsername}"
+    override fun backgroundApi(): FinanceApi? = session.backgroundApi()
 }
