@@ -27,7 +27,7 @@ jobs:
       - name: Test, lint and build
         run: |
           set -o pipefail
-          ./gradlew --console=plain --continue :core:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug 2>&1 | tee build.log
+          ./gradlew --console=plain --continue --no-build-cache :core:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug 2>&1 | tee build.log
 
       # TEMPORARY (T05): reports results as annotations, as the session can't read logs or artifacts. Removed before merge.
       - name: Report (temporary)
@@ -36,7 +36,7 @@ jobs:
           enc() { python3 -c 'import sys;d=sys.stdin.read();print(d.replace("%","%25").replace("\r","%0D").replace("\n","%0A"))'; }
           echo "::notice title=shots::$(find . -path '*/build/shots/*.png' -printf '%f ' -exec sh -c 'sha256sum "$1" | cut -c1-16' _ {} \; | sort | enc)"
           echo "::notice title=summary::$(grep -E 'tests completed|BUILD (SUCCESSFUL|FAILED)|actionable tasks' build.log | enc)"
-          grep -nE '^e: |^w: .*(warning|deprecat)|FAILED$|What went wrong|^> |Error: |Exception|expected|Lint found' build.log | head -150 > problems.txt || true
+          grep -nE '^e: |^w: .*(warning|deprecat)|FAILED$|What went wrong|^> [^T]|Error: |Exception|expected|Lint found' build.log | head -150 > problems.txt || true
           if [ -s problems.txt ]; then echo "::error title=problems::$(enc < problems.txt)"; fi
           for f in $(find . -path '*/build/reports/lint-results-*.txt'); do echo "::warning title=lint $f::$(head -c 20000 $f | enc)"; done
 
