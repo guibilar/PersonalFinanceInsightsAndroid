@@ -6,6 +6,7 @@ import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.guibilar.financeinsights.FakeFinanceApi
 import com.guibilar.financeinsights.data.AppPreferences
+import com.guibilar.financeinsights.data.FinancePreferences
 import com.guibilar.financeinsights.data.Session
 import com.guibilar.financeinsights.data.SessionStore
 import com.guibilar.financeinsights.security.AppLock
@@ -32,7 +33,7 @@ class LockTest {
         runBlocking { session.signIn("https://finance.example.ts.net", "dev", "a password") }
         val preferences = AppPreferences(context).apply { setLock(true) }
         val lock = AppLock(preferences) { now }.apply { unlocked() }
-        compose.setContent { FinanceTheme(dynamicColor = false) { FinanceRoot(session, lock = lock, preferences = preferences) } }
+        compose.setContent { FinanceTheme(dynamicColor = false) { FinanceRoot(session, lock = lock, preferences = preferences, financePreferences = FinancePreferences(context)) } }
         compose.onNodeWithText("More").performClick()
         compose.onNodeWithText("Settings").performClick()
         compose.onNodeWithText("Appearance").assertExists()
