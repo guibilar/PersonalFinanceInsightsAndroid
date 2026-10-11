@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Budget alerts (asked for when they are turned on). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- The theme is the app's: the module's own tests then render the screens in the same window as the app. -->
+    <application android:theme="@style/Theme.Finance">
+        <receiver
+            android:name="com.guibilar.financeinsights.widget.SpendingWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/spending_widget" />
+        </receiver>
+    </application>
+</manifest>

@@ -43,6 +43,7 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.guibilar.financeinsights.alerts.Alerts
 import com.guibilar.financeinsights.core.logic.Money
 import com.guibilar.financeinsights.data.AppPreferences
+import com.guibilar.financeinsights.data.FinancePreferences
 import com.guibilar.financeinsights.data.ThemeChoice
 import com.guibilar.financeinsights.security.AppLock
 import com.guibilar.financeinsights.security.authenticate
@@ -51,17 +52,23 @@ import kotlinx.coroutines.flow.emptyFlow
 
 /** The app's own settings, kept on this phone: how it looks, the app lock, and notifications. */
 @Composable
-fun AppSettingsScreen(preferences: AppPreferences, lock: AppLock?, contentPadding: PaddingValues, onBack: () -> Unit) {
+fun AppSettingsScreen(
+    preferences: AppPreferences,
+    financePreferences: FinancePreferences,
+    lock: AppLock?,
+    contentPadding: PaddingValues,
+    onBack: () -> Unit,
+) {
     val context = LocalContext.current
     val hostActivity = LocalActivity.current
     val theme by preferences.theme.collectAsState()
     val dynamicColor by preferences.dynamicColor.collectAsState()
     val locking by preferences.lock.collectAsState()
-    val alerts by preferences.budgetAlerts.collectAsState()
-    val priceAlerts by preferences.priceAlerts.collectAsState()
-    val monthlyReview by preferences.monthlyReview.collectAsState()
-    val importReminders by preferences.importReminders.collectAsState()
-    val hideWidget by preferences.hideWidgetAmounts.collectAsState()
+    val alerts by financePreferences.budgetAlerts.collectAsState()
+    val priceAlerts by financePreferences.priceAlerts.collectAsState()
+    val monthlyReview by financePreferences.monthlyReview.collectAsState()
+    val importReminders by financePreferences.importReminders.collectAsState()
+    val hideWidget by financePreferences.hideWidgetAmounts.collectAsState()
     val hideAmounts by preferences.hideAmounts.collectAsState()
     var alertsNote by remember { mutableStateOf<String?>(null) }
     val blockedNote = "Notifications are off for this app. Allow them in the phone's settings to get these."
@@ -70,16 +77,16 @@ fun AppSettingsScreen(preferences: AppPreferences, lock: AppLock?, contentPaddin
     var lockAvailable by remember { mutableStateOf(canAuthenticate(context)) }
     LifecycleResumeEffect(Unit) {
         lockAvailable = canAuthenticate(context)
-        if (preferences.anyAlerts && !Alerts.canNotify(context)) alertsNote = blockedNote
+        if (financePreferences.anyAlerts && !Alerts.canNotify(context)) alertsNote = blockedNote
         onPauseOrDispose {}
     }
     // Each notification switch, by a key that survives the phone rotating while the permission is asked for.
-    val setters = remember(preferences) {
+    val setters = remember(financePreferences) {
         mapOf<String, (Boolean) -> Unit>(
-            "budgets" to preferences::setBudgetAlerts,
-            "prices" to preferences::setPriceAlerts,
-            "review" to preferences::setMonthlyReview,
-            "imports" to preferences::setImportReminders,
+            "budgets" to financePreferences::setBudgetAlerts,
+            "prices" to financePreferences::setPriceAlerts,
+            "review" to financePreferences::setMonthlyReview,
+            "imports" to financePreferences::setImportReminders,
         )
     }
     // The notification switched on while the permission was asked for.
@@ -87,7 +94,7 @@ fun AppSettingsScreen(preferences: AppPreferences, lock: AppLock?, contentPaddin
 
     fun apply(set: (Boolean) -> Unit, on: Boolean) {
         set(on)
-        Alerts.reschedule(context, preferences)
+        Alerts.reschedule(context, financePreferences)
     }
     val askToNotify = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         val set = waiting?.let(setters::get)
@@ -170,7 +177,7 @@ fun AppSettingsScreen(preferences: AppPreferences, lock: AppLock?, contentPaddin
                 else "The home-screen widget shows no spending or budgets, as anyone can see the home screen.",
                 hideWidget || hideAmounts,
                 enabled = !hideAmounts,
-            ) { preferences.setHideWidgetAmounts(it) }
+            ) { financePreferences.setHideWidgetAmounts(it) }
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
 
             Heading("Notifications")

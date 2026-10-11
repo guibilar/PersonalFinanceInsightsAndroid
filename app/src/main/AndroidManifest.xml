@@ -2,8 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- Budget alerts (asked for when they are turned on). -->
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- The finance module adds the notifications' permission and the widget. -->
 
     <application
         android:name=".FinanceApp"
@@ -43,15 +42,5 @@
                 <data android:mimeType="application/csv" />
             </intent-filter>
         </activity>
-        <receiver
-            android:name=".widget.SpendingWidgetReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/spending_widget" />
-        </receiver>
     </application>
 </manifest>
