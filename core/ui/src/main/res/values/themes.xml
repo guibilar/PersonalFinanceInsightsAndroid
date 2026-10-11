@@ -1,0 +1,7 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- The window behind Compose; the screens themselves use the Compose theme. The app's manifest and the finance
+         module's manifest use it, not this module. -->
+    <style name="Theme.Finance" parent="Theme.SplashScreen" tools:ignore="UnusedResources">
+        <item name="postSplashScreenTheme">@android:style/Theme.Material.Light.NoActionBar</item>
+    </style>
+</resources>
