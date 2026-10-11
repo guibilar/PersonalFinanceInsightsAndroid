@@ -25,9 +25,15 @@ jobs:
 
       # The runner's SDK has its licences accepted, so the Android Gradle plugin fetches the platform it needs.
       - name: Test, lint and build
+        env:
+          CHECKS: >-
+            :core:common:test :core:network:test :core:finance:test
+            :core:ui:lintDebug
+            :feature:finance:testDebugUnitTest :feature:finance:lintDebug
+            :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
         run: |
           set -o pipefail
-          ./gradlew --console=plain --continue --no-build-cache :core:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug 2>&1 | tee build.log
+          ./gradlew --console=plain --continue --no-build-cache $CHECKS 2>&1 | tee build.log
 
       # TEMPORARY (T05): reports results as annotations, as the session can't read logs or artifacts. Removed before merge.
       - name: Report (temporary)
@@ -51,7 +57,9 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: screenshots
-          path: app/build/shots/
+          path: |
+            app/build/shots/
+            feature/*/build/shots/
           if-no-files-found: ignore
 
       - name: Upload the reports
@@ -60,5 +68,6 @@ jobs:
         with:
           name: reports
           path: |
-            core/build/reports/
+            core/*/build/reports/
+            feature/*/build/reports/
             app/build/reports/

@@ -85,13 +85,34 @@ Every push builds a debug APK: open the workflow run in the repository's **Actio
 ## Building
 
 - JDK 21 and the Android SDK (platform 37.2; Gradle downloads what is missing when the SDK's licences are accepted).
-- `./gradlew :core:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug`
+- `./gradlew :core:common:test :core:network:test :core:finance:test :core:ui:lintDebug :feature:finance:testDebugUnitTest :feature:finance:lintDebug :app:testDebugUnitTest :app:lintDebug :app:assembleDebug`
 
-Lint fails the build on any new warning. `app/lint-baseline.xml` holds the one left on purpose: the target SDK, which
-is raised as a change of its own.
+This is the command that CI runs. Lint fails the build on any new warning. `app/lint-baseline.xml` holds the one left on
+purpose: the target SDK, which is raised as a change of its own.
 
-`core` is plain Kotlin: the API's models and client (Retrofit, OkHttp with a cookie jar kept in the app's private
-storage) and the logic the screens share (date presets, dashboard figures, alerts, attention items, day and money
-formatting), tested on the JVM. `app` is the Android app; its tests include screenshot tests (Robolectric and
-Roborazzi) that render the screens with responses recorded from a real backend, written to `app/build/shots` and
-uploaded by CI.
+## Modules
+
+The app is split into Gradle modules, so that more modules (documents, tasks, and so on) can be added next to finance.
+
+| Module | Kind | Contents |
+| --- | --- | --- |
+| `:core:common` | Plain Kotlin | Amounts and days as the app shows them (`Money`, `formatDay`) and privacy mode. |
+| `:core:network` | Plain Kotlin | The HTTP client (Retrofit, OkHttp) with the cookie jar kept in the app's private storage, the server's address, and API errors. |
+| `:core:finance` | Plain Kotlin | The finance API's models and client, and the logic that the finance screens share (date presets, dashboard figures, alerts, attention items). Its test fixtures hold the fake API with responses recorded from a real backend. |
+| `:core:ui` | Android library | The theme, the common components, the charts, and the frame of the settings pages. |
+| `:feature:finance` | Android library | The finance screens, their navigation graph, the finance notifications, the widget, and the finance settings (`FinancePreferences`). |
+| `:app` | Android app | `MainActivity`, the application class, the navigation host with the tabs, sign-in, the lock, the account page and the app's settings. |
+
+How they connect:
+
+- `:feature:finance` does not depend on `:app`. The app calls `financeGraph(...)` in its navigation host, and builds its
+  tabs from `financeTabs`. `rememberFinanceRequests(...)` sends shared statements and quick actions (shortcut, widget,
+  notifications) to the finance pages.
+- The widget and the notifications need the session and the app's settings. They get them through the `FinanceHost`
+  interface, which the application class implements.
+- The plain Kotlin modules are tested on the JVM. The Android modules' tests include screenshot tests (Robolectric and
+  Roborazzi) that render the screens with the recorded responses. They write to `<module>/build/shots`, and CI uploads
+  them. The finance module's tests run in `TestFinanceApp` (see `feature/finance/src/test/resources/robolectric.properties`).
+- To add a module (for example `:feature:documents`), make an Android library that depends on `:core:ui` and
+  `:core:network`, give it a graph function like `financeGraph`, and call it from the app's navigation host. Nothing in
+  `:feature:finance` changes.
