@@ -1,6 +1,0 @@
-<resources>
-    <!-- The window behind Compose; the screens themselves use the Compose theme. -->
-    <style name="Theme.Finance" parent="Theme.SplashScreen">
-        <item name="postSplashScreenTheme">@android:style/Theme.Material.Light.NoActionBar</item>
-    </style>
-</resources>
