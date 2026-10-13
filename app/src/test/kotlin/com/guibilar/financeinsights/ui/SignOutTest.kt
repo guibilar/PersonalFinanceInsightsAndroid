@@ -8,7 +8,7 @@ import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
-import com.guibilar.financeinsights.FakeFinanceApi
+import com.guibilar.financeinsights.FakeAuthApi
 import com.guibilar.financeinsights.ui.settings.AccountSettingsScreen
 import com.guibilar.financeinsights.ui.settings.AccountSettingsViewModel
 import com.guibilar.financeinsights.ui.theme.FinanceTheme
@@ -25,7 +25,7 @@ class SignOutTest {
     @Test
     fun `signing out of this phone asks first`() {
         var signedOut = 0
-        val model = AccountSettingsViewModel(FakeFinanceApi())
+        val model = AccountSettingsViewModel(FakeAuthApi())
         compose.setContent {
             FinanceTheme(dynamicColor = false) {
                 Surface { AccountSettingsScreen(model, AccountInfo("dev", "https://finance.example.ts.net"), { signedOut++ }, PaddingValues()) {} }

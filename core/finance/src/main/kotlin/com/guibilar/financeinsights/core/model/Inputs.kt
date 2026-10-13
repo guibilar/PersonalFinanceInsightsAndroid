@@ -2,14 +2,6 @@ package com.guibilar.financeinsights.core.model
 
 import kotlinx.serialization.Serializable
 
-@Serializable
-data class LoginInput(
-    val username: String,
-    val password: String,
-    /** Keeps the session for 14 days of inactivity, like "Remember me" on the web. */
-    val rememberMe: Boolean = true,
-)
-
 /** What the transaction list shows: its criteria, without paging and sorting. */
 @Serializable
 data class TransactionCriteria(
@@ -220,6 +212,3 @@ data class AccountBalanceInput(
     /** For a card, what it owes. */
     val amount: Double,
 )
-
-@Serializable
-data class ChangePasswordInput(val currentPassword: String, val newPassword: String)

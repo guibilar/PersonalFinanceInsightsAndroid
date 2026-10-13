@@ -10,7 +10,7 @@ import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import com.github.takahirom.roborazzi.captureScreenRoboImage
-import com.guibilar.financeinsights.FakeFinanceApi
+import com.guibilar.financeinsights.FakeAuthApi
 import com.guibilar.financeinsights.core.api.ApiError
 import com.guibilar.financeinsights.ui.settings.AccountSettingsScreen
 import com.guibilar.financeinsights.ui.settings.AccountSettingsViewModel
@@ -29,7 +29,7 @@ import org.robolectric.annotation.GraphicsMode
 class AccountSettingsScreenshotTest {
     @get:Rule val compose = createComposeRule()
 
-    private val api = FakeFinanceApi()
+    private val api = FakeAuthApi()
     private val account = AccountInfo("dev", "https://finance.example.ts.net")
 
     private fun show(dark: Boolean = false, content: @Composable () -> Unit) {

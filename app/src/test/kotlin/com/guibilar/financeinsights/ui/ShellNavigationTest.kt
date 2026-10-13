@@ -12,6 +12,7 @@ import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.guibilar.financeinsights.FakeFinanceApi
+import com.guibilar.financeinsights.fakeApiClient
 import com.guibilar.financeinsights.QuickAction
 import com.guibilar.financeinsights.ui.theme.FinanceTheme
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,7 +36,7 @@ class ShellNavigationTest {
     private val quickAction = MutableStateFlow<QuickAction?>(null)
 
     private fun show() {
-        compose.setContent { FinanceTheme(dynamicColor = false) { Surface { MainScreen(FakeFinanceApi(), account, {}, quickAction = quickAction) } } }
+        compose.setContent { FinanceTheme(dynamicColor = false) { Surface { MainScreen(fakeApiClient(FakeFinanceApi()), account, {}, quickAction = quickAction) } } }
         compose.waitForIdle()
     }
 

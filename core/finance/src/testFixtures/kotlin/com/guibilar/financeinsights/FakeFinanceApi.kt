@@ -16,8 +16,6 @@ import com.guibilar.financeinsights.core.model.BudgetFilter
 import com.guibilar.financeinsights.core.model.CashFlowReport
 import com.guibilar.financeinsights.core.model.CategorizedReport
 import com.guibilar.financeinsights.core.model.Category
-import com.guibilar.financeinsights.core.model.CurrentUser
-import com.guibilar.financeinsights.core.model.LoginInput
 import com.guibilar.financeinsights.core.model.MerchantTotal
 import com.guibilar.financeinsights.core.model.MerchantsInput
 import com.guibilar.financeinsights.core.model.Page
@@ -34,10 +32,8 @@ import com.guibilar.financeinsights.core.model.AccountUpdate
 import com.guibilar.financeinsights.core.model.BudgetInput
 import com.guibilar.financeinsights.core.model.CategoryInput
 import com.guibilar.financeinsights.core.model.CategoryRuleMove
-import com.guibilar.financeinsights.core.model.ChangePasswordInput
 import com.guibilar.financeinsights.core.model.FlowRule
 import com.guibilar.financeinsights.core.model.FlowRuleInput
-import com.guibilar.financeinsights.core.model.SignedOutSessions
 import com.guibilar.financeinsights.core.model.CategoryReference
 import com.guibilar.financeinsights.core.model.CategoryRule
 import com.guibilar.financeinsights.core.model.CategoryRuleInput
@@ -55,7 +51,7 @@ import java.io.IOException
 
 /**
  * The API answering with responses recorded from a real backend (core/finance/src/testFixtures/resources/fixtures). Each call is
- * recorded, and any can be made to fail.
+ * recorded, and any can be made to fail. Signing in is [FakeAuthApi] (`:core:network`'s test fixtures).
  */
 class FakeFinanceApi : FinanceApi {
     val transactionFilters = mutableListOf<TransactionFilter>()
@@ -98,9 +94,6 @@ class FakeFinanceApi : FinanceApi {
         fun conflict(detail: String, code: String? = null) = ApiError.Http(409, "Conflict", detail, code, emptyMap())
     }
 
-    override suspend fun login(login: LoginInput) = CurrentUser("dev").also { check("login") }
-    override suspend fun logout() = check("logout")
-    override suspend fun me() = CurrentUser("dev").also { check("me") }
     override suspend fun yearReport(): CategorizedReport {
         slow["yearReport"]?.let { kotlinx.coroutines.delay(it) }
         return check("yearReport").let { fixture("year") }
@@ -237,6 +230,4 @@ class FakeFinanceApi : FinanceApi {
         fixture<List<Tag>>("tags").first { it.id == id }.copy(name = tag.name)
     }
     override suspend fun deleteTag(id: String) = write("deleteTag", id) {}
-    override suspend fun changePassword(change: ChangePasswordInput) = write("changePassword", change) {}
-    override suspend fun signOutOthers() = write("signOutOthers", null) { SignedOutSessions(2) }
 }

@@ -91,6 +91,7 @@ dependencies {
     debugImplementation(libs.compose.ui.tooling)
     debugImplementation(libs.compose.ui.test.manifest)
 
+    testImplementation(testFixtures(project(":core:network")))
     testImplementation(testFixtures(project(":core:finance")))
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

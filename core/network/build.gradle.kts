@@ -1,8 +1,10 @@
 // Reaching the server: the HTTP client with its cookie jar, the server's address, and what a failed call means.
-// Every module's API is built on it. Plain Kotlin, tested on the JVM.
+// Also signing in (AuthApi) and the signed-in client that every module's API shares (ApiClient).
+// Plain Kotlin, tested on the JVM. Its test fixtures hold the fake AuthApi.
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.serialization)
+    `java-test-fixtures`
 }
 
 kotlin {
@@ -23,4 +25,6 @@ dependencies {
     implementation(libs.retrofit.kotlinx.serialization)
 
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.okhttp.mockwebserver)
 }

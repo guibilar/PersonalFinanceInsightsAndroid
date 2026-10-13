@@ -48,10 +48,12 @@ class LiveApiTest {
             }
         })
         var unauthorized = 0
-        val api = createFinanceApi(ServerAddress.normalize(server!!)!!, jar, onUnauthorized = { unauthorized++ })
+        val client = createApiClient(ServerAddress.normalize(server!!)!!, jar, onUnauthorized = { unauthorized++ })
+        val auth = client.auth
+        val api = client.api<FinanceApi>()
 
-        val user = api.login(LoginInput(System.getenv("FINANCE_LIVE_USER"), System.getenv("FINANCE_LIVE_PASSWORD")))
-        assertEquals(user.username, api.me().username)
+        val user = auth.login(LoginInput(System.getenv("FINANCE_LIVE_USER"), System.getenv("FINANCE_LIVE_PASSWORD")))
+        assertEquals(user.username, auth.me().username)
         api.yearReport()
         api.monthReport()
         api.cashFlow()
@@ -64,9 +66,9 @@ class LiveApiTest {
         api.accounts()
         assertEquals(page.totalCount, breakdown.count)
 
-        api.logout()
+        auth.logout()
         assertTrue(jar.isEmpty)
-        assertTrue(apiCall { api.me() }.apiError!!.isUnauthorized)
+        assertTrue(apiCall { api.accounts() }.apiError!!.isUnauthorized)
         assertEquals(1, unauthorized)
     }
 
@@ -80,8 +82,9 @@ class LiveApiTest {
                 stored = value
             }
         })
-        val api = createFinanceApi(ServerAddress.normalize(server!!)!!, jar)
-        api.login(LoginInput(System.getenv("FINANCE_LIVE_USER"), System.getenv("FINANCE_LIVE_PASSWORD")))
+        val client = createApiClient(ServerAddress.normalize(server!!)!!, jar)
+        val api = client.api<FinanceApi>()
+        client.auth.login(LoginInput(System.getenv("FINANCE_LIVE_USER"), System.getenv("FINANCE_LIVE_PASSWORD")))
         val accounts = api.accounts()
         val manual = accounts.first { it.format == StatementFormat.Manual }
         val categories = api.categories()
@@ -129,9 +132,11 @@ class LiveApiTest {
         val address = ServerAddress.normalize(server!!)!!
         val user = System.getenv("FINANCE_LIVE_USER")
         val password = System.getenv("FINANCE_LIVE_PASSWORD")
-        val api = createFinanceApi(address, jar())
-        val other = createFinanceApi(address, jar())
-        api.login(LoginInput(user, password))
+        val client = createApiClient(address, jar())
+        val api = client.api<FinanceApi>()
+        val auth = client.auth
+        val other = createApiClient(address, jar()).auth
+        auth.login(LoginInput(user, password))
         other.login(LoginInput(user, password))
         val stamp = System.currentTimeMillis() % 100000
 
@@ -156,12 +161,12 @@ class LiveApiTest {
         assertEquals(StatementFormat.Neo, api.updateAccount(account.id, AccountUpdate("Live $stamp", StatementFormat.Neo)).format)
         api.deleteAccount(account.id)
 
-        assertTrue(api.signOutOthers().count >= 1)
+        assertTrue(auth.signOutOthers().count >= 1)
         assertTrue(apiCall { other.me() }.apiError!!.isUnauthorized)
-        val wrong = apiCall { api.changePassword(ChangePasswordInput("not it", "a long enough password")) }.apiError!!
+        val wrong = apiCall { auth.changePassword(ChangePasswordInput("not it", "a long enough password")) }.apiError!!
         assertTrue(wrong is ApiError.Http && wrong.status == 400)
-        api.changePassword(ChangePasswordInput(password, "$password!"))
-        api.changePassword(ChangePasswordInput("$password!", password))
-        api.me()
+        auth.changePassword(ChangePasswordInput(password, "$password!"))
+        auth.changePassword(ChangePasswordInput("$password!", password))
+        auth.me()
     }
 }

@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.guibilar.financeinsights.FakeFinanceApi
+import com.guibilar.financeinsights.fakeApiClient
 import com.guibilar.financeinsights.data.AppPreferences
 import com.guibilar.financeinsights.data.FinancePreferences
 import com.guibilar.financeinsights.data.Session
@@ -31,8 +32,8 @@ class LockTest {
     @Test
     fun `unlocking returns to where the app was`() {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
-        val api = FakeFinanceApi()
-        val session = Session(SessionStore(context)) { _, _, _ -> api }
+        val client = fakeApiClient(FakeFinanceApi())
+        val session = Session(SessionStore(context)) { _, _, _ -> client }
         runBlocking { session.signIn("https://finance.example.ts.net", "dev", "a password") }
         val preferences = AppPreferences(context).apply { setLock(true) }
         val lock = AppLock(preferences) { now }.apply { unlocked() }

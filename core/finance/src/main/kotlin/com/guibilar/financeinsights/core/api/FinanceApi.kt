@@ -8,8 +8,6 @@ import com.guibilar.financeinsights.core.model.BudgetFilter
 import com.guibilar.financeinsights.core.model.CashFlowReport
 import com.guibilar.financeinsights.core.model.CategorizedReport
 import com.guibilar.financeinsights.core.model.Category
-import com.guibilar.financeinsights.core.model.CurrentUser
-import com.guibilar.financeinsights.core.model.LoginInput
 import com.guibilar.financeinsights.core.model.MerchantTotal
 import com.guibilar.financeinsights.core.model.MerchantsInput
 import com.guibilar.financeinsights.core.model.Page
@@ -25,10 +23,8 @@ import com.guibilar.financeinsights.core.model.AccountUpdate
 import com.guibilar.financeinsights.core.model.BudgetInput
 import com.guibilar.financeinsights.core.model.CategoryInput
 import com.guibilar.financeinsights.core.model.CategoryRuleMove
-import com.guibilar.financeinsights.core.model.ChangePasswordInput
 import com.guibilar.financeinsights.core.model.FlowRule
 import com.guibilar.financeinsights.core.model.FlowRuleInput
-import com.guibilar.financeinsights.core.model.SignedOutSessions
 import com.guibilar.financeinsights.core.model.CategoryRule
 import com.guibilar.financeinsights.core.model.CategoryRuleInput
 import com.guibilar.financeinsights.core.model.CategoryRulePreview
@@ -56,17 +52,11 @@ import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
 
-/** The backend's REST API, under `<server>/api/`. Every call but [login] needs the session cookie [login] sets. */
+/**
+ * The finance API, under `<server>/api/`. Every call needs the session cookie that [AuthApi.login] sets: make it with
+ * the signed-in client, `client.api<FinanceApi>()`.
+ */
 interface FinanceApi {
-    @POST("Auth/login")
-    suspend fun login(@Body login: LoginInput): CurrentUser
-
-    @POST("Auth/logout")
-    suspend fun logout()
-
-    @GET("Auth/me")
-    suspend fun me(): CurrentUser
-
     @GET("Reports/monthly-categorized-graph")
     suspend fun yearReport(): CategorizedReport
 
@@ -248,12 +238,4 @@ interface FinanceApi {
     /** Only an account without transactions (deleted ones included) can be deleted; otherwise a 409. */
     @DELETE("Accounts/{id}")
     suspend fun deleteAccount(@Path("id") id: String)
-
-    /** Every other session ends; this one goes on. A wrong current password is a 400 on currentPassword. */
-    @POST("Auth/change-password")
-    suspend fun changePassword(@Body change: ChangePasswordInput)
-
-    /** Ends every other session of this account (other phones and browsers); this one stays. */
-    @POST("Auth/sign-out-others")
-    suspend fun signOutOthers(): SignedOutSessions
 }

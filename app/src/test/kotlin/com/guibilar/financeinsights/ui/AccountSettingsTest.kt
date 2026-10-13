@@ -1,6 +1,6 @@
 package com.guibilar.financeinsights.ui
 
-import com.guibilar.financeinsights.FakeFinanceApi
+import com.guibilar.financeinsights.FakeAuthApi
 import com.guibilar.financeinsights.core.api.ApiError
 import com.guibilar.financeinsights.ui.common.UiMessage
 import com.guibilar.financeinsights.ui.settings.AccountSettingsViewModel
@@ -24,7 +24,7 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class AccountSettingsTest {
     private val dispatcher = StandardTestDispatcher()
-    private val api = FakeFinanceApi()
+    private val api = FakeAuthApi()
 
     @Before
     fun setUp() = Dispatchers.setMain(dispatcher)

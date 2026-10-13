@@ -1,11 +1,11 @@
 package com.guibilar.financeinsights.data
 
+import com.guibilar.financeinsights.core.api.ApiClient
 import com.guibilar.financeinsights.core.api.ApiError
-import com.guibilar.financeinsights.core.api.FinanceApi
 import com.guibilar.financeinsights.core.api.PersistentCookieJar
 import com.guibilar.financeinsights.core.api.ServerAddress
 import com.guibilar.financeinsights.core.api.apiCall
-import com.guibilar.financeinsights.core.api.createFinanceApi
+import com.guibilar.financeinsights.core.api.createApiClient
 import com.guibilar.financeinsights.core.model.LoginInput
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,14 +22,15 @@ sealed interface AuthState {
     ) : AuthState
     /** The stored session couldn't be checked (Tailscale off, server down): kept, to try again. */
     data class Unreachable(val message: String) : AuthState
-    data class SignedIn(val username: String, val api: FinanceApi) : AuthState
+    /** [client] is the signed-in client: every module makes its API from it (`client.api<FinanceApi>()`). */
+    data class SignedIn(val username: String, val client: ApiClient) : AuthState
 }
 
-/** Who is signed in to which server, and the API client for it. */
+/** Who is signed in to which server, and the signed-in client for it. */
 class Session(
     private val store: SessionStore,
-    private val createApi: (server: String, jar: PersistentCookieJar, onUnauthorized: () -> Unit) -> FinanceApi =
-        { server, jar, onUnauthorized -> createFinanceApi(server, jar, onUnauthorized) },
+    private val createClient: (server: String, jar: PersistentCookieJar, onUnauthorized: () -> Unit) -> ApiClient =
+        { server, jar, onUnauthorized -> createApiClient(server, jar, onUnauthorized) },
 ) {
     private val jar = PersistentCookieJar(store.cookies)
     private val _state = MutableStateFlow<AuthState>(if (canResume()) AuthState.Checking else AuthState.SignedOut())
@@ -40,7 +41,7 @@ class Session(
 
     private fun canResume() = store.server != null && !jar.isEmpty
 
-    private fun api(server: String) = createApi(server, jar) { sessionEnded() }
+    private fun client(server: String) = createClient(server, jar) { sessionEnded() }
 
     /**
      * At launch (and on Retry): a stored session that the server still accepts signs in without asking. An unreachable
@@ -52,10 +53,10 @@ class Session(
             _state.value = AuthState.SignedOut()
             return
         }
-        val api = api(server)
-        val me = apiCall { api.me() }
+        val client = client(server)
+        val me = apiCall { client.auth.me() }
         _state.value = me.fold(
-            onSuccess = { AuthState.SignedIn(it.username, api) },
+            onSuccess = { AuthState.SignedIn(it.username, client) },
             onFailure = { error ->
                 if ((error as ApiError).isUnauthorized) {
                     jar.clear()
@@ -73,29 +74,29 @@ class Session(
     }
 
     /**
-     * The API for work in the background (budget alerts, the widget): the signed-in client, or one on the stored
+     * The client for work in the background (budget alerts, the widget): the signed-in client, or one on the stored
      * session when the app isn't open. Null when signed out. A 401 here doesn't sign out: the app finds out on open.
      */
-    fun backgroundApi(): FinanceApi? {
-        (_state.value as? AuthState.SignedIn)?.let { return it.api }
+    fun backgroundClient(): ApiClient? {
+        (_state.value as? AuthState.SignedIn)?.let { return it.client }
         val server = store.server ?: return null
         if (jar.isEmpty) return null
         // One client per server, reused: each run of the widget or the alerts used to build its own (and its threads).
         background?.takeIf { it.first == server }?.let { return it.second }
-        return createApi(server, jar) {}.also { background = server to it }
+        return createClient(server, jar) {}.also { background = server to it }
     }
-    @Volatile private var background: Pair<String, FinanceApi>? = null
+    @Volatile private var background: Pair<String, ApiClient>? = null
 
     /** Signs in; the failure's message says why (wrong password, too many attempts, unreachable). */
     suspend fun signIn(serverInput: String, username: String, password: String): Result<Unit> {
         val server = ServerAddress.normalize(serverInput)
             ?: return Result.failure(IllegalArgumentException("Enter the server's address, like https://finance.example.ts.net"))
         if (server != store.server) jar.clear()
-        val api = api(server)
-        return apiCall { api.login(LoginInput(username.trim(), password)) }.map { user ->
+        val client = client(server)
+        return apiCall { client.auth.login(LoginInput(username.trim(), password)) }.map { user ->
             store.server = server
             store.username = user.username
-            _state.value = AuthState.SignedIn(user.username, api)
+            _state.value = AuthState.SignedIn(user.username, client)
         }
     }
 
@@ -103,7 +104,7 @@ class Session(
         // To the end even when the screen that asked goes away meanwhile (Back, another tab): cancelled halfway, the
         // phone would stay signed in, cookie and all, after the person chose to sign out.
         withContext(NonCancellable) {
-            (_state.value as? AuthState.SignedIn)?.api?.let { api -> apiCall { api.logout() } }
+            (_state.value as? AuthState.SignedIn)?.client?.let { client -> apiCall { client.auth.logout() } }
             jar.clear()
             _state.value = AuthState.SignedOut()
         }

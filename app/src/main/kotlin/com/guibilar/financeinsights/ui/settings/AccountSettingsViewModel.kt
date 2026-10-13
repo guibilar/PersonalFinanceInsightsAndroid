@@ -1,7 +1,7 @@
 package com.guibilar.financeinsights.ui.settings
 
 import androidx.lifecycle.viewModelScope
-import com.guibilar.financeinsights.core.api.FinanceApi
+import com.guibilar.financeinsights.core.api.AuthApi
 import com.guibilar.financeinsights.core.api.apiCall
 import com.guibilar.financeinsights.core.api.apiError
 import com.guibilar.financeinsights.core.logic.passwordErrors
@@ -9,7 +9,7 @@ import com.guibilar.financeinsights.core.model.ChangePasswordInput
 import kotlinx.coroutines.launch
 
 /** The signed-in account: its password, and the other places it is signed in. */
-class AccountSettingsViewModel(private val api: FinanceApi) : SettingsViewModel() {
+class AccountSettingsViewModel(private val api: AuthApi) : SettingsViewModel() {
     /** Null when changed, or the reasons by field ("currentPassword", "newPassword", "other"). */
     suspend fun changePassword(current: String, new: String): Map<String, String>? {
         val result = apiCall { api.changePassword(ChangePasswordInput(current, new)) }
