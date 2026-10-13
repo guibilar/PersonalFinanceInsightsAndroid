@@ -9,6 +9,7 @@ import com.guibilar.financeinsights.core.api.apiCall
 import com.guibilar.financeinsights.core.api.apiError
 import com.guibilar.financeinsights.core.api.importMessage
 import com.guibilar.financeinsights.core.api.importStatement
+import com.guibilar.financeinsights.core.logic.DataChanges
 import com.guibilar.financeinsights.core.logic.DateChoice
 import com.guibilar.financeinsights.core.logic.DateRange
 import com.guibilar.financeinsights.core.logic.describeRulesResult
@@ -212,6 +213,8 @@ class TransactionsViewModel(
         val result = apiCall { api.addTransaction(input) }
         val error = result.apiError ?: run {
             val added = result.getOrThrow()
+            // Today asks the server for new cards (not its short cache) the next time it shows.
+            DataChanges.changed()
             _state.update { it.copy(lastAdded = LocalDate.parse(input.date) to input.accountId) }
             changed("Added “${added.description}” to ${added.accountName}")
             return AddOutcome.Added
@@ -292,7 +295,10 @@ class TransactionsViewModel(
      */
     suspend fun import(fileName: String, bytes: ByteArray, accountId: String, confirmed: Boolean): ImportOutcome {
         val result = apiCall { api.importStatement(fileName, bytes, accountId, confirmed) }
-        val error = result.apiError ?: return ImportOutcome.Imported(result.getOrThrow())
+        val error = result.apiError ?: run {
+            DataChanges.changed()
+            return ImportOutcome.Imported(result.getOrThrow())
+        }
         return error.accountMismatch?.let { ImportOutcome.Mismatch(it) } ?: ImportOutcome.Failed(error.importMessage())
     }
 

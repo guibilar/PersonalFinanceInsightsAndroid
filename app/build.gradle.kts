@@ -72,6 +72,7 @@ kotlin {
 
 dependencies {
     implementation(project(":feature:finance"))
+    implementation(project(":core:today"))
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)
@@ -93,6 +94,7 @@ dependencies {
 
     testImplementation(testFixtures(project(":core:network")))
     testImplementation(testFixtures(project(":core:finance")))
+    testImplementation(testFixtures(project(":core:today")))
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)

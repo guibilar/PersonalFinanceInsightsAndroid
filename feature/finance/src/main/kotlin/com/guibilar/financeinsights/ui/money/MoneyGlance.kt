@@ -15,7 +15,8 @@ import com.guibilar.financeinsights.ui.dashboard.NeedsAttention
 
 /**
  * The Money module at a glance: the dashboard's four headline tiles and, with [attention], its "Needs attention"
- * list. Today and the Money home show it; each tile and item opens its page through [open].
+ * list. The Money home shows it; each tile and item opens its page through [open]. Today shows the same figures from
+ * the server's Today API (`:core:today`).
  */
 @Composable
 fun MoneyGlance(state: DashboardState, open: (MoneyLink) -> Unit, modifier: Modifier = Modifier, attention: Boolean = true) {

@@ -48,6 +48,7 @@ import com.guibilar.financeinsights.BuildConfig
 import com.guibilar.financeinsights.QuickAction
 import com.guibilar.financeinsights.core.api.ApiClient
 import com.guibilar.financeinsights.core.api.FinanceApi
+import com.guibilar.financeinsights.core.today.TodayApi
 import com.guibilar.financeinsights.data.AppPreferences
 import com.guibilar.financeinsights.data.AuthState
 import com.guibilar.financeinsights.data.FinancePreferences
@@ -57,7 +58,6 @@ import com.guibilar.financeinsights.security.authenticate
 import com.guibilar.financeinsights.security.canAuthenticate
 import com.guibilar.financeinsights.ui.common.MEDIUM_WIDTH
 import com.guibilar.financeinsights.ui.common.windowWidth
-import com.guibilar.financeinsights.ui.dashboard.DashboardViewModel
 import com.guibilar.financeinsights.ui.modules.MODULES
 import com.guibilar.financeinsights.ui.modules.ModulesScreen
 import com.guibilar.financeinsights.ui.settings.AccountSettingsScreen
@@ -69,6 +69,7 @@ import com.guibilar.financeinsights.ui.signin.LockScreen
 import com.guibilar.financeinsights.ui.signin.SignInScreen
 import com.guibilar.financeinsights.ui.signin.UnreachableScreen
 import com.guibilar.financeinsights.ui.today.TodayScreen
+import com.guibilar.financeinsights.ui.today.TodayViewModel
 import com.guibilar.financeinsights.ui.transactions.PickedFile
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.serialization.Serializable
@@ -209,6 +210,7 @@ fun MainScreen(
 ) {
     // Each module makes its API from the signed-in client (the client keeps it, so it is the same object every time).
     val api: FinanceApi = client.api()
+    val todayApi: TodayApi = client.api()
     val nav = rememberNavController()
     val entry by nav.currentBackStackEntryAsState()
     // Shared statements and quick actions (shortcut, widget, notifications, Capture) open their finance pages.
@@ -260,11 +262,13 @@ fun MainScreen(
             NavHost(nav, startDestination = TodayRoute, modifier = Modifier.weight(1f)) {
                 composable<TodayRoute> {
                     TodayScreen(
-                        model = viewModel { DashboardViewModel(api) },
+                        model = viewModel { TodayViewModel(todayApi) },
                         modules = MODULES,
                         contentPadding = padding,
                         open = { link -> requests.open(nav, link) },
-                        openMoney = { nav.openMoneyHome() },
+                        openModule = { module ->
+                            if (module.route == MoneyHomeRoute) nav.openMoneyHome() else module.route?.let { nav.navigate(it) }
+                        },
                     )
                 }
                 composable<TimelineRoute> {

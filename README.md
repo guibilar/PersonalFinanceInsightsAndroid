@@ -10,8 +10,10 @@ The app is the shell of Hestia, a personal "everything app". Finance is its firs
 The bar at the bottom has five items: **Today**, **Timeline**, **Capture** (the round + in the middle), **Modules** and
 **Search**. Each keeps its own back stack, and Back from any of them returns to Today.
 
-- **Today** shows the Money module's four headline tiles and its "Needs attention" list, then a card for the modules
-  that are coming. A tile or an item opens its Money page.
+- **Today** shows the cards that the server gives for today (`GET /api/today` on Hestia.Api): each module's tiles
+  (Money first, with its four headline tiles), then one "Needs attention" list, then a card for the modules that are
+  coming. A tile or an item opens its page. Pull down to get new cards. If a module could not load all its figures,
+  Today says so; if a module failed, it has its own "Try again".
 - **Modules** lists the modules. Money opens its home; Documents, Home, People, Journal and Tasks are "Coming soon".
   Under them are the app's settings and your account.
 - **Money** (its home) has the four tiles and a row for each finance page: Dashboard, Net worth and Review; Transactions,
@@ -104,7 +106,7 @@ tab and click **Run workflow** on `main` (see [CI artifacts](#ci-artifacts)).
 ## Building
 
 - JDK 21 and the Android SDK (platform 37.2; Gradle downloads what is missing when the SDK's licences are accepted).
-- `./gradlew :core:common:test :core:network:test :core:finance:test :core:ui:lintDebug :feature:finance:testDebugUnitTest :feature:finance:lintDebug :app:testDebugUnitTest :app:lintDebug :app:assembleDebug`
+- `./gradlew :core:common:test :core:network:test :core:finance:test :core:today:test :core:ui:lintDebug :feature:finance:testDebugUnitTest :feature:finance:lintDebug :app:testDebugUnitTest :app:lintDebug :app:assembleDebug`
 
 This is the command that CI runs. Lint fails the build on any new warning. `app/lint-baseline.xml` holds the one left on
 purpose: the target SDK, which is raised as a change of its own.
@@ -131,9 +133,10 @@ The app is split into Gradle modules, so that more modules (documents, tasks, an
 
 | Module | Kind | Contents |
 | --- | --- | --- |
-| `:core:common` | Plain Kotlin | Amounts and days as the app shows them (`Money`, `formatDay`) and privacy mode. |
+| `:core:common` | Plain Kotlin | Amounts and days as the app shows them (`Money`, `formatDay`), privacy mode, and `DataChanges` (the data changed in the app). |
 | `:core:network` | Plain Kotlin | The HTTP client (Retrofit, OkHttp) with the cookie jar kept in the app's private storage, the server's address, and API errors. Sign-in (`AuthApi`, the `/api/Auth/*` endpoints) and the signed-in client (`ApiClient`) that all modules share. Its test fixtures hold the fake `AuthApi` and `fakeApiClient(...)`. |
 | `:core:finance` | Plain Kotlin | The finance API's models and client, and the logic that the finance screens share (date presets, dashboard figures, alerts, attention items). Its test fixtures hold the fake API with responses recorded from a real backend. |
+| `:core:today` | Plain Kotlin | The Today API (`TodayApi`, `GET /api/today`) and its models, and the filler that puts the app's money, percent and date formats into the card texts (it hides amounts in privacy mode). Its test fixtures hold the fake `TodayApi` and sample answers. |
 | `:core:ui` | Android library | The theme, the common components, the charts, and the frame of the settings pages. |
 | `:feature:finance` | Android library | The Money module: its home, the finance screens, their navigation graph, the finance notifications, the widget, and the finance settings (`FinancePreferences`). |
 | `:app` | Android app | `MainActivity`, the application class, the module registry, the navigation host with the bar (Today, Timeline, Capture, Modules, Search), sign-in, the lock, the account page and the app's settings. |
@@ -143,7 +146,13 @@ How they connect:
 - `:feature:finance` does not depend on `:app`. The app calls `financeGraph(...)` in its navigation host. The bar shows
   the finance pages under Modules (`isFinancePage()`). `rememberFinanceRequests(...)` sends shared statements and quick
   actions (shortcut, widget, notifications, Capture) to the finance pages, over the Money home (`openFinancePage(...)`).
-  Today shows the Money tiles and "Needs attention" with `MoneyGlance(...)`.
+  The Money home shows its tiles with `MoneyGlance(...)`.
+- **Today** (`:app`, `ui/today`) reads only the Today API. The server owns the card rules, so Today and the web show
+  the same cards. A card's link is a web route (for example `/money/budgets`); `todayDestination(...)` in
+  `TodayLinks.kt` is the one place that turns it into a page of the app. A link that the app does not know opens the
+  Money home. A module with cards gets its own section on Today, with no app change; a registry module with no cards
+  stays under "Coming soon". After an import or a new transaction (`DataChanges.changed()`), the next Today load asks
+  the server for new cards (`refresh=true`), and not its 30-second cache.
 - The module registry (`MODULES` in `:app`, `ui/modules/ModuleRegistry.kt`) lists each module with its name, icon,
   home route and status. The Modules page and Today read it.
 - Sign-in is in `:core:network`, not in a module. When you sign in, the app gets one `ApiClient` for the server. It has
