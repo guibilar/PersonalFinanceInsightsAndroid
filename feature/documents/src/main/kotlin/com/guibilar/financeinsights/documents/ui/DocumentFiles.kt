@@ -9,6 +9,7 @@ import android.graphics.Matrix
 import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.core.content.FileProvider
+import androidx.core.graphics.scale
 import androidx.exifinterface.media.ExifInterface
 import com.guibilar.financeinsights.core.documents.DocumentFile
 import com.guibilar.financeinsights.core.documents.DocumentsApi
@@ -92,7 +93,7 @@ fun decodeUpright(bytes: ByteArray, maxSide: Int): Bitmap? {
         ?: return null
     val (targetWidth, targetHeight) = scaledSize(decoded.width, decoded.height, maxSide)
     val scaled = if (targetWidth != decoded.width || targetHeight != decoded.height) {
-        Bitmap.createScaledBitmap(decoded, targetWidth, targetHeight, true).also { if (it !== decoded) decoded.recycle() }
+        decoded.scale(targetWidth, targetHeight).also { if (it !== decoded) decoded.recycle() }
     } else {
         decoded
     }
@@ -100,9 +101,10 @@ fun decodeUpright(bytes: ByteArray, maxSide: Int): Bitmap? {
     return Bitmap.createBitmap(scaled, 0, 0, scaled.width, scaled.height, matrix, true).also { if (it !== scaled) scaled.recycle() }
 }
 
+/** The EXIF orientation; an image without one (or with "undefined") is upright. */
 private fun orientation(bytes: ByteArray): Int = runCatching {
     ExifInterface(ByteArrayInputStream(bytes)).getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
-}.getOrDefault(ExifInterface.ORIENTATION_NORMAL)
+}.getOrDefault(ExifInterface.ORIENTATION_NORMAL).takeIf { it != ExifInterface.ORIENTATION_UNDEFINED } ?: ExifInterface.ORIENTATION_NORMAL
 
 /** The turn (and mirror) that puts a photo upright, from its EXIF orientation; null when it is upright. */
 private fun uprightMatrix(orientation: Int): Matrix? = when (orientation) {
