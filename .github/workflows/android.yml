@@ -33,7 +33,14 @@ jobs:
             :core:ui:lintDebug
             :feature:finance:testDebugUnitTest :feature:finance:lintDebug
             :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
-        run: ./gradlew --console=plain $CHECKS
+        shell: bash
+        run: ./gradlew --console=plain --continue --no-build-cache $CHECKS 2>&1 | tee build.log
+
+      # Probe only (T12): the hashes of the screenshots on main, to compare with the branch.
+      - name: Probe annotations
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: python3 scripts/probe-annotations.py --hashes
 
       # Artifacts count against the account's storage quota. See "CI artifacts" in the README for the policy.
       # A failed upload (usually a full quota) does not fail the job: the next step writes a warning instead.
