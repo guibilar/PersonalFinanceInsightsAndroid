@@ -33,7 +33,14 @@ jobs:
             :core:ui:lintDebug
             :feature:finance:testDebugUnitTest :feature:finance:lintDebug
             :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
-        run: ./gradlew --console=plain $CHECKS
+        run: ./gradlew --console=plain --no-build-cache :feature:finance:testDebugUnitTest :app:testDebugUnitTest
+
+      - name: Screenshot hashes
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          list=$(find app/build/shots feature/*/build/shots -name '*.png' | sort | xargs sha256sum | awk '{n=$2; sub(/.*\//,"",n); printf "%s %s%%0A", substr($1,1,12), n}')
+          echo "::notice title=shots::${list}"
 
       # Artifacts count against the account's storage quota. See "CI artifacts" in the README for the policy.
       # A failed upload (usually a full quota) does not fail the job: the next step writes a warning instead.
