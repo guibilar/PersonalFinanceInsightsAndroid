@@ -8,6 +8,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
@@ -80,7 +81,7 @@ class DocumentsScreenshotTest {
         shoot("documents")
 
         compose.onNodeWithText("Apartment lease").performClick()
-        compose.onNodeWithText("Add document").performClick()
+        compose.onNodeWithContentDescription("Add document").performClick()
         compose.onAllNodesWithContentDescription("Scan a document").onFirst().performClick()
         assertEquals(listOf("d5"), opened)
         assertEquals(listOf(false, true), added)
@@ -193,7 +194,8 @@ class DocumentsScreenshotTest {
 
     @Test
     fun `an empty upload says what to add`() {
-        show { UploadScreen(UploadViewModel(api), PaddingValues(), onClose = {}, uploaded = {}) }
+        val model = UploadViewModel(api)
+        show { UploadScreen(model, PaddingValues(), onClose = {}, uploaded = {}) }
         assertShows("No files yet. Scan the document, or pick photos or PDFs.", "Scan", "Photos", "Files")
         shoot("document-upload-empty")
     }

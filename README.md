@@ -14,13 +14,30 @@ The bar at the bottom has five items: **Today**, **Timeline**, **Capture** (the 
   (Money first, with its four headline tiles), then one "Needs attention" list, then a card for the modules that are
   coming. A tile or an item opens its page. Pull down to get new cards. If a module could not load all its figures,
   Today says so; if a module failed, it has its own "Try again".
-- **Modules** lists the modules. Money opens its home; Documents, Home, People, Journal and Tasks are "Coming soon".
-  Under them are the app's settings and your account.
+- **Modules** lists the modules. Money opens its home and Documents its list; Home, People, Journal and Tasks are
+  "Coming soon". Under them are the app's settings and your account.
 - **Money** (its home) has the four tiles and a row for each finance page: Dashboard, Net worth and Review; Transactions,
   Budgets and Subscriptions; and Accounts, Categories, Tags and Rules. Back from a finance page returns to the Money
   home, and then to where you opened it from.
-- **Capture** has four buttons. "Expense" opens the "Add transaction" form; Photo, Scan and Voice are coming soon.
+- **Capture** has four buttons. "Scan" opens the document scanner and "Photo" the photo picker, for a new document;
+  "Expense" opens the "Add transaction" form; Voice is coming soon.
 - **Timeline** and **Search** are placeholders for now.
+
+**Documents** (on Hestia.Api, `/api/documents`) keeps receipts, warranties, leases, tax slips, insurance policies and
+manuals:
+
+- The list has a search (in the titles, tags, notes and the text that the server read), a chip for each kind, the
+  documents that expire in the next 30 days, then all documents, newest first.
+- "Add document" (and the scan button at the top, and Capture) takes the files from the document scanner (ML Kit: the
+  camera finds the page edges and makes one PDF; it needs Google Play services, and no camera permission), the photo
+  picker, or the file picker (PDFs and images). Photos go up as JPEGs of at most 2500 pixels on their long side,
+  turned upright; a scanned PDF goes as it is. The app checks the size (25 MB per file, 100 MB in all) and the type
+  (PDF, JPEG, PNG, HEIC, WebP) before the upload.
+- A document shows its details (edit them, or delete the document), its files (an image opens in the app, a PDF in
+  the phone's PDF viewer, from the app's cache), the text that the server read (OCR; while it runs, the page asks
+  again every 3 seconds for 2 minutes; "Run OCR again" when it failed), and the transactions it is linked to.
+  "Link to a transaction" picks one from the latest, or by a search.
+- A Today item for a document that expires soon opens the document.
 
 **Sign in** with the server's address (where you open the web app, e.g. `https://finance.example.ts.net`) and your
 username and password. The session is kept between launches, for 14 days of inactivity like the web's
@@ -106,7 +123,7 @@ tab and click **Run workflow** on `main` (see [CI artifacts](#ci-artifacts)).
 ## Building
 
 - JDK 21 and the Android SDK (platform 37.2; Gradle downloads what is missing when the SDK's licences are accepted).
-- `./gradlew :core:common:test :core:network:test :core:finance:test :core:today:test :core:ui:lintDebug :feature:finance:testDebugUnitTest :feature:finance:lintDebug :app:testDebugUnitTest :app:lintDebug :app:assembleDebug`
+- `./gradlew :core:common:test :core:network:test :core:finance:test :core:today:test :core:documents:test :core:ui:lintDebug :feature:finance:testDebugUnitTest :feature:finance:lintDebug :feature:documents:testDebugUnitTest :feature:documents:lintDebug :app:testDebugUnitTest :app:lintDebug :app:assembleDebug`
 
 This is the command that CI runs. Lint fails the build on any new warning. `app/lint-baseline.xml` holds the one left on
 purpose: the target SDK, which is raised as a change of its own.
@@ -137,8 +154,10 @@ The app is split into Gradle modules, so that more modules (documents, tasks, an
 | `:core:network` | Plain Kotlin | The HTTP client (Retrofit, OkHttp) with the cookie jar kept in the app's private storage, the server's address, and API errors. Sign-in (`AuthApi`, the `/api/Auth/*` endpoints) and the signed-in client (`ApiClient`) that all modules share. Its test fixtures hold the fake `AuthApi` and `fakeApiClient(...)`. |
 | `:core:finance` | Plain Kotlin | The finance API's models and client, and the logic that the finance screens share (date presets, dashboard figures, alerts, attention items). Its test fixtures hold the fake API with responses recorded from a real backend. |
 | `:core:today` | Plain Kotlin | The Today API (`TodayApi`, `GET /api/today`) and its models, and the filler that puts the app's money, percent and date formats into the card texts (it hides amounts in privacy mode). Its test fixtures hold the fake `TodayApi` and sample answers. |
+| `:core:documents` | Plain Kotlin | The Documents API (`DocumentsApi`, `/api/documents`) and its models, the upload form (`DocumentUpload`, multipart) with the checks of size and type, and the expiry and photo-size rules. Its test fixtures hold the fake `DocumentsApi` and sample documents. |
 | `:core:ui` | Android library | The theme, the common components, the charts, and the frame of the settings pages. |
 | `:feature:finance` | Android library | The Money module: its home, the finance screens, their navigation graph, the finance notifications, the widget, and the finance settings (`FinancePreferences`). |
+| `:feature:documents` | Android library | The Documents module: the list, a document, the upload with the scanner and the pickers, the photo scaling, and its navigation graph (`documentsGraph`). It depends on the core modules only; the transactions of its links come from `:core:finance`. |
 | `:app` | Android app | `MainActivity`, the application class, the module registry, the navigation host with the bar (Today, Timeline, Capture, Modules, Search), sign-in, the lock, the account page and the app's settings. |
 
 How they connect:
@@ -152,7 +171,11 @@ How they connect:
   `TodayLinks.kt` is the one place that turns it into a page of the app. A link that the app does not know opens the
   Money home. A module with cards gets its own section on Today, with no app change; a registry module with no cards
   stays under "Coming soon". After an import or a new transaction (`DataChanges.changed()`), the next Today load asks
-  the server for new cards (`refresh=true`), and not its 30-second cache.
+  the server for new cards (`refresh=true`), and not its 30-second cache. `todayDestination(...)` gives a
+  `TodayDestination`: a Money page, the Documents list (`/documents`), or one document (`/documents/<id>`).
+- `:feature:documents` gives `documentsGraph(...)` and `openDocuments()`, `openDocument(id)` and `addDocument(source)`
+  for the other pages (Today, Modules, Capture). It makes its APIs from the signed-in client. A linked transaction
+  opens the Transactions page through the app.
 - The module registry (`MODULES` in `:app`, `ui/modules/ModuleRegistry.kt`) lists each module with its name, icon,
   home route and status. The Modules page and Today read it.
 - Sign-in is in `:core:network`, not in a module. When you sign in, the app gets one `ApiClient` for the server. It has
