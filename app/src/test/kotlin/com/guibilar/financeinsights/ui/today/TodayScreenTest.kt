@@ -36,7 +36,7 @@ class TodayScreenTest {
     @get:Rule val compose = createComposeRule()
 
     private val api = FakeTodayApi()
-    private val opened = mutableListOf<MoneyLink>()
+    private val opened = mutableListOf<TodayDestination>()
     private val openedModules = mutableListOf<HestiaModule>()
 
     @After
@@ -124,9 +124,12 @@ class TodayScreenTest {
         // Its "Coming soon" line is gone; the others stay.
         compose.onAllNodesWithText("Documents that expire soon").assertCountEquals(0)
         assertShows("Home jobs that are due")
-        // Documents is not active in the app yet: no "Open Documents".
-        compose.onAllNodesWithText("Open Documents").assertCountEquals(0)
         shoot("today-modules")
+        // Documents is active (T12): its section opens its list, and its tile its page.
+        compose.onNodeWithText("Open Documents").performClick()
+        compose.onNodeWithText("Expiring soon").performClick()
+        assertEquals(listOf("documents"), openedModules.map { it.id })
+        assertEquals(listOf<TodayDestination>(TodayDestination.Documents), opened)
     }
 
     @Test
@@ -149,7 +152,10 @@ class TodayScreenTest {
         compose.onNodeWithText("4 transactions are in Other because no rule names their merchants").performClick()
         compose.onNodeWithText("Open Money").performClick()
 
-        assertEquals(listOf(MoneyLink.NetWorth, MoneyLink.Budgets, MoneyLink.Subscriptions, MoneyLink.Rules), opened)
+        assertEquals(
+            listOf(MoneyLink.NetWorth, MoneyLink.Budgets, MoneyLink.Subscriptions, MoneyLink.Rules).map { TodayDestination.Money(it) },
+            opened,
+        )
         assertEquals(listOf("money"), openedModules.map { it.id })
     }
 }

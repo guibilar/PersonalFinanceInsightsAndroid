@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The files that the FileProvider can give to another app: the downloaded document files in the cache only. -->
+<paths>
+    <cache-path name="documents" path="documents/" />
+</paths>

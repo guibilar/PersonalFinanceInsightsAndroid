@@ -15,4 +15,7 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "PersonalFinanceInsights"
-include(":core:common", ":core:network", ":core:finance", ":core:today", ":core:ui", ":feature:finance", ":app")
+include(
+    ":core:common", ":core:network", ":core:finance", ":core:today", ":core:documents", ":core:ui",
+    ":feature:finance", ":feature:documents", ":app",
+)

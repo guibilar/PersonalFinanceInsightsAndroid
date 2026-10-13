@@ -8,6 +8,7 @@ import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.guibilar.financeinsights.documents.DocumentsRoute
 import com.guibilar.financeinsights.ui.MoneyHomeRoute
 
 /** Whether a module can be opened yet. */
@@ -43,8 +44,8 @@ val MODULES = listOf(
         name = "Documents",
         description = "Papers, receipts and their expiry dates",
         icon = Icons.Outlined.Description,
-        route = null,
-        status = ModuleStatus.ComingSoon,
+        route = DocumentsRoute,
+        status = ModuleStatus.Active,
         todayPreview = "Documents that expire soon",
     ),
     HestiaModule(
