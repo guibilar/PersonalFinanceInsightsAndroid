@@ -6,6 +6,8 @@ package com.guibilar.financeinsights
  */
 enum class QuickAction(val intentAction: String) {
     AddTransaction("com.guibilar.financeinsights.ADD_TRANSACTION"),
+    /** The widget: the Money dashboard, as before the app had other modules. */
+    Dashboard("com.guibilar.financeinsights.DASHBOARD"),
     Budgets("com.guibilar.financeinsights.BUDGETS"),
     Subscriptions("com.guibilar.financeinsights.SUBSCRIPTIONS"),
     Review("com.guibilar.financeinsights.REVIEW"),

@@ -14,7 +14,7 @@ import com.guibilar.financeinsights.ui.budgets.BudgetsScreen
 import com.guibilar.financeinsights.ui.budgets.BudgetsViewModel
 import com.guibilar.financeinsights.ui.dashboard.DashboardScreen
 import com.guibilar.financeinsights.ui.dashboard.DashboardViewModel
-import com.guibilar.financeinsights.ui.settings.MoreScreen
+import com.guibilar.financeinsights.ui.money.MoneyHomeScreen
 import com.guibilar.financeinsights.ui.settings.NetWorthScreen
 import com.guibilar.financeinsights.ui.settings.NetWorthViewModel
 import com.guibilar.financeinsights.ui.theme.FinanceTheme
@@ -90,10 +90,11 @@ class TabletLayoutTest {
     }
 
     @Test
-    fun `the More page is a centred column`() {
-        show { MoreScreen("dev", "1.0", PaddingValues(), {}, {}, {}, {}) }
+    fun `the Money home is a centred column`() {
+        val model = DashboardViewModel(api) { today }
+        show { MoneyHomeScreen(model, PaddingValues(), onBack = {}, open = {}, openImport = {}) }
         val entry = bounds("Subscriptions")
         assertTrue("not at the window's edge", entry.left > 200.dp)
-        shoot("tablet-more")
+        shoot("tablet-money")
     }
 }

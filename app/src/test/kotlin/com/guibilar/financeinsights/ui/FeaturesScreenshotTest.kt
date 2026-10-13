@@ -25,7 +25,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** The settings, the lock, and the tabs on a narrow phone. (The tablet layouts are in TabletLayoutTest.) */
+/** The settings, the lock, and the bar on a narrow phone. (The tablet layouts are in TabletLayoutTest.) */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class FeaturesScreenshotTest {
@@ -65,10 +65,9 @@ class FeaturesScreenshotTest {
     @Config(qualifiers = "w360dp-h780dp-xxhdpi")
     fun fiveTabsFitAPhone() {
         show { MainScreen(FakeFinanceApi(), account, {}) }
-        // The tab, not the dashboard's Net worth tile.
-        compose.onNode(hasText("Net worth") and isSelectable()).performClick()
+        compose.onNode(hasText("Modules") and isSelectable()).performClick()
         compose.waitForIdle()
-        compose.onNodeWithText("Home").assertExists()
-        shoot("tabs-net-worth")
+        listOf("Today", "Timeline", "Capture", "Modules", "Search").forEach { compose.onNode(hasText(it) and isSelectable()).assertExists() }
+        shoot("tabs-modules")
     }
 }

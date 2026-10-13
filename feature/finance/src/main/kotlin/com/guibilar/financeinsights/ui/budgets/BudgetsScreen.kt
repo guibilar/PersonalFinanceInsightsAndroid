@@ -25,6 +25,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
@@ -114,7 +115,14 @@ private val fullLine: LazyGridItemSpanScope.() -> GridItemSpan = { GridItemSpan(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BudgetsScreen(model: BudgetsViewModel, account: AccountInfo, onSignOut: suspend () -> Unit, contentPadding: PaddingValues) {
+fun BudgetsScreen(
+    model: BudgetsViewModel,
+    account: AccountInfo,
+    onSignOut: suspend () -> Unit,
+    contentPadding: PaddingValues,
+    /** Back to the Money home; none in previews and tests. */
+    onBack: (() -> Unit)? = null,
+) {
     val state by model.state.collectAsState()
     LifecycleResumeEffect(model) {
         model.resumed()
@@ -141,6 +149,7 @@ fun BudgetsScreen(model: BudgetsViewModel, account: AccountInfo, onSignOut: susp
         Column(Modifier.fillMaxSize()) {
             TopAppBar(
                 title = { FitText("Budgets", fontWeight = FontWeight.SemiBold, minFontSize = 14.sp) },
+                navigationIcon = { if (onBack != null) IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back") } },
                 actions = { AccountMenuButton(account, onSignOut) },
             )
             // On a tablet the budgets are cards side by side, on a page no wider than can be taken in at a glance.

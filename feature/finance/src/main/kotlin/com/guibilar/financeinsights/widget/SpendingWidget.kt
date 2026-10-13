@@ -143,7 +143,7 @@ private val BUDGET_HEIGHT = 34.dp
 internal fun Content(data: WidgetData) {
     val context = LocalContext.current
     val activity = context.financeHost.mainActivity
-    val open = actionStartActivity(Intent(context, activity))
+    val open = actionStartActivity(Intent(context, activity).setAction(QuickAction.Dashboard.intentAction))
     val add = actionStartActivity(Intent(context, activity).setAction(QuickAction.AddTransaction.intentAction))
     val muted = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 12.sp)
     Column(

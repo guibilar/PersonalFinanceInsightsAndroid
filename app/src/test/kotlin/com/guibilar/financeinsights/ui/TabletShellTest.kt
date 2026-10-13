@@ -21,7 +21,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** On a tablet held sideways, the app's tabs are a rail; the finance pages' own layouts are the finance module's tests. */
+/** On a tablet held sideways, the app's top-level pages are a rail; the finance pages' own layouts are the finance module's tests. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w1280dp-h800dp-land-mdpi")
@@ -43,9 +43,20 @@ class TabletShellTest {
     private fun bounds(text: String) = compose.onNodeWithText(text).getUnclippedBoundsInRoot()
 
     @Test
+    fun `the rail holds the five top-level pages`() {
+        show { MainScreen(FakeFinanceApi(), account, {}) }
+        listOf("Today", "Timeline", "Capture", "Modules", "Search").forEach { compose.onNode(hasText(it) and isSelectable()).assertExists() }
+        shoot("tablet-today")
+    }
+
+    @Test
     fun `a transaction opens over a centred list`() {
         show { MainScreen(FakeFinanceApi(), account, {}) }
-        compose.onNode(hasText("Transactions") and isSelectable()).performClick()
+        compose.onNode(hasText("Modules") and isSelectable()).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Money").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Transactions").performClick()
         compose.waitForIdle()
         assertTrue("a centred column", bounds("Search descriptions and notes").left > 200.dp)
         shoot("tablet-transactions")

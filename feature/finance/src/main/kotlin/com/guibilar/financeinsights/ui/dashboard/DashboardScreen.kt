@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.UploadFile
 import androidx.compose.material.icons.outlined.Visibility
@@ -41,7 +42,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.guibilar.financeinsights.core.logic.AttentionKind
-import com.guibilar.financeinsights.core.logic.attentionItems
 import com.guibilar.financeinsights.core.logic.investments
 import com.guibilar.financeinsights.core.model.BreakdownInterval
 import com.guibilar.financeinsights.core.model.Budget
@@ -58,6 +58,7 @@ import com.guibilar.financeinsights.ui.common.TWO_COLUMNS_WIDTH
 import com.guibilar.financeinsights.ui.common.WIDE_CONTENT_WIDTH
 import com.guibilar.financeinsights.ui.common.SectionCard
 import com.guibilar.financeinsights.ui.common.Skeleton
+import com.guibilar.financeinsights.ui.money.attention
 import com.guibilar.financeinsights.ui.transactions.TransactionRow
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -80,6 +81,8 @@ fun DashboardScreen(
     onSignOut: suspend () -> Unit,
     contentPadding: PaddingValues,
     openTransactions: (TransactionsRoute) -> Unit,
+    /** Back to the Money home; none in previews and tests. */
+    onBack: (() -> Unit)? = null,
     openBudgets: () -> Unit = {},
     openRules: () -> Unit = {},
     openReview: () -> Unit = {},
@@ -107,6 +110,7 @@ fun DashboardScreen(
                     Text("$monthName at a glance", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             },
+            navigationIcon = { if (onBack != null) IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back") } },
             actions = {
                 if (toggleAmounts != null) {
                     IconButton(onClick = toggleAmounts) {
@@ -131,9 +135,7 @@ fun DashboardScreen(
                         modifier = Modifier.fillMaxSize(),
                     ) {
                         item(span = StaggeredGridItemSpan.FullLine) { HeadlineTiles(state, openNetWorth, openBudgets) }
-                        val attention = if (state.attentionLoaded) {
-                            attentionItems(state.unsorted, state.budgets.valueOrNull?.items.orEmpty(), state.recurring, state.accounts, state.today)
-                        } else emptyList()
+                        val attention = state.attention()
                         if (attention.isNotEmpty()) {
                             item(span = StaggeredGridItemSpan.FullLine) {
                                 NeedsAttention(attention) { kind ->

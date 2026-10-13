@@ -11,9 +11,10 @@ import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.guibilar.financeinsights.FakeFinanceApi
 import com.guibilar.financeinsights.ui.budgets.BudgetsScreen
 import com.guibilar.financeinsights.ui.budgets.BudgetsViewModel
+import com.guibilar.financeinsights.ui.dashboard.DashboardViewModel
+import com.guibilar.financeinsights.ui.money.MoneyHomeScreen
 import com.guibilar.financeinsights.ui.settings.AccountsScreen
 import com.guibilar.financeinsights.ui.settings.AccountsViewModel
-import com.guibilar.financeinsights.ui.settings.MoreScreen
 import com.guibilar.financeinsights.ui.settings.RulesScreen
 import com.guibilar.financeinsights.ui.settings.RulesViewModel
 import com.guibilar.financeinsights.ui.theme.FinanceTheme
@@ -82,8 +83,9 @@ class LargeTextScreenshotTest {
         shoot("accounts")
     }
 
-    @Test fun more() {
-        show { MoreScreen("dev", "0.5.0", PaddingValues(), {}, {}, {}, {}) }
-        shoot("more")
+    @Test fun money() {
+        val model = DashboardViewModel(api) { LocalDate.of(2026, 10, 3) }
+        show { MoneyHomeScreen(model, PaddingValues(), onBack = {}, open = {}, openImport = {}) }
+        shoot("money")
     }
 }

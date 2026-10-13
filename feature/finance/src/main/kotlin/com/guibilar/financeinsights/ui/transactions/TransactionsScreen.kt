@@ -91,6 +91,8 @@ fun TransactionsScreen(
     account: AccountInfo,
     onSignOut: suspend () -> Unit,
     contentPadding: PaddingValues,
+    /** Back to the Money home; none in previews and tests. */
+    onBack: (() -> Unit)? = null,
     sharedFiles: List<PickedFile>? = null,
     onSharedFileTaken: () -> Unit = {},
     addRequested: Boolean = false,
@@ -170,7 +172,11 @@ fun TransactionsScreen(
                     scrollBehavior = barBehavior,
                     title = { FitText(if (state.showDeleted) "Deleted transactions" else "Transactions", fontWeight = FontWeight.SemiBold, minFontSize = 14.sp) },
                     navigationIcon = {
-                        if (state.showDeleted) IconButton(onClick = model::toggleDeleted) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back to transactions") }
+                        if (state.showDeleted) {
+                            IconButton(onClick = model::toggleDeleted) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back to transactions") }
+                        } else if (onBack != null) {
+                            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back") }
+                        }
                     },
                     actions = {
                         SortMenu(state.sortBy, state.sortDirection, model::sort)

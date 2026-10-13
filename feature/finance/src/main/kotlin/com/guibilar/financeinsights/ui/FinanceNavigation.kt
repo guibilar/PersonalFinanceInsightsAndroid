@@ -1,12 +1,6 @@
 package com.guibilar.financeinsights.ui
 
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ShowChart
-import androidx.compose.material.icons.outlined.AccountBalanceWallet
-import androidx.compose.material.icons.outlined.Dashboard
-import androidx.compose.material.icons.outlined.Menu
-import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
@@ -17,7 +11,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
@@ -40,11 +33,11 @@ import com.guibilar.financeinsights.ui.insights.RecurringScreen
 import com.guibilar.financeinsights.ui.insights.RecurringViewModel
 import com.guibilar.financeinsights.ui.insights.ReviewScreen
 import com.guibilar.financeinsights.ui.insights.ReviewViewModel
+import com.guibilar.financeinsights.ui.money.MoneyHomeScreen
 import com.guibilar.financeinsights.ui.settings.AccountsScreen
 import com.guibilar.financeinsights.ui.settings.AccountsViewModel
 import com.guibilar.financeinsights.ui.settings.CategoriesScreen
 import com.guibilar.financeinsights.ui.settings.CategoriesViewModel
-import com.guibilar.financeinsights.ui.settings.MoreScreen
 import com.guibilar.financeinsights.ui.settings.NetWorthScreen
 import com.guibilar.financeinsights.ui.settings.NetWorthViewModel
 import com.guibilar.financeinsights.ui.settings.RulesScreen
@@ -58,17 +51,18 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.Serializable
 
-// The finance module's way in: its routes and tabs, what it takes from outside the screens (shared statements, quick
-// actions), and financeGraph, which the app's navigation host calls. The app's own pages stay in the app.
+// The finance module's way in: its routes, the Money home, what it takes from outside the screens (shared statements,
+// quick actions), and financeGraph, which the app's navigation host calls. The app's own pages stay in the app.
+
+/** The Money module's home: the headline tiles and a row for each finance page. */
+@Serializable
+data object MoneyHomeRoute
 
 @Serializable
 data object DashboardRoute
 
 @Serializable
 data object BudgetsRoute
-
-@Serializable
-data object MoreRoute
 
 @Serializable
 data object RulesRoute
@@ -108,33 +102,36 @@ data class TransactionsRoute(
     val criteria get() = TransactionCriteria(description = description, categoryId = categoryId, tagId = tagId, startDate = startDate, endDate = endDate)
 }
 
-/** Where the finance screens start: the first tab's page. */
-val FinanceStartRoute: Any = DashboardRoute
+/** Whether a page is one of the Money module's: the app's bar shows them under Modules. */
+fun NavDestination.isFinancePage(): Boolean =
+    hasRoute<MoneyHomeRoute>() || hasRoute<DashboardRoute>() || hasRoute<TransactionsRoute>() || hasRoute<BudgetsRoute>() ||
+        hasRoute<NetWorthRoute>() || hasRoute<ReviewRoute>() || hasRoute<SubscriptionsRoute>() || hasRoute<AccountsRoute>() ||
+        hasRoute<CategoriesRoute>() || hasRoute<TagsRoute>() || hasRoute<RulesRoute>()
 
-/** A tab of the finance screens: [matches] says which pages belong to it. */
-data class FinanceTab(val label: String, val icon: ImageVector, val route: Any, val matches: (NavDestination) -> Boolean)
-
-/** The finance tabs, in order. More also holds the app's own pages, which the app adds to its [FinanceTab.matches]. */
-val financeTabs = listOf(
-    FinanceTab("Home", Icons.Outlined.Dashboard, DashboardRoute) { it.hasRoute<DashboardRoute>() },
-    FinanceTab("Transactions", Icons.Outlined.ReceiptLong, TransactionsRoute()) { it.hasRoute<TransactionsRoute>() },
-    FinanceTab("Budgets", Icons.Outlined.AccountBalanceWallet, BudgetsRoute) { it.hasRoute<BudgetsRoute>() },
-    FinanceTab("Net worth", Icons.AutoMirrored.Outlined.ShowChart, NetWorthRoute) { it.hasRoute<NetWorthRoute>() },
-    FinanceTab("More", Icons.Outlined.Menu, MoreRoute) {
-        it.hasRoute<MoreRoute>() || it.hasRoute<RulesRoute>() || it.hasRoute<CategoriesRoute>() ||
-            it.hasRoute<AccountsRoute>() || it.hasRoute<SubscriptionsRoute>() || it.hasRoute<ReviewRoute>() ||
-            it.hasRoute<TagsRoute>()
-    },
-)
-
-/** Opens a tab's page as the tab bar does: each tab keeps its own back stack. */
-fun NavHostController.openTab(route: Any) {
-    navigate(route) {
+/**
+ * Opens the Money home from outside the Money pages (Today, Capture, the shortcut, a notification), as a tab opens:
+ * over the first page, and the page that was open keeps its own back stack. Back from the Money home returns there.
+ */
+fun NavHostController.openMoneyHome() {
+    navigate(MoneyHomeRoute) {
         popUpTo(graph.findStartDestination().id) { saveState = true }
         launchSingleTop = true
-        restoreState = true
     }
 }
+
+/**
+ * Opens a finance page from outside it, over the Money home: Back returns to the Money home, and then to where the
+ * user came from. Inside the Money pages, it replaces what is over the Money home.
+ */
+fun NavHostController.openFinancePage(route: Any) {
+    if (!hasMoneyHome()) openMoneyHome()
+    if (route != MoneyHomeRoute) navigate(route) { popUpTo<MoneyHomeRoute>() }
+}
+
+private fun NavHostController.hasMoneyHome() = runCatching { getBackStackEntry<MoneyHomeRoute>() }.isSuccess
+
+/** Where a Money tile or an attention item leads. */
+enum class MoneyLink { NetWorth, Budgets, Import, Subscriptions, Rules }
 
 /**
  * What came from outside the screens, until they take it: statements shared to the app, and the "Add transaction"
@@ -164,6 +161,20 @@ class FinanceRequests internal constructor(
     }
 }
 
+/** Opens what a Money tile or attention item leads to, from outside the Money pages (Today). */
+fun FinanceRequests.open(nav: NavHostController, link: MoneyLink) {
+    when (link) {
+        MoneyLink.NetWorth -> nav.openFinancePage(NetWorthRoute)
+        MoneyLink.Budgets -> nav.openFinancePage(BudgetsRoute)
+        MoneyLink.Subscriptions -> nav.openFinancePage(SubscriptionsRoute)
+        MoneyLink.Rules -> nav.openFinancePage(RulesRoute)
+        MoneyLink.Import -> {
+            importRequested = true
+            nav.openFinancePage(TransactionsRoute())
+        }
+    }
+}
+
 /**
  * Follows shared statements and quick actions: each opens its finance page on [nav]. Call it in the composable that
  * holds the navigation host, before the host.
@@ -179,28 +190,28 @@ fun rememberFinanceRequests(
     // A statement shared to the app opens the transactions, where the import takes it.
     LaunchedEffect(statement.value) {
         if (statement.value != null && entry?.destination?.hasRoute<TransactionsRoute>() != true) {
-            nav.navigate(TransactionsRoute()) { popUpTo<DashboardRoute>() }
+            nav.openFinancePage(TransactionsRoute())
         }
     }
-    // The launcher shortcut and widget's Add, and a budget alert's tap.
+    // The launcher shortcut, the widget, the notifications and Capture. Each opens its page over the Money home.
     val action by quickAction.collectAsState()
     val addRequested = rememberSaveable { mutableStateOf(false) }
-    // The dashboard's import button and the import reminder: the transactions open with the import sheet.
+    // The import button and the import reminder: the transactions open with the import sheet.
     val importRequested = rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(action) {
         when (action) {
             QuickAction.AddTransaction -> {
-                if (entry?.destination?.hasRoute<TransactionsRoute>() != true) nav.navigate(TransactionsRoute()) { popUpTo<DashboardRoute>() }
+                if (entry?.destination?.hasRoute<TransactionsRoute>() != true) nav.openFinancePage(TransactionsRoute())
                 addRequested.value = true
             }
-            QuickAction.Budgets -> nav.openTab(BudgetsRoute)
-            // From a notification: the page, Back returning to the dashboard.
-            QuickAction.Subscriptions -> nav.navigate(SubscriptionsRoute) { popUpTo<DashboardRoute>() }
-            QuickAction.Review -> nav.navigate(ReviewRoute()) { popUpTo<DashboardRoute>() }
+            QuickAction.Dashboard -> nav.openFinancePage(DashboardRoute)
+            QuickAction.Budgets -> nav.openFinancePage(BudgetsRoute)
+            QuickAction.Subscriptions -> nav.openFinancePage(SubscriptionsRoute)
+            QuickAction.Review -> nav.openFinancePage(ReviewRoute())
             // The import reminder: the transactions, with the import open.
             QuickAction.Import -> {
                 importRequested.value = true
-                if (entry?.destination?.hasRoute<TransactionsRoute>() != true) nav.navigate(TransactionsRoute()) { popUpTo<DashboardRoute>() }
+                if (entry?.destination?.hasRoute<TransactionsRoute>() != true) nav.openFinancePage(TransactionsRoute())
             }
             null -> {}
         }
@@ -211,10 +222,7 @@ fun rememberFinanceRequests(
     }
 }
 
-/**
- * The finance pages, for the app's navigation host. [openAccount] and [openSettings] open the app's own pages from
- * More; [appVersion] shows there. Without [amountsHidden], the dashboard has no button to hide the amounts.
- */
+/** The finance pages, with the Money home, for the app's navigation host. */
 fun NavGraphBuilder.financeGraph(
     nav: NavHostController,
     api: FinanceApi,
@@ -222,13 +230,24 @@ fun NavGraphBuilder.financeGraph(
     onSignOut: suspend () -> Unit,
     contentPadding: PaddingValues,
     requests: FinanceRequests,
-    appVersion: String,
-    openAccount: () -> Unit,
-    openSettings: () -> Unit,
     amountsHidden: StateFlow<Boolean>? = null,
     setAmountsHidden: ((Boolean) -> Unit)? = null,
 ) {
     val padding = contentPadding
+    val back: () -> Unit = { nav.popBackStack() }
+    val openImport: () -> Unit = {
+        requests.importRequested = true
+        nav.navigate(TransactionsRoute()) { popUpTo<MoneyHomeRoute>() }
+    }
+    composable<MoneyHomeRoute> {
+        MoneyHomeScreen(
+            model = viewModel { DashboardViewModel(api) },
+            contentPadding = padding,
+            onBack = back,
+            open = { route -> nav.navigate(route) },
+            openImport = openImport,
+        )
+    }
     composable<DashboardRoute> {
         val model = viewModel { DashboardViewModel(api) }
         val hidden = amountsHidden?.collectAsState()?.value ?: false
@@ -239,62 +258,44 @@ fun NavGraphBuilder.financeGraph(
             account = account,
             onSignOut = onSignOut,
             contentPadding = padding,
+            onBack = back,
             openTransactions = { route ->
                 // A new list on these criteria, Back returning to the dashboard.
                 nav.navigate(route) { popUpTo<DashboardRoute>() }
             },
-            openBudgets = { nav.openTab(BudgetsRoute) },
+            openBudgets = { nav.navigate(BudgetsRoute) },
             openRules = { nav.navigate(RulesRoute) },
             openReview = { nav.navigate(ReviewRoute()) },
             openSubscriptions = { nav.navigate(SubscriptionsRoute) },
-            openNetWorth = { nav.openTab(NetWorthRoute) },
+            openNetWorth = { nav.navigate(NetWorthRoute) },
             openAccounts = { nav.navigate(AccountsRoute) },
-            openImport = {
-                requests.importRequested = true
-                nav.navigate(TransactionsRoute()) { popUpTo<DashboardRoute>() }
-            },
-        )
-    }
-    composable<MoreRoute> {
-        MoreScreen(
-            username = account.username,
-            version = appVersion,
-            contentPadding = padding,
-            openRules = { nav.navigate(RulesRoute) },
-            openCategories = { nav.navigate(CategoriesRoute) },
-            openTags = { nav.navigate(TagsRoute) },
-            openAccounts = { nav.navigate(AccountsRoute) },
-            openAccount = openAccount,
-            openSettings = openSettings,
-            openSubscriptions = { nav.navigate(SubscriptionsRoute) },
-            openReview = { nav.navigate(ReviewRoute()) },
+            openImport = openImport,
         )
     }
     composable<SubscriptionsRoute> {
         RecurringScreen(
             viewModel { RecurringViewModel(api) },
             padding,
-            onBack = { nav.popBackStack() },
+            onBack = back,
             openTransactions = { name -> nav.navigate(TransactionsRoute(description = name)) },
         )
     }
     composable<ReviewRoute> { backStack ->
         val route = backStack.toRoute<ReviewRoute>()
         val model = viewModel { ReviewViewModel(api, route.year?.let { ReviewPeriod(it, route.month) }) }
-        ReviewScreen(model, padding, onBack = { nav.popBackStack() }, openSubscriptions = { nav.navigate(SubscriptionsRoute) })
+        ReviewScreen(model, padding, onBack = back, openSubscriptions = { nav.navigate(SubscriptionsRoute) })
     }
     composable<RulesRoute> {
-        RulesScreen(viewModel { RulesViewModel(api) }, padding, onBack = { nav.popBackStack() })
+        RulesScreen(viewModel { RulesViewModel(api) }, padding, onBack = back)
     }
     composable<CategoriesRoute> {
-        CategoriesScreen(viewModel { CategoriesViewModel(api) }, padding, onBack = { nav.popBackStack() })
+        CategoriesScreen(viewModel { CategoriesViewModel(api) }, padding, onBack = back)
     }
     composable<NetWorthRoute> {
         NetWorthScreen(
             viewModel { NetWorthViewModel(api) },
             padding,
-            // A tab: nothing to go back to.
-            onBack = null,
+            onBack = back,
             openAccounts = { nav.navigate(AccountsRoute) },
         )
     }
@@ -302,16 +303,16 @@ fun NavGraphBuilder.financeGraph(
         TagsScreen(
             viewModel { TagsViewModel(api) },
             padding,
-            onBack = { nav.popBackStack() },
+            onBack = back,
             openTransactions = { tag -> nav.navigate(TransactionsRoute(tagId = tag.id)) },
         )
     }
     composable<AccountsRoute> {
-        AccountsScreen(viewModel { AccountsViewModel(api) }, padding, onBack = { nav.popBackStack() })
+        AccountsScreen(viewModel { AccountsViewModel(api) }, padding, onBack = back)
     }
     composable<BudgetsRoute> {
         val model = viewModel { BudgetsViewModel(api) }
-        BudgetsScreen(model = model, account = account, onSignOut = onSignOut, contentPadding = padding)
+        BudgetsScreen(model = model, account = account, onSignOut = onSignOut, contentPadding = padding, onBack = back)
     }
     composable<TransactionsRoute> { backStack ->
         val route = backStack.toRoute<TransactionsRoute>()
@@ -321,6 +322,7 @@ fun NavGraphBuilder.financeGraph(
             account = account,
             onSignOut = onSignOut,
             contentPadding = padding,
+            onBack = back,
             sharedFiles = requests.statement,
             onSharedFileTaken = { requests.statementTaken() },
             addRequested = requests.addRequested,
