@@ -13,6 +13,8 @@ concurrency:
 
 jobs:
   build:
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -43,12 +45,18 @@ jobs:
         shell: bash
         run: python3 scripts/probe-annotations.py --hashes
 
+      # Probe only (T12): smaller copies of the screenshots, pushed to this branch, to look at them.
       - name: Probe images
         if: ${{ !cancelled() }}
         shell: bash
         run: |
           pip install --quiet pillow
-          python3 scripts/probe-images.py documents document document-upload document-ocr-failed today-modules capture modules document-link document-edit documents-dark
+          python3 scripts/probe-images.py
+          git config user.name "probe"
+          git config user.email "probe@example.com"
+          git add probe-shots
+          git commit -m "Probe (T12): screenshots" --quiet
+          git push --quiet origin HEAD:probe/T12-build
 
       # Artifacts count against the account's storage quota. See "CI artifacts" in the README for the policy.
       # A failed upload (usually a full quota) does not fail the job: the next step writes a warning instead.

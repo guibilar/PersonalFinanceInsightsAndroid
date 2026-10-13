@@ -1,20 +1,14 @@
 #!/usr/bin/env python3
-"""Probe only (T12): small JPEG copies of some screenshots, as base64 notices, to look at them from the task session."""
-import base64, glob, io, sys
+"""Probe only (T12): smaller copies of the new and changed screenshots, in probe-shots/, to look at them."""
+import glob, os
 from PIL import Image
 
-for name in sys.argv[1:]:
-    paths = glob.glob(f'**/build/shots/{name}.png', recursive=True)
-    if not paths:
-        print(f'::notice title=Image {name}::missing')
-        continue
-    image = Image.open(paths[0]).convert('RGB')
-    width = 360
+os.makedirs('probe-shots', exist_ok=True)
+names = [p for p in glob.glob('feature/documents/build/shots/*.png')]
+for name in ('capture', 'modules', 'tabs-modules', 'today', 'today-modules', 'tablet-today'):
+    names += glob.glob(f'app/build/shots/{name}.png')
+for path in names:
+    image = Image.open(path).convert('RGB')
+    width = 540
     image = image.resize((width, int(image.height * width / image.width)))
-    for quality in (60, 45, 30, 20):
-        out = io.BytesIO()
-        image.save(out, 'JPEG', quality=quality)
-        data = base64.b64encode(out.getvalue()).decode()
-        if len(data) < 60000:
-            break
-    print(f'::notice title=Image {name}::{data}')
+    image.save(os.path.join('probe-shots', os.path.basename(path).replace('.png', '.jpg')), 'JPEG', quality=70)
