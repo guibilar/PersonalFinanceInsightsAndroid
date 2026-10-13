@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  # A run on demand makes a new APK when the last one has expired (see "CI artifacts" in the README).
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -33,14 +35,22 @@ jobs:
             :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
         run: ./gradlew --console=plain $CHECKS
 
+      # Artifacts count against the account's storage quota. See "CI artifacts" in the README for the policy.
+      # A failed upload (usually a full quota) does not fail the job: the next step writes a warning instead.
       - name: Upload the APK
+        id: upload-apk
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
           name: finance-insights-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: ${{ github.event_name == 'pull_request' && 7 || 30 }}
 
       - name: Upload the screenshots
-        if: always()
+        id: upload-screenshots
+        if: ${{ !cancelled() && (failure() || github.event_name == 'pull_request') }}
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
           name: screenshots
@@ -48,9 +58,12 @@ jobs:
             app/build/shots/
             feature/*/build/shots/
           if-no-files-found: ignore
+          retention-days: 7
 
       - name: Upload the reports
+        id: upload-reports
         if: failure()
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
           name: reports
@@ -58,3 +71,21 @@ jobs:
             core/*/build/reports/
             feature/*/build/reports/
             app/build/reports/
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Warn about failed uploads
+        if: >-
+          ${{ !cancelled() && (steps.upload-apk.outcome == 'failure' ||
+          steps.upload-screenshots.outcome == 'failure' || steps.upload-reports.outcome == 'failure') }}
+        shell: bash
+        env:
+          APK: ${{ steps.upload-apk.outcome }}
+          SCREENSHOTS: ${{ steps.upload-screenshots.outcome }}
+          REPORTS: ${{ steps.upload-reports.outcome }}
+        run: |
+          for item in "APK:$APK" "screenshots:$SCREENSHOTS" "reports:$REPORTS"; do
+            if [ "${item#*:}" = failure ]; then
+              echo "::warning title=Artifact upload failed::The upload of the ${item%%:*} failed. The usual cause is a full artifact storage quota. Delete old artifacts (README, CI artifacts)."
+            fi
+          done
