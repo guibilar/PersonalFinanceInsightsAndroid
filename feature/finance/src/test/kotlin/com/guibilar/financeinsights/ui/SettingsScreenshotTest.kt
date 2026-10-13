@@ -12,7 +12,6 @@ import com.guibilar.financeinsights.ui.settings.AccountsScreen
 import com.guibilar.financeinsights.ui.settings.AccountsViewModel
 import com.guibilar.financeinsights.ui.settings.CategoriesScreen
 import com.guibilar.financeinsights.ui.settings.CategoriesViewModel
-import com.guibilar.financeinsights.ui.settings.MoreScreen
 import com.guibilar.financeinsights.ui.settings.RulesScreen
 import com.guibilar.financeinsights.ui.settings.RulesViewModel
 import com.guibilar.financeinsights.ui.theme.FinanceTheme
@@ -40,12 +39,6 @@ class SettingsScreenshotTest {
     private fun shoot(name: String) {
         compose.waitForIdle()
         captureScreenRoboImage("build/shots/$name.png")
-    }
-
-    @Test
-    fun more() {
-        show { MoreScreen("dev", "0.3.0", PaddingValues(), {}, {}, {}, {}) }
-        shoot("more")
     }
 
     @Test

@@ -5,12 +5,28 @@ account and data as the web app, on your phone.
 
 ## What it does
 
-Five tabs: Home, Transactions, Budgets, Net worth and More.
+The app is the shell of Hestia, a personal "everything app". Finance is its first module, **Money**.
 
-- **Sign in** with the server's address (where you open the web app, e.g. `https://finance.example.ts.net`) and your
-  username and password. The session is kept between launches, for 14 days of inactivity like the web's
-  "Remember me".
-- **Home** has headline tiles: spent this month against a usual month at the same point, left over this month, net
+The bar at the bottom has five items: **Today**, **Timeline**, **Capture** (the round + in the middle), **Modules** and
+**Search**. Each keeps its own back stack, and Back from any of them returns to Today.
+
+- **Today** shows the Money module's four headline tiles and its "Needs attention" list, then a card for the modules
+  that are coming. A tile or an item opens its Money page.
+- **Modules** lists the modules. Money opens its home; Documents, Home, People, Journal and Tasks are "Coming soon".
+  Under them are the app's settings and your account.
+- **Money** (its home) has the four tiles and a row for each finance page: Dashboard, Net worth and Review; Transactions,
+  Budgets and Subscriptions; and Accounts, Categories, Tags and Rules. Back from a finance page returns to the Money
+  home, and then to where you opened it from.
+- **Capture** has four buttons. "Expense" opens the "Add transaction" form; Photo, Scan and Voice are coming soon.
+- **Timeline** and **Search** are placeholders for now.
+
+**Sign in** with the server's address (where you open the web app, e.g. `https://finance.example.ts.net`) and your
+username and password. The session is kept between launches, for 14 days of inactivity like the web's
+"Remember me".
+
+The finance pages:
+
+- **Dashboard** has headline tiles: spent this month against a usual month at the same point, left over this month, net
   worth and budgets over their limit. Then **Needs attention**, where each item opens the place to deal with it:
   - budgets over their limit;
   - no statement imported for more than a week;
@@ -44,13 +60,12 @@ Five tabs: Home, Transactions, Budgets, Net worth and More.
   counting linked transactions, some categories, or a merchant.
 - **Net worth:** what the accounts and investments hold, less what the cards owe, over the last twelve months, with
   each account's latest balance.
-- **More** has three sections:
-  - Insights: **Subscriptions** (payments that come again and again, what they cost and when the next is due) and
-    **Review** (a month or a year against the one before).
-  - Setup: **Accounts** (type, statement format, balances, and for a TFSA, RRSP or FHSA the year's contribution
-    room), **Categories**, **Tags** and **Rules** (category rules in order, which you can drag; flow rules; and
-    "Sort them" for the merchants no rule names).
-  - Settings and your account (change the password, sign out everywhere else, sign out).
+- **Subscriptions** (payments that come again and again, what they cost and when the next is due) and **Review** (a
+  month or a year against the one before).
+- Setup: **Accounts** (type, statement format, balances, and for a TFSA, RRSP or FHSA the year's contribution room),
+  **Categories**, **Tags** and **Rules** (category rules in order, which you can drag; flow rules; and "Sort them" for
+  the merchants no rule names).
+- Settings and your account (change the password, sign out everywhere else, sign out) are on the Modules page.
 - **Settings:**
   - colours from the wallpaper;
   - a lock on opening (fingerprint, face or the phone's PIN, again after a minute away);
@@ -59,18 +74,20 @@ Five tabs: Home, Transactions, Budgets, Net worth and More.
   Four kinds of notification can be turned on: budget alerts (at 80% and when used up), subscription price
   changes, the monthly review, and a reminder when no statement has been imported for more than a week. A background
   check runs every few hours while any of them is on.
-- **Widget and shortcut:** a home-screen widget shows this month's spending and the fullest budgets. Long-pressing the
-  app's icon offers "Add transaction".
+- **Widget and shortcut:** a home-screen widget shows this month's spending and the fullest budgets; a tap opens the
+  Money dashboard. Long-pressing the app's icon offers "Add transaction". The widget, the shortcut, the notifications
+  and shared statements open their page over the Money home.
 
 ## Tablets and foldables
 
-From a small tablet's width (or a phone on its side) the tabs are a rail at the side. On a tablet:
+From a small tablet's width (or a phone on its side) the five items are a rail at the side. On a tablet:
 
 - Home's cards sit in two columns, under the four headline tiles in one row;
 - Transactions are a centred list, a tapped one opening over it as on a phone;
 - Budgets are cards side by side;
 - Net worth's figures are tiles in a row, over cards for the months and the accounts;
-- More, Settings and the setup pages are a centred column rather than rows across the whole screen.
+- Today, Modules, the Money home, Settings and the setup pages are a centred column rather than rows across the whole
+  screen.
 
 ## Reaching the server
 
@@ -100,19 +117,23 @@ The app is split into Gradle modules, so that more modules (documents, tasks, an
 | `:core:network` | Plain Kotlin | The HTTP client (Retrofit, OkHttp) with the cookie jar kept in the app's private storage, the server's address, and API errors. |
 | `:core:finance` | Plain Kotlin | The finance API's models and client, and the logic that the finance screens share (date presets, dashboard figures, alerts, attention items). Its test fixtures hold the fake API with responses recorded from a real backend. |
 | `:core:ui` | Android library | The theme, the common components, the charts, and the frame of the settings pages. |
-| `:feature:finance` | Android library | The finance screens, their navigation graph, the finance notifications, the widget, and the finance settings (`FinancePreferences`). |
-| `:app` | Android app | `MainActivity`, the application class, the navigation host with the tabs, sign-in, the lock, the account page and the app's settings. |
+| `:feature:finance` | Android library | The Money module: its home, the finance screens, their navigation graph, the finance notifications, the widget, and the finance settings (`FinancePreferences`). |
+| `:app` | Android app | `MainActivity`, the application class, the module registry, the navigation host with the bar (Today, Timeline, Capture, Modules, Search), sign-in, the lock, the account page and the app's settings. |
 
 How they connect:
 
-- `:feature:finance` does not depend on `:app`. The app calls `financeGraph(...)` in its navigation host, and builds its
-  tabs from `financeTabs`. `rememberFinanceRequests(...)` sends shared statements and quick actions (shortcut, widget,
-  notifications) to the finance pages.
+- `:feature:finance` does not depend on `:app`. The app calls `financeGraph(...)` in its navigation host. The bar shows
+  the finance pages under Modules (`isFinancePage()`). `rememberFinanceRequests(...)` sends shared statements and quick
+  actions (shortcut, widget, notifications, Capture) to the finance pages, over the Money home (`openFinancePage(...)`).
+  Today shows the Money tiles and "Needs attention" with `MoneyGlance(...)`.
+- The module registry (`MODULES` in `:app`, `ui/modules/ModuleRegistry.kt`) lists each module with its name, icon,
+  home route and status. The Modules page and Today read it.
 - The widget and the notifications need the session and the app's settings. They get them through the `FinanceHost`
   interface, which the application class implements.
 - The plain Kotlin modules are tested on the JVM. The Android modules' tests include screenshot tests (Robolectric and
   Roborazzi) that render the screens with the recorded responses. They write to `<module>/build/shots`, and CI uploads
   them. The finance module's tests run in `TestFinanceApp` (see `feature/finance/src/test/resources/robolectric.properties`).
 - To add a module (for example `:feature:documents`), make an Android library that depends on `:core:ui` and
-  `:core:network`, give it a graph function like `financeGraph`, and call it from the app's navigation host. Nothing in
-  `:feature:finance` changes.
+  `:core:network`, give it a graph function like `financeGraph` with a home route, and call it from the app's
+  navigation host. In `MODULES`, give the module its route and the status `Active`, and add its pages to the Modules
+  item of the bar. Nothing in `:feature:finance` changes.
