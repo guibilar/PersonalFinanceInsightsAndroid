@@ -98,6 +98,8 @@ on. When it is off, the app says it can't reach the server.
 
 Every push builds a debug APK: open the workflow run in the repository's **Actions** tab and download the
 `finance-insights-debug-apk` artifact, then open the APK on the phone (allow installing from that app when asked).
+An APK from `main` stays for 30 days. If the last one has expired, open the **android** workflow in the **Actions**
+tab and click **Run workflow** on `main` (see [CI artifacts](#ci-artifacts)).
 
 ## Building
 
@@ -106,6 +108,22 @@ Every push builds a debug APK: open the workflow run in the repository's **Actio
 
 This is the command that CI runs. Lint fails the build on any new warning. `app/lint-baseline.xml` holds the one left on
 purpose: the target SDK, which is raised as a change of its own.
+
+### CI artifacts
+
+Artifacts count against the storage quota of the GitHub account. When the quota is full, every upload fails.
+CI keeps the uploads small and short:
+
+| Artifact | When CI uploads it | Kept for |
+| --- | --- | --- |
+| `finance-insights-debug-apk` | Every run that builds the APK | 30 days on `main` and manual runs, 7 days on pull requests |
+| `screenshots` | Pull requests, and runs that fail | 7 days |
+| `reports` | Runs that fail | 7 days |
+
+A failed upload does not fail the run. The step **Warn about failed uploads** then writes a warning annotation
+(`Artifact upload failed`). The usual cause is a full quota. To free space, delete old artifacts in the
+**Actions** tab, or with `gh api -X DELETE repos/guibilar/PersonalFinanceInsightsAndroid/actions/artifacts/<id>`.
+Each new upload step must set `retention-days` and `continue-on-error: true`, and the warning step must name it.
 
 ## Modules
 
@@ -131,8 +149,8 @@ How they connect:
 - The widget and the notifications need the session and the app's settings. They get them through the `FinanceHost`
   interface, which the application class implements.
 - The plain Kotlin modules are tested on the JVM. The Android modules' tests include screenshot tests (Robolectric and
-  Roborazzi) that render the screens with the recorded responses. They write to `<module>/build/shots`, and CI uploads
-  them. The finance module's tests run in `TestFinanceApp` (see `feature/finance/src/test/resources/robolectric.properties`).
+  Roborazzi) that render the screens with the recorded responses. They write to `<module>/build/shots`. CI uploads
+  them on pull requests and when a run fails. The finance module's tests run in `TestFinanceApp` (see `feature/finance/src/test/resources/robolectric.properties`).
 - To add a module (for example `:feature:documents`), make an Android library that depends on `:core:ui` and
   `:core:network`, give it a graph function like `financeGraph` with a home route, and call it from the app's
   navigation host. In `MODULES`, give the module its route and the status `Active`, and add its pages to the Modules
