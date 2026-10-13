@@ -92,7 +92,7 @@ object DocumentsSamples {
         createdAt = "2026-02-02T08:00:00Z",
         updatedAt = "2026-02-02T08:00:00Z",
         ocrStatus = OcrStatus.Failed,
-        ocrError = "page-2.heic: the image could not be read.",
+        ocrError = "page-2.jpg: the image could not be read.",
         files = listOf(pdf("f5", "lease.pdf", 2_400_000), jpeg("f6", "page-2.jpg", 1_100_000)),
     )
 

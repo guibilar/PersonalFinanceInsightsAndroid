@@ -274,7 +274,8 @@ fun DocumentScreen(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun DetailsCard(document: Document, today: LocalDate) {
-    SectionCard(document.title, subtitle = document.kind.label, action = { KindIcon(document.kind) }) {
+    // The title is in the top bar: the card starts with the kind.
+    SectionCard("Details", subtitle = document.kind.label, action = { KindIcon(document.kind) }) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             document.issuedOn?.let { Fact("Issued", formatDay(it)) }
             document.expiresOn?.let { expires ->

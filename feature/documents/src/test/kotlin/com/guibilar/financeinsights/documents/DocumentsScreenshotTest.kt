@@ -134,7 +134,7 @@ class DocumentsScreenshotTest {
     @Test
     fun `a document whose OCR failed offers to run it again`() {
         detail("d5")
-        assertShows("The text could not be read.", "page-2.heic: the image could not be read.", "Run OCR again", "2 files", "Not linked to a transaction.")
+        assertShows("The text could not be read.", "page-2.jpg: the image could not be read.", "Run OCR again", "2 files", "Not linked to a transaction.")
         shoot("document-ocr-failed")
         compose.onNodeWithText("Run OCR again").performClick()
         compose.waitForIdle()
