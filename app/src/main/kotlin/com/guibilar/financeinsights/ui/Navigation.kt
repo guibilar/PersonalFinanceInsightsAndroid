@@ -46,6 +46,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.guibilar.financeinsights.BuildConfig
 import com.guibilar.financeinsights.QuickAction
+import com.guibilar.financeinsights.core.api.ApiClient
 import com.guibilar.financeinsights.core.api.FinanceApi
 import com.guibilar.financeinsights.data.AppPreferences
 import com.guibilar.financeinsights.data.AuthState
@@ -149,7 +150,7 @@ fun FinanceRoot(
         } else {
             saved.SaveableStateProvider(SIGNED_IN_KEY) {
                 MainScreen(
-                    api = current.api,
+                    client = current.client,
                     account = AccountInfo(current.username, session.server.orEmpty()),
                     onSignOut = { session.signOut() },
                     sharedStatement = sharedStatement,
@@ -197,7 +198,7 @@ private fun NavHostController.openTab(route: Any, restore: Boolean = true) {
 
 @Composable
 fun MainScreen(
-    api: FinanceApi,
+    client: ApiClient,
     account: AccountInfo,
     onSignOut: suspend () -> Unit,
     sharedStatement: MutableStateFlow<List<PickedFile>?> = MutableStateFlow(null),
@@ -206,6 +207,8 @@ fun MainScreen(
     lock: AppLock? = null,
     financePreferences: FinancePreferences? = null,
 ) {
+    // Each module makes its API from the signed-in client (the client keeps it, so it is the same object every time).
+    val api: FinanceApi = client.api()
     val nav = rememberNavController()
     val entry by nav.currentBackStackEntryAsState()
     // Shared statements and quick actions (shortcut, widget, notifications, Capture) open their finance pages.
@@ -300,7 +303,7 @@ fun MainScreen(
                     }
                 }
                 composable<AccountSettingsRoute> {
-                    AccountSettingsScreen(viewModel { AccountSettingsViewModel(api) }, account, onSignOut, padding, onBack = { nav.popBackStack() })
+                    AccountSettingsScreen(viewModel { AccountSettingsViewModel(client.auth) }, account, onSignOut, padding, onBack = { nav.popBackStack() })
                 }
             }
         }

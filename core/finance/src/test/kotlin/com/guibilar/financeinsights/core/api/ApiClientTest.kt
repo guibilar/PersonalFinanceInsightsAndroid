@@ -1,7 +1,6 @@
 package com.guibilar.financeinsights.core.api
 
 import com.guibilar.financeinsights.core.model.Flow
-import com.guibilar.financeinsights.core.model.LoginInput
 import com.guibilar.financeinsights.core.model.TransactionFilter
 import kotlinx.coroutines.test.runTest
 import mockwebserver3.MockResponse
@@ -21,7 +20,6 @@ class ApiClientTest {
             stored = value
         }
     }
-    private var unauthorized = 0
 
     @Before
     fun start() = server.start()
@@ -29,53 +27,9 @@ class ApiClientTest {
     @After
     fun stop() = server.close()
 
-    private fun api(jar: PersistentCookieJar = PersistentCookieJar(storage)) =
-        createFinanceApi(server.url("/").toString().trimEnd('/'), jar, onUnauthorized = { unauthorized++ })
-
-    @Test
-    fun `keeps the session cookie across launches and sends it back`() = runTest {
-        server.enqueue(
-            MockResponse.Builder()
-                .addHeader("Set-Cookie", ".AspNetCore.Identity.Application=abc; path=/; max-age=1209600; httponly; samesite=strict")
-                .body("""{"username":"dev"}""").build(),
-        )
-        server.enqueue(MockResponse.Builder().body("""{"username":"dev"}""").build())
-
-        assertEquals("dev", api().login(LoginInput("Dev", "pw")).username)
-        // A new jar reading the same storage: the app after a restart.
-        api(PersistentCookieJar(storage)).me()
-
-        val login = server.takeRequest()
-        assertEquals("/api/Auth/login", login.url.encodedPath)
-        assertTrue(login.body!!.utf8().contains("\"rememberMe\":true"))
-        assertEquals(".AspNetCore.Identity.Application=abc", server.takeRequest().headers["Cookie"])
-    }
-
-    @Test
-    fun `a signed-out cookie is forgotten`() = runTest {
-        val jar = PersistentCookieJar(storage)
-        server.enqueue(MockResponse.Builder().addHeader("Set-Cookie", "s=abc; path=/; max-age=100").body("""{"username":"dev"}""").build())
-        server.enqueue(MockResponse.Builder().addHeader("Set-Cookie", "s=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT").code(204).build())
-        api(jar).login(LoginInput("dev", "pw"))
-
-        api(jar).logout()
-
-        assertTrue(jar.isEmpty)
-        assertEquals(null, stored)
-    }
-
-    @Test
-    fun `reports a 401 outside sign-in as the session ending`() = runTest {
-        server.enqueue(MockResponse.Builder().code(401).build())
-        server.enqueue(MockResponse.Builder().code(401).body("""{"title":"Sign-in failed","detail":"Incorrect username or password."}""").build())
-
-        val me = apiCall { api().me() }.apiError!!
-        val login = apiCall { api().login(LoginInput("dev", "nope")) }.apiError!!
-
-        assertTrue(me.isUnauthorized)
-        assertEquals("Incorrect username or password.", login.message)
-        assertEquals(1, unauthorized)
-    }
+    // Signing in and the session cookie are tested with AuthApi, in :core:network.
+    private fun api(jar: PersistentCookieJar = PersistentCookieJar(storage)): FinanceApi =
+        createApiClient(server.url("/").toString().trimEnd('/'), jar).api()
 
     @Test
     fun `reads transactions, leaving out what it doesn't know`() = runTest {

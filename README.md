@@ -132,7 +132,7 @@ The app is split into Gradle modules, so that more modules (documents, tasks, an
 | Module | Kind | Contents |
 | --- | --- | --- |
 | `:core:common` | Plain Kotlin | Amounts and days as the app shows them (`Money`, `formatDay`) and privacy mode. |
-| `:core:network` | Plain Kotlin | The HTTP client (Retrofit, OkHttp) with the cookie jar kept in the app's private storage, the server's address, and API errors. |
+| `:core:network` | Plain Kotlin | The HTTP client (Retrofit, OkHttp) with the cookie jar kept in the app's private storage, the server's address, and API errors. Sign-in (`AuthApi`, the `/api/Auth/*` endpoints) and the signed-in client (`ApiClient`) that all modules share. Its test fixtures hold the fake `AuthApi` and `fakeApiClient(...)`. |
 | `:core:finance` | Plain Kotlin | The finance API's models and client, and the logic that the finance screens share (date presets, dashboard figures, alerts, attention items). Its test fixtures hold the fake API with responses recorded from a real backend. |
 | `:core:ui` | Android library | The theme, the common components, the charts, and the frame of the settings pages. |
 | `:feature:finance` | Android library | The Money module: its home, the finance screens, their navigation graph, the finance notifications, the widget, and the finance settings (`FinancePreferences`). |
@@ -146,6 +146,9 @@ How they connect:
   Today shows the Money tiles and "Needs attention" with `MoneyGlance(...)`.
 - The module registry (`MODULES` in `:app`, `ui/modules/ModuleRegistry.kt`) lists each module with its name, icon,
   home route and status. The Modules page and Today read it.
+- Sign-in is in `:core:network`, not in a module. When you sign in, the app gets one `ApiClient` for the server. It has
+  one HTTP client and one cookie jar. Each module makes its Retrofit interface from it in one line:
+  `client.api<FinanceApi>()`. The client makes each interface one time and keeps it. `MainScreen` gets the client.
 - The widget and the notifications need the session and the app's settings. They get them through the `FinanceHost`
   interface, which the application class implements.
 - The plain Kotlin modules are tested on the JVM. The Android modules' tests include screenshot tests (Robolectric and
@@ -153,5 +156,5 @@ How they connect:
   them on pull requests and when a run fails. The finance module's tests run in `TestFinanceApp` (see `feature/finance/src/test/resources/robolectric.properties`).
 - To add a module (for example `:feature:documents`), make an Android library that depends on `:core:ui` and
   `:core:network`, give it a graph function like `financeGraph` with a home route, and call it from the app's
-  navigation host. In `MODULES`, give the module its route and the status `Active`, and add its pages to the Modules
+  navigation host. Make the module's API with `client.api<YourApi>()`. In tests, use `fakeApiClient(yourFake)`. In `MODULES`, give the module its route and the status `Active`, and add its pages to the Modules
   item of the bar. Nothing in `:feature:finance` changes.

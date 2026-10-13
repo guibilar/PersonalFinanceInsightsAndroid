@@ -254,12 +254,6 @@ data class Breakdown(
 )
 
 @Serializable
-data class CurrentUser(val username: String)
-
-@Serializable
-data class SignedOutSessions(val count: Int)
-
-@Serializable
 data class ImportResult(
     val read: Int,
     val added: Int,

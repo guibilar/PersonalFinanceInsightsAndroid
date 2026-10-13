@@ -92,5 +92,5 @@ class FinanceApp : Application(), FinanceHost {
     override val amountsHidden get() = preferences.hideAmounts.value
     override val notificationsPrivate get() = preferences.lock.value
     override val accountKey get() = "${session.server}|${session.lastUsername}"
-    override fun backgroundApi(): FinanceApi? = session.backgroundApi()
+    override fun backgroundApi(): FinanceApi? = session.backgroundClient()?.api<FinanceApi>()
 }
