@@ -96,6 +96,14 @@ fun MoneyHomeScreen(
                                 MoneyLink.Subscriptions -> open(SubscriptionsRoute)
                                 MoneyLink.Rules -> open(RulesRoute)
                                 MoneyLink.Import -> openImport()
+                                // Not from the glance; Today opens these.
+                                MoneyLink.Home -> {}
+                                MoneyLink.Dashboard -> open(DashboardRoute)
+                                MoneyLink.Transactions -> open(TransactionsRoute())
+                                MoneyLink.Review -> open(ReviewRoute())
+                                MoneyLink.Categories -> open(CategoriesRoute)
+                                MoneyLink.Tags -> open(TagsRoute)
+                                MoneyLink.Accounts -> open(AccountsRoute)
                             }
                         },
                         modifier = Modifier.padding(16.dp),

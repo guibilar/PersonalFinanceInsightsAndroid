@@ -130,8 +130,8 @@ fun NavHostController.openFinancePage(route: Any) {
 
 private fun NavHostController.hasMoneyHome() = runCatching { getBackStackEntry<MoneyHomeRoute>() }.isSuccess
 
-/** Where a Money tile or an attention item leads. */
-enum class MoneyLink { NetWorth, Budgets, Import, Subscriptions, Rules }
+/** Where a Money tile or an attention item leads, from outside the Money pages (Today). */
+enum class MoneyLink { Home, Dashboard, Transactions, Import, Budgets, NetWorth, Subscriptions, Review, Rules, Categories, Tags, Accounts }
 
 /**
  * What came from outside the screens, until they take it: statements shared to the app, and the "Add transaction"
@@ -164,10 +164,17 @@ class FinanceRequests internal constructor(
 /** Opens what a Money tile or attention item leads to, from outside the Money pages (Today). */
 fun FinanceRequests.open(nav: NavHostController, link: MoneyLink) {
     when (link) {
+        MoneyLink.Home -> nav.openFinancePage(MoneyHomeRoute)
+        MoneyLink.Dashboard -> nav.openFinancePage(DashboardRoute)
+        MoneyLink.Transactions -> nav.openFinancePage(TransactionsRoute())
         MoneyLink.NetWorth -> nav.openFinancePage(NetWorthRoute)
         MoneyLink.Budgets -> nav.openFinancePage(BudgetsRoute)
         MoneyLink.Subscriptions -> nav.openFinancePage(SubscriptionsRoute)
+        MoneyLink.Review -> nav.openFinancePage(ReviewRoute())
         MoneyLink.Rules -> nav.openFinancePage(RulesRoute)
+        MoneyLink.Categories -> nav.openFinancePage(CategoriesRoute)
+        MoneyLink.Tags -> nav.openFinancePage(TagsRoute)
+        MoneyLink.Accounts -> nav.openFinancePage(AccountsRoute)
         MoneyLink.Import -> {
             importRequested = true
             nav.openFinancePage(TransactionsRoute())

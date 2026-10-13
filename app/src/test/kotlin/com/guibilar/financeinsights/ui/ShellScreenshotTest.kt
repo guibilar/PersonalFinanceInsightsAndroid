@@ -6,20 +6,15 @@ import androidx.compose.material.icons.outlined.Timeline
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import com.github.takahirom.roborazzi.captureRoboImage
-import com.guibilar.financeinsights.FakeFinanceApi
-import com.guibilar.financeinsights.ui.dashboard.DashboardViewModel
 import com.guibilar.financeinsights.ui.modules.MODULES
 import com.guibilar.financeinsights.ui.modules.ModulesScreen
 import com.guibilar.financeinsights.ui.shell.CaptureScreen
 import com.guibilar.financeinsights.ui.shell.PlaceholderScreen
 import com.guibilar.financeinsights.ui.theme.FinanceTheme
-import com.guibilar.financeinsights.ui.today.TodayScreen
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -27,17 +22,14 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
-import java.time.LocalDate
 
-/** The top-level pages with recorded data, to look at (build/shots). The Money home is in the finance module's tests. */
+/** The top-level pages, to look at (build/shots). Today is in TodayScreenTest; the Money home is in the finance module's tests. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w400dp-h1300dp-xxhdpi")
 class ShellScreenshotTest {
     @get:Rule val compose = createComposeRule()
 
-    private val api = FakeFinanceApi()
-    private val day = LocalDate.of(2026, 10, 3)
     private val account = AccountInfo("dev", "https://finance.example.ts.net")
 
     private fun show(dark: Boolean = false, content: @Composable () -> Unit) {
@@ -46,30 +38,6 @@ class ShellScreenshotTest {
     }
 
     private fun shoot(name: String) = compose.onRoot().captureRoboImage("build/shots/$name.png")
-
-    @Test
-    fun today() = today(dark = false)
-
-    @Test
-    fun todayDark() = today(dark = true)
-
-    private fun today(dark: Boolean) {
-        val model = DashboardViewModel(api) { day }
-        show(dark) { TodayScreen(model, MODULES, PaddingValues(), open = {}, openMoney = {}) }
-        compose.onNodeWithText("Saturday, October 3").assertExists()
-        compose.onNodeWithText("Needs attention").assertExists()
-        compose.onNodeWithText("Coming soon").assertExists()
-        shoot(if (dark) "today-dark" else "today")
-    }
-
-    @Test
-    fun `a Today tile opens its Money page`() {
-        val opened = mutableListOf<MoneyLink>()
-        val model = DashboardViewModel(api) { day }
-        show { TodayScreen(model, MODULES, PaddingValues(), open = { opened += it }, openMoney = {}) }
-        compose.onAllNodesWithText("Net worth").onFirst().performClick()
-        assertEquals(listOf(MoneyLink.NetWorth), opened)
-    }
 
     @Test
     fun modules() {
