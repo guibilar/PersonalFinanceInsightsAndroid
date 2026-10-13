@@ -31,13 +31,7 @@ jobs:
             :core:ui:lintDebug
             :feature:finance:testDebugUnitTest :feature:finance:lintDebug
             :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
-        shell: bash
-        run: ./gradlew --console=plain --continue $CHECKS 2>&1 | tee build.log
-
-      - name: Probe annotations (temporary)
-        if: always()
-        shell: bash
-        run: python3 scripts-probe-annotate.py build.log
+        run: ./gradlew --console=plain $CHECKS
 
       - name: Upload the APK
         uses: actions/upload-artifact@v6
