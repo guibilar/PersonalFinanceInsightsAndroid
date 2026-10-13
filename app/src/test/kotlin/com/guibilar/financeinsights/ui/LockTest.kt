@@ -1,6 +1,9 @@
 package com.guibilar.financeinsights.ui
 
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
@@ -34,7 +37,8 @@ class LockTest {
         val preferences = AppPreferences(context).apply { setLock(true) }
         val lock = AppLock(preferences) { now }.apply { unlocked() }
         compose.setContent { FinanceTheme(dynamicColor = false) { FinanceRoot(session, lock = lock, preferences = preferences, financePreferences = FinancePreferences(context)) } }
-        compose.onNodeWithText("More").performClick()
+        compose.onNodeWithText("Modules").performClick()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Settings"))
         compose.onNodeWithText("Settings").performClick()
         compose.onNodeWithText("Appearance").assertExists()
 

@@ -54,7 +54,8 @@ class ShellScreenshotTest {
     fun todayDark() = today(dark = true)
 
     private fun today(dark: Boolean) {
-        show(dark) { TodayScreen(DashboardViewModel(api) { day }, MODULES, PaddingValues(), open = {}, openMoney = {}) }
+        val model = DashboardViewModel(api) { day }
+        show(dark) { TodayScreen(model, MODULES, PaddingValues(), open = {}, openMoney = {}) }
         compose.onNodeWithText("Saturday, October 3").assertExists()
         compose.onNodeWithText("Needs attention").assertExists()
         compose.onNodeWithText("Coming soon").assertExists()
@@ -64,7 +65,8 @@ class ShellScreenshotTest {
     @Test
     fun `a Today tile opens its Money page`() {
         val opened = mutableListOf<MoneyLink>()
-        show { TodayScreen(DashboardViewModel(api) { day }, MODULES, PaddingValues(), open = { opened += it }, openMoney = {}) }
+        val model = DashboardViewModel(api) { day }
+        show { TodayScreen(model, MODULES, PaddingValues(), open = { opened += it }, openMoney = {}) }
         compose.onAllNodesWithText("Net worth").onFirst().performClick()
         assertEquals(listOf(MoneyLink.NetWorth), opened)
     }

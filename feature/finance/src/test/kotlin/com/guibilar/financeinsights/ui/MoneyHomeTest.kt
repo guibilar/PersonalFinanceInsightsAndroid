@@ -44,20 +44,23 @@ class MoneyHomeTest {
 
     @Test
     fun money() {
-        show { MoneyHomeScreen(DashboardViewModel(api) { today }, PaddingValues(), onBack = {}, open = {}, openImport = {}) }
+        val model = DashboardViewModel(api) { today }
+        show { MoneyHomeScreen(model, PaddingValues(), onBack = {}, open = {}, openImport = {}) }
         shoot("money")
     }
 
     @Test
     fun moneyDark() {
-        show(dark = true) { MoneyHomeScreen(DashboardViewModel(api) { today }, PaddingValues(), onBack = {}, open = {}, openImport = {}) }
+        val model = DashboardViewModel(api) { today }
+        show(dark = true) { MoneyHomeScreen(model, PaddingValues(), onBack = {}, open = {}, openImport = {}) }
         shoot("money-dark")
     }
 
     @Test
     fun `each row opens its page`() {
         val opened = mutableListOf<Any>()
-        show { MoneyHomeScreen(DashboardViewModel(api) { today }, PaddingValues(), onBack = {}, open = { opened += it }, openImport = {}) }
+        val model = DashboardViewModel(api) { today }
+        show { MoneyHomeScreen(model, PaddingValues(), onBack = {}, open = { opened += it }, openImport = {}) }
         listOf("Dashboard", "Review", "Transactions", "Subscriptions", "Accounts", "Categories", "Tags", "Rules").forEach {
             compose.onNodeWithText(it).performScrollTo().performClick()
         }
@@ -79,7 +82,8 @@ class MoneyHomeTest {
     @Test
     fun `import opens the transactions with the import`() {
         var imports = 0
-        show { MoneyHomeScreen(DashboardViewModel(api) { today }, PaddingValues(), onBack = {}, open = {}, openImport = { imports++ }) }
+        val model = DashboardViewModel(api) { today }
+        show { MoneyHomeScreen(model, PaddingValues(), onBack = {}, open = {}, openImport = { imports++ }) }
         compose.onNode(hasContentDescription("Import statements")).performClick()
         assertEquals(1, imports)
     }
