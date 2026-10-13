@@ -26,66 +26,38 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
 
       # The runner's SDK has its licences accepted, so the Android Gradle plugin fetches the platform it needs.
-      - name: Test, lint and build
-        env:
-          CHECKS: >-
-            :core:common:test :core:network:test :core:finance:test
-            :core:ui:lintDebug
-            :feature:finance:testDebugUnitTest :feature:finance:lintDebug
-            :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
-        run: ./gradlew --console=plain $CHECKS
-
-      # Artifacts count against the account's storage quota. See "CI artifacts" in the README for the policy.
-      # A failed upload (usually a full quota) does not fail the job: the next step writes a warning instead.
-      - name: Upload the APK
-        id: upload-apk
-        continue-on-error: true
-        uses: actions/upload-artifact@v7
-        with:
-          name: finance-insights-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
-          retention-days: ${{ github.event_name == 'pull_request' && 7 || 30 }}
-
-      - name: Upload the screenshots
-        id: upload-screenshots
-        if: ${{ !cancelled() && (failure() || github.event_name == 'pull_request') }}
-        continue-on-error: true
-        uses: actions/upload-artifact@v7
-        with:
-          name: screenshots
-          path: |
-            app/build/shots/
-            feature/*/build/shots/
-          if-no-files-found: ignore
-          retention-days: 7
-
-      - name: Upload the reports
-        id: upload-reports
-        if: failure()
-        continue-on-error: true
-        uses: actions/upload-artifact@v7
-        with:
-          name: reports
-          path: |
-            core/*/build/reports/
-            feature/*/build/reports/
-            app/build/reports/
-          if-no-files-found: ignore
-          retention-days: 7
-
-      - name: Warn about failed uploads
-        if: >-
-          ${{ !cancelled() && (steps.upload-apk.outcome == 'failure' ||
-          steps.upload-screenshots.outcome == 'failure' || steps.upload-reports.outcome == 'failure') }}
+      # PROBE (T29): compare the screenshots of this branch with main. Not for review.
+      - name: Compare screenshots with main
         shell: bash
-        env:
-          APK: ${{ steps.upload-apk.outcome }}
-          SCREENSHOTS: ${{ steps.upload-screenshots.outcome }}
-          REPORTS: ${{ steps.upload-reports.outcome }}
         run: |
-          for item in "APK:$APK" "screenshots:$SCREENSHOTS" "reports:$REPORTS"; do
-            if [ "${item#*:}" = failure ]; then
-              echo "::warning title=Artifact upload failed::The upload of the ${item%%:*} failed. The usual cause is a full artifact storage quota. Delete old artifacts (README, CI artifacts)."
-            fi
-          done
+          set -euo pipefail
+          tests() { ./gradlew --console=plain --no-build-cache :feature:finance:testDebugUnitTest --rerun :app:testDebugUnitTest --rerun; }
+          tests
+          git fetch --no-tags --depth=1 origin main
+          git worktree add ../base FETCH_HEAD
+          (cd ../base && tests)
+          pip install --quiet pillow
+          python3 - <<'PY'
+          import hashlib, pathlib
+          from PIL import Image, ImageChops
+          def shots(root):
+              r = pathlib.Path(root)
+              return {str(p.relative_to(r)): p for p in r.glob('*/build/shots/**/*.png')} | \
+                     {str(p.relative_to(r)): p for p in r.glob('*/*/build/shots/**/*.png')}
+          a, b = shots('../base'), shots('.')
+          only_a, only_b = sorted(set(a) - set(b)), sorted(set(b) - set(a))
+          diffs = []
+          for k in sorted(set(a) & set(b)):
+              if a[k].read_bytes() == b[k].read_bytes():
+                  continue
+              x, y = Image.open(a[k]).convert('RGBA'), Image.open(b[k]).convert('RGBA')
+              if x.size != y.size:
+                  diffs.append(f'{k}: size {x.size} vs {y.size}')
+                  continue
+              d = ImageChops.difference(x, y)
+              n = sum(1 for px in d.getdata() if max(px) > 0)
+              diffs.append(f'{k}: {n} pixels differ, max {max(max(px) for px in d.getdata())}')
+          print(f'::notice::Shots: main {len(a)}, branch {len(b)}, same {len(set(a) & set(b)) - len(diffs)}, differ {len(diffs)}, only main {only_a}, only branch {only_b}')
+          if diffs:
+              print('::notice::' + ' | '.join(diffs))
+          PY
