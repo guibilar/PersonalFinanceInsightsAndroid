@@ -12,7 +12,10 @@ import com.guibilar.financeinsights.core.api.importStatement
 import com.guibilar.financeinsights.core.logic.DataChanges
 import com.guibilar.financeinsights.core.logic.DateChoice
 import com.guibilar.financeinsights.core.logic.DateRange
+import com.guibilar.financeinsights.core.logic.TransactionLookup
 import com.guibilar.financeinsights.core.logic.describeRulesResult
+import com.guibilar.financeinsights.core.logic.findTransaction
+import com.guibilar.financeinsights.core.logic.linkCriteria
 import com.guibilar.financeinsights.core.logic.importSummary
 import com.guibilar.financeinsights.core.logic.matchDatePreset
 import com.guibilar.financeinsights.core.model.Budget
@@ -92,6 +95,10 @@ class TransactionsViewModel(
     // Every text typed, the same one again included (a StateFlow would drop that): see the debounce in init.
     private val searchText = MutableSharedFlow<String>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
     private var listJob: Job? = null
+    // Before init, which can start a link.
+    /** The linked row that the list must still load (it can be on a later page); null when none. */
+    private var pendingLink: String? = null
+    private var linkJob: Job? = null
     private val breakdown = TransactionsBreakdown(api, viewModelScope, _state)
     private val statements = StatementImport(
         viewModelScope,
@@ -110,9 +117,80 @@ class TransactionsViewModel(
         searchText.debounce(SEARCH_DEBOUNCE_MS)
             .onEach { text -> setCriteria { copy(description = text.trim().ifEmpty { null }) } }
             .launchIn(viewModelScope)
-        reloadList()
-        breakdown.reload()
+        // A link to one transaction finds it first, then lists its day and account. Else the list loads at once.
+        val linked = route.transactionId
+        if (linked != null) {
+            showTransaction(linked)
+        } else {
+            reloadList()
+            breakdown.reload()
+        }
         loadLookups()
+    }
+
+    /**
+     * Shows one transaction: the list changes to its day and account (no other filter, the live list), and its row
+     * is highlighted when it is loaded. A deleted or unknown one, or a failed look-up, leaves the list as it is (or
+     * loads the normal list, on a first show) with a [LinkNotice].
+     */
+    fun showTransaction(id: String) {
+        linkJob?.cancel()
+        pendingLink = null
+        _state.update { it.copy(linkNotice = null, highlighted = null) }
+        linkJob = viewModelScope.launch {
+            when (val found = api.findTransaction(id)) {
+                is TransactionLookup.Found -> {
+                    pendingLink = found.transaction.id
+                    _state.update { it.copy(criteria = linkCriteria(found.transaction), search = "", showDeleted = false) }
+                    reloadList(clear = true)
+                    breakdown.reload()
+                }
+                is TransactionLookup.Deleted -> notFound(LinkNotice.Deleted)
+                TransactionLookup.Missing -> notFound(LinkNotice.Missing)
+                TransactionLookup.Failed -> notFound(LinkNotice.Failed)
+            }
+        }
+    }
+
+    private fun notFound(notice: LinkNotice) {
+        _state.update { it.copy(linkNotice = notice) }
+        // On a first show the list waited for the look-up: now the normal list loads.
+        if (listJob == null) {
+            reloadList()
+            breakdown.reload()
+        }
+    }
+
+    /**
+     * After a page loads: highlights the linked row when the list has it, or loads the next page. A failed page keeps
+     * the link, so "Try again" goes on with it.
+     */
+    private fun followLink() {
+        val id = pendingLink ?: return
+        val list = _state.value.list
+        when {
+            list.items.any { it.id == id } -> {
+                pendingLink = null
+                _state.update { it.copy(highlighted = id) }
+            }
+            list.error != null || list.moreFailed -> {}
+            !list.endReached -> loadMore()
+            // The day and account do not list it (it changed meanwhile): the list stays, without a highlight.
+            else -> pendingLink = null
+        }
+    }
+
+    /** The screen showed the highlight of [id] for its time. */
+    fun highlightShown(id: String) = _state.update { if (it.highlighted == id) it.copy(highlighted = null) else it }
+
+    /** Closes the message about a linked transaction. */
+    fun dismissLinkNotice() = _state.update { it.copy(linkNotice = null) }
+
+    /** Another view or other filters: a link that is not done yet, and its message, are no longer for this list. */
+    private fun dropLink() {
+        linkJob?.cancel()
+        pendingLink = null
+        _state.update { it.copy(linkNotice = null, highlighted = null) }
     }
 
     /**
@@ -188,6 +266,7 @@ class TransactionsViewModel(
 
     /** Lists the deleted transactions instead (to restore one), or back. */
     fun toggleDeleted() {
+        dropLink()
         _state.update { it.copy(showDeleted = !it.showDeleted) }
         // The other view's rows mustn't linger meanwhile: tapping one would offer to restore a transaction that isn't deleted.
         reloadList(clear = true)
@@ -216,7 +295,8 @@ class TransactionsViewModel(
             // Today asks the server for new cards (not its short cache) the next time it shows.
             DataChanges.changed()
             _state.update { it.copy(lastAdded = LocalDate.parse(input.date) to input.accountId) }
-            changed("Added “${added.description}” to ${added.accountName}")
+            // "View" shows it in the list (on its day and account, highlighted), as the web's toast does.
+            changed("Added “${added.description}” to ${added.accountName}", "View") { showTransaction(added.id) }
             return AddOutcome.Added
         }
         val duplicate = error.conflictOr("")
@@ -448,6 +528,7 @@ class TransactionsViewModel(
                     onFailure = { state.copy(list = state.list.copy(loadingMore = false, moreFailed = true)) },
                 )
             }
+            followLink()
         }
     }
 
@@ -490,6 +571,7 @@ class TransactionsViewModel(
         val before = _state.value.criteria
         val after = before.change()
         if (after == before) return false
+        dropLink()
         _state.update { it.copy(criteria = after) }
         reloadList()
         breakdown.reload()
@@ -518,6 +600,7 @@ class TransactionsViewModel(
                     ),
                 )
             }
+            followLink()
         }
     }
 

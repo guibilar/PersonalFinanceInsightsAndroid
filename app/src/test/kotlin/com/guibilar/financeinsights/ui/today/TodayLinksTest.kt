@@ -69,4 +69,24 @@ class TodayLinksTest {
         assertEquals(TodayDestination.Documents, todayDestination("/documents/"))
         assertEquals(TodayDestination.Documents, todayDestination("/documents/d1/files"))
     }
+
+    // One transaction (T33 and T56): "/money/transactions?id=<id>".
+
+    @Test
+    fun `a transaction link opens the transaction`() {
+        val id = "01a0ff22-674a-7e98-bb70-9dab0d96bb50"
+        assertEquals(TodayDestination.Transaction(id), todayDestination("/money/transactions?id=$id"))
+        assertEquals(TodayDestination.Transaction(id), todayDestination("/money/transactions/?sort=date&id=$id#row"))
+        // The Transactions page checks the id itself.
+        assertEquals(TodayDestination.Transaction("not a GUID"), todayDestination("/money/transactions?id=not%20a%20GUID"))
+    }
+
+    @Test
+    fun `a transaction link without an id opens the transactions`() {
+        listOf("/money/transactions?id=", "/money/transactions?id", "/money/transactions?transactionId=x").forEach { link ->
+            assertEquals(link, Money(MoneyLink.Transactions), todayDestination(link))
+        }
+        // Only the Transactions page takes an id.
+        assertEquals(Money(MoneyLink.Budgets), todayDestination("/money/budgets?id=b1"))
+    }
 }

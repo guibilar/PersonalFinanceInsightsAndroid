@@ -1,15 +1,19 @@
 package com.guibilar.financeinsights.ui.today
 
 import com.guibilar.financeinsights.ui.MoneyLink
+import java.net.URLDecoder
 
 // The one place that turns a Today card's link into a page of this app. The server sends web routes (the same links as
-// the web app, for example "/money/budgets", "/money/rules#unsorted" or "/documents/<id>"), so both clients use one
-// contract.
+// the web app, for example "/money/budgets", "/money/rules#unsorted", "/money/transactions?id=<id>" or
+// "/documents/<id>"), so both clients use one contract.
 
 /** A page of the app that a Today card opens. */
 sealed interface TodayDestination {
     /** A finance page (or the Money home). */
     data class Money(val link: MoneyLink) : TodayDestination
+
+    /** One transaction ("/money/transactions?id=<id>"), highlighted on its day and account. */
+    data class Transaction(val id: String) : TodayDestination
 
     /** The Documents list. */
     data object Documents : TodayDestination
@@ -44,13 +48,26 @@ fun todayDestination(link: String?): TodayDestination? {
     if (link.isNullOrBlank()) return null
     val fragment = link.substringAfter('#', missingDelimiterValue = "")
     val path = link.substringBefore('#').substringBefore('?').trimEnd('/')
+    val query = link.substringBefore('#').substringAfter('?', missingDelimiterValue = "")
+    // "/money/transactions?id=<id>": one transaction. The Transactions page checks the id (an id that is not a GUID
+    // shows "does not exist").
+    val transactionId = if (path == "/money/transactions") queryValue(query, "id") else null
     return when {
+        transactionId != null -> TodayDestination.Transaction(transactionId)
         path == "/money" || path.startsWith("/money/") -> TodayDestination.Money(moneyPage(path.removePrefix("/money").removePrefix("/"), fragment))
         path == "/documents" -> TodayDestination.Documents
         path.startsWith("/documents/") -> documentPage(path.removePrefix("/documents/"))
         else -> fallback
     }
 }
+
+/** The first non-blank value of [name] in a query ("a=1&id=x"), decoded; null when there is none. */
+private fun queryValue(query: String, name: String): String? =
+    query.split('&').firstNotNullOfOrNull { part ->
+        val key = part.substringBefore('=')
+        val value = part.substringAfter('=', missingDelimiterValue = "")
+        if (key == name) runCatching { URLDecoder.decode(value, Charsets.UTF_8.name()) }.getOrNull()?.takeIf { it.isNotBlank() } else null
+    }
 
 private fun moneyPage(page: String, fragment: String): MoneyLink {
     // "/money/transactions#import": the transactions, with the import open.

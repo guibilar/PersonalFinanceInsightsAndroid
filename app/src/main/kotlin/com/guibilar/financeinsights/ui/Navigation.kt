@@ -277,6 +277,7 @@ fun MainScreen(
                         open = { destination ->
                             when (destination) {
                                 is TodayDestination.Money -> requests.open(nav, destination.link)
+                                is TodayDestination.Transaction -> nav.openTransaction(destination.id)
                                 TodayDestination.Documents -> nav.openDocuments()
                                 is TodayDestination.Document -> nav.openDocument(destination.id)
                             }
@@ -329,8 +330,7 @@ fun MainScreen(
                     nav = nav,
                     client = client,
                     contentPadding = padding,
-                    // Until T56 opens one transaction, a linked transaction opens the Transactions page.
-                    openTransaction = { requests.open(nav, MoneyLink.Transactions) },
+                    openTransaction = { id -> nav.openTransaction(id) },
                 )
                 composable<AppSettingsRoute> {
                     if (preferences != null && financePreferences != null) {

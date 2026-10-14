@@ -62,6 +62,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.runtime.withFrameNanos
+import kotlinx.coroutines.delay
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.guibilar.financeinsights.core.model.Transaction
 import com.guibilar.financeinsights.core.model.TransactionSortField
@@ -157,6 +162,33 @@ fun TransactionsScreen(
         if (listedFor != null && listedFor != listKey) listState.scrollToItem(0)
         listedFor = listKey
     }
+    // A linked transaction: its row comes into view and is highlighted for a short time. After the effect above, so
+    // this scroll wins when new filters and the row arrive together.
+    val reducedMotion = rememberReducedMotion()
+    val highlight = remember { Animatable(0f) }
+    LaunchedEffect(state.highlighted) {
+        val id = state.highlighted ?: return@LaunchedEffect
+        val index = state.list.items.indexOfFirst { it.id == id }
+        // After the next frame, so the list has laid out its new rows. A row that is fully in view stays where it is.
+        withFrameNanos {}
+        if (index >= 0) {
+            val target = LIST_HEADER_ITEMS + index
+            val layout = listState.layoutInfo
+            val inView = layout.visibleItemsInfo.any {
+                it.index == target && it.offset >= layout.viewportStartOffset && it.offset + it.size <= layout.viewportEndOffset
+            }
+            if (!inView) listState.scrollToItem(target)
+        }
+        highlight.snapTo(1f)
+        if (reducedMotion) {
+            delay(LINK_HIGHLIGHT_MS.toLong())
+        } else {
+            // Full strength for half the time, then a fade.
+            highlight.animateTo(0f, tween(durationMillis = LINK_HIGHLIGHT_MS / 2, delayMillis = LINK_HIGHLIGHT_MS / 2))
+        }
+        highlight.snapTo(0f)
+        model.highlightShown(id)
+    }
     BackHandler(enabled = state.showDeleted, onBack = model::toggleDeleted)
     // Selecting: Back clears the ticks first.
     val selecting = state.selected.isNotEmpty()
@@ -231,6 +263,14 @@ fun TransactionsScreen(
                                             if (chips.size > 1) item { TextButton(onClick = model::clearAll) { Text("Clear all") } }
                                         }
                                     }
+                                    state.linkNotice?.let { notice ->
+                                        LinkNoticeCard(
+                                            notice,
+                                            onClose = model::dismissLinkNotice,
+                                            onShowDeleted = model::toggleDeleted,
+                                            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp),
+                                        )
+                                    }
                                 }
                             }
                             if (!state.showDeleted) item { Box(Modifier.padding(16.dp)) { BreakdownPanel(state, model) } }
@@ -273,8 +313,15 @@ fun TransactionsScreen(
                                                 onRestore = { model.restore(transaction) },
                                                 onCategorise = { opened = transaction },
                                             ) { actions ->
-                                                // Opaque, so the swipe's colour shows only beside it.
-                                                Surface {
+                                                // Opaque, so the swipe's colour shows only beside it. A linked row is
+                                                // highlighted for a short time.
+                                                val surface = MaterialTheme.colorScheme.surface
+                                                val color = if (transaction.id == state.highlighted) {
+                                                    lerp(surface, MaterialTheme.colorScheme.primaryContainer, highlight.value)
+                                                } else {
+                                                    surface
+                                                }
+                                                Surface(color = color) {
                                                     TransactionRow(
                                                         transaction,
                                                         onClick = {
