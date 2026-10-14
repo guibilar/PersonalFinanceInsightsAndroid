@@ -73,14 +73,13 @@ fun warrantyText(warranty: Warranty): String? = when (warranty) {
     is Warranty.Ended -> "Warranty ended ${formatDay(warranty.until)}"
 }
 
-/** The warranty in a list, only when it needs a look: "Ends in 17 days", "Ends today", "Ended". Else null. */
+/**
+ * The warranty in a list, only when it needs a look: "Warranty ends in 17 days", "Warranty ends today", "Warranty
+ * ended". Else null.
+ */
 fun warrantyBadge(warranty: Warranty): String? = when (warranty) {
     Warranty.None, is Warranty.Active -> null
-    is Warranty.EndsSoon -> when (warranty.days) {
-        0L -> "Ends today"
-        1L -> "Ends tomorrow"
-        else -> "Ends in ${warranty.days} days"
-    }
+    is Warranty.EndsSoon -> warrantyText(warranty)
     is Warranty.Ended -> "Warranty ended"
 }
 

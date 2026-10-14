@@ -91,7 +91,7 @@ internal fun RowsCard(modifier: Modifier = Modifier, content: @Composable () -> 
     ) { content() }
 }
 
-/** A small label in a coloured box: "6 days", "Ends in 17 days". [strong] uses the warning colour. */
+/** A small label in a coloured box: "6 days", "Warranty ends in 17 days". [strong] uses the warning colour. */
 @Composable
 internal fun Badge(text: String, strong: Boolean) {
     val colors = LocalChartColors.current

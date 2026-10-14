@@ -33,7 +33,7 @@ class HomeRulesTest {
         assertNull(warrantyText(Warranty.None))
         // A list shows only the warranties that need a look.
         assertNull(warrantyBadge(warrantyOf("2027-12-20", today)))
-        assertEquals("Ends in 17 days", warrantyBadge(warrantyOf("2026-10-20", today)))
+        assertEquals("Warranty ends in 17 days", warrantyBadge(warrantyOf("2026-10-20", today)))
         assertEquals("Warranty ended", warrantyBadge(warrantyOf("2026-09-01", today)))
     }
 
