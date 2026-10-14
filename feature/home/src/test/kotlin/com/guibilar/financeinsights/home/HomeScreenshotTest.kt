@@ -203,12 +203,12 @@ class HomeScreenshotTest {
     }
 
     @Test
-    fun `the maintenance dialog adds a monthly task`() {
+    fun `the maintenance sheet adds a monthly task`() {
         item(HomeSamples.sofa.id)
         compose.onNodeWithText("Add maintenance").performScrollTo().performClick()
         compose.waitForIdle()
-        assertShows("Clean the Sofa", "Every", "Months", "First due")
-        compose.onAllNodesWithText("Add").onFirst().performClick()
+        assertShows("New maintenance task", "Clean the Sofa", "Every", "Months", "First due")
+        compose.onNodeWithText("Add the task").performScrollTo().performClick()
         compose.waitForIdle()
         assertTrue(tasks.tasks.any { it.title == "Clean the Sofa" && it.repeat != null })
     }
