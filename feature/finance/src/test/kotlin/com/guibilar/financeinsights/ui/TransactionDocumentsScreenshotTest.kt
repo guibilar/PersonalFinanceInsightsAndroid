@@ -184,10 +184,10 @@ class TransactionDocumentsScreenshotTest {
         openMetro(FakeDocuments())
         compose.onNodeWithText("Link a document").performScrollTo().performClick()
         compose.waitForIdle()
-        compose.onNodeWithText("Recent documents").assertExists()
+        compose.onNodeWithText("Recent documents").performScrollTo().assertExists()
         captureScreenRoboImage("build/shots/transaction-documents-link.png")
 
-        compose.onNodeWithContentDescription("Link Dishwasher warranty").performClick()
+        compose.onNodeWithContentDescription("Link Dishwasher warranty").performScrollTo().performClick()
         compose.waitForIdle()
         compose.onNodeWithText("Recent documents").assertDoesNotExist()
         compose.onNodeWithText("Dishwasher warranty").performScrollTo().assertExists()

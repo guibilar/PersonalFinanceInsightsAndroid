@@ -3,6 +3,8 @@ package com.guibilar.financeinsights.ui.transactions
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,14 +12,11 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Link
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -162,15 +161,16 @@ fun TransactionDocumentsSection(transactionId: String, documents: FinanceDocumen
         add = { documents.addDocument(transactionId) },
         link = {
             model.clearError()
-            linking = true
+            linking = !linking
         },
         retry = { scope.launch { model.retry() } },
         modifier = modifier,
     )
-    if (linking) LinkDocumentDialog(model, onDismiss = { linking = false })
+    if (linking && !model.readOnly) LinkDocumentPanel(model, onClose = { linking = false }, modifier = modifier)
 }
 
 /** What [TransactionDocumentsSection] shows, without the API: for the screenshots. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TransactionDocumentsContent(
     documents: LoadState<List<DocumentSummary>>,
@@ -208,16 +208,17 @@ fun TransactionDocumentsContent(
             }
         }
         if (canWrite) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = add, modifier = Modifier.weight(1f)) {
+            // Each button keeps its whole label; with large text, the second one goes to the next line.
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = add) {
                     Icon(Icons.Outlined.Add, null, Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Add document", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text("Add document")
                 }
-                OutlinedButton(onClick = link, modifier = Modifier.weight(1f)) {
+                OutlinedButton(onClick = link) {
                     Icon(Icons.Outlined.Link, null, Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Link a document", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text("Link a document")
                 }
             }
         } else if (readOnly) {
@@ -248,62 +249,57 @@ private fun DocumentRow(document: DocumentSummary, onClick: () -> Unit) {
     }
 }
 
-/** "Link a document": a search of the documents, and a "Link" button on each. It closes when the link is made. */
+/**
+ * "Link a document": a search of the documents under the section, and a "Link" button on each. It closes when the
+ * link is made. Not a dialog: a dialog over the sheet adds a window for no gain (the web does the same).
+ */
 @Composable
-private fun LinkDocumentDialog(model: TransactionDocumentsModel, onDismiss: () -> Unit) {
+private fun LinkDocumentPanel(model: TransactionDocumentsModel, onClose: () -> Unit, modifier: Modifier = Modifier) {
     val scope = rememberCoroutineScope()
     var query by rememberSaveable { mutableStateOf("") }
     LaunchedEffect(query) {
         if (model.candidates != null) delay(SEARCH_DEBOUNCE_MS)
         model.search(query)
     }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Link a document") },
-        text = {
-            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = query,
-                    onValueChange = { query = it },
-                    label = { Text("Search documents") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        OutlinedTextField(
+            value = query,
+            onValueChange = { query = it },
+            label = { Text("Search documents") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        when (val candidates = model.candidates) {
+            null, LoadState.Loading -> Text("Searching…", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            is LoadState.Failed -> Text(candidates.message, color = MaterialTheme.colorScheme.error)
+            is LoadState.Loaded -> if (candidates.value.isEmpty()) {
+                Text(
+                    if (query.isBlank()) "No documents yet." else "No document matches “${query.trim()}”.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                when (val candidates = model.candidates) {
-                    // Text, not a spinner: the search answers fast, and a dialog over the sheet keeps it simple.
-                    null, LoadState.Loading -> Text("Searching…", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    is LoadState.Failed -> Text(candidates.message, color = MaterialTheme.colorScheme.error)
-                    is LoadState.Loaded -> if (candidates.value.isEmpty()) {
-                        Text(
-                            if (query.isBlank()) "No documents yet." else "No document matches “${query.trim()}”.",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    } else {
-                        Text(
-                            if (query.isBlank()) "Recent documents" else "Best matches",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        candidates.value.forEach { document ->
-                            val linked = document.id in model.linkedIds
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Column(Modifier.weight(1f)) {
-                                    Text(document.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                    Text(document.kind.label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                                TextButton(
-                                    enabled = !linked && !model.busy,
-                                    onClick = { scope.launch { if (model.link(document) || model.readOnly) onDismiss() } },
-                                    modifier = Modifier.semantics { contentDescription = "Link ${document.title}" },
-                                ) { Text(if (linked) "Linked" else "Link") }
-                            }
+            } else {
+                Text(
+                    if (query.isBlank()) "Recent documents" else "Best matches",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                candidates.value.forEach { document ->
+                    val linked = document.id in model.linkedIds
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(document.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(document.kind.label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
+                        TextButton(
+                            enabled = !linked && !model.busy,
+                            onClick = { scope.launch { if (model.link(document)) onClose() } },
+                            modifier = Modifier.semantics { contentDescription = "Link ${document.title}" },
+                        ) { Text(if (linked) "Linked" else "Link") }
                     }
                 }
-                model.error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
             }
-        },
-        confirmButton = {},
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Close") } },
-    )
+        }
+        model.error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+        TextButton(onClick = onClose, modifier = Modifier.align(Alignment.End)) { Text("Close the search") }
+    }
 }
