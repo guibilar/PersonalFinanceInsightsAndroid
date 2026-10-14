@@ -171,7 +171,7 @@ class AlertPollerTest {
     }
 
     @Test
-    fun `signed out, turned off, or not allowed: the poll does nothing`() {
+    fun `signed out, turned off, or not allowed, the poll does nothing`() {
         answer(alert("a"))
 
         assertEquals(AlertPollResult.Skipped, runBlocking { poller().poll(null, owner) })
