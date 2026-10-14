@@ -65,6 +65,10 @@ def main():
         print("::notice title=Screenshots::No screenshot images. The screenshot tests did not run.")
         return 0
 
+    if not base:
+        print(f"::notice title=Screenshots::{len(images)} images. Pull requests compare their images with this list.")
+        return 0
+
     if base_list is None:
         print(
             f"::notice title=Screenshots::{len(images)} images. "
