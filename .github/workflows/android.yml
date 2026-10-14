@@ -36,7 +36,14 @@ jobs:
             :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
         # --continue runs the tests of all modules after a failure, so the annotations below list all failed tests.
         shell: bash
-        run: ./gradlew --console=plain --continue $CHECKS
+        run: |
+          set -o pipefail
+          ./gradlew --console=plain --continue $CHECKS 2>&1 | tee gradle.log
+      - name: Probe - compile errors
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          grep -E '^e: |error: |Could not resolve|What went wrong' -A2 gradle.log | head -40 | while IFS= read -r line; do echo "::error::${line//%/%25}"; done || true
 
       # Task sessions cannot read the logs. These steps write the results as annotations (see "CI annotations").
       - name: Test results as annotations
