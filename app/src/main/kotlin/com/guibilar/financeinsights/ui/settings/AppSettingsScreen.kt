@@ -45,6 +45,8 @@ import com.guibilar.financeinsights.core.logic.Money
 import com.guibilar.financeinsights.data.AppPreferences
 import com.guibilar.financeinsights.data.FinancePreferences
 import com.guibilar.financeinsights.data.ThemeChoice
+import com.guibilar.financeinsights.notifications.AlertNotificationSettings
+import com.guibilar.financeinsights.notifications.AlertNotifications
 import com.guibilar.financeinsights.security.AppLock
 import com.guibilar.financeinsights.security.authenticate
 import com.guibilar.financeinsights.security.canAuthenticate
@@ -58,16 +60,19 @@ fun AppSettingsScreen(
     lock: AppLock?,
     contentPadding: PaddingValues,
     onBack: () -> Unit,
+    /** The alert notifications (T68); null hides their switches. */
+    alertSettings: AlertNotificationSettings? = null,
 ) {
     val context = LocalContext.current
     val hostActivity = LocalActivity.current
     val theme by preferences.theme.collectAsState()
     val dynamicColor by preferences.dynamicColor.collectAsState()
     val locking by preferences.lock.collectAsState()
-    val alerts by financePreferences.budgetAlerts.collectAsState()
-    val priceAlerts by financePreferences.priceAlerts.collectAsState()
+    val budgetWarnings by financePreferences.budgetAlerts.collectAsState()
     val monthlyReview by financePreferences.monthlyReview.collectAsState()
-    val importReminders by financePreferences.importReminders.collectAsState()
+    val alertsOn = alertSettings?.enabled?.collectAsState()?.value == true
+    val moneyAlerts = alertSettings?.money?.collectAsState()?.value == true
+    val documentAlerts = alertSettings?.documents?.collectAsState()?.value == true
     val hideWidget by financePreferences.hideWidgetAmounts.collectAsState()
     val hideAmounts by preferences.hideAmounts.collectAsState()
     var alertsNote by remember { mutableStateOf<String?>(null) }
@@ -77,45 +82,48 @@ fun AppSettingsScreen(
     var lockAvailable by remember { mutableStateOf(canAuthenticate(context)) }
     LifecycleResumeEffect(Unit) {
         lockAvailable = canAuthenticate(context)
-        if (financePreferences.anyAlerts && !Alerts.canNotify(context)) alertsNote = blockedNote
+        if ((financePreferences.anyAlerts || alertSettings?.enabled?.value == true) && !Alerts.canNotify(context)) alertsNote = blockedNote
         onPauseOrDispose {}
     }
-    // Each notification switch, by a key that survives the phone rotating while the permission is asked for.
-    val setters = remember(financePreferences) {
-        mapOf<String, (Boolean) -> Unit>(
-            "budgets" to financePreferences::setBudgetAlerts,
-            "prices" to financePreferences::setPriceAlerts,
-            "review" to financePreferences::setMonthlyReview,
-            "imports" to financePreferences::setImportReminders,
-        )
+    // Each notification switch, by a key that survives the phone rotating while the permission is asked for. "alerts"
+    // is the server alerts (T68); the other two are the local finance rules that have no server alert yet.
+    val setters = remember(financePreferences, alertSettings) {
+        buildMap<String, (Boolean) -> Unit> {
+            put("budgets", financePreferences::setBudgetAlerts)
+            put("review", financePreferences::setMonthlyReview)
+            if (alertSettings != null) put("alerts", alertSettings::setEnabled)
+        }
     }
     // The notification switched on while the permission was asked for.
     var waiting by rememberSaveable { mutableStateOf<String?>(null) }
 
-    fun apply(set: (Boolean) -> Unit, on: Boolean) {
-        set(on)
-        Alerts.reschedule(context, financePreferences)
+    fun apply(key: String, on: Boolean) {
+        setters.getValue(key)(on)
+        if (key == "alerts" && alertSettings != null) {
+            AlertNotifications.reschedule(context, alertSettings)
+        } else {
+            Alerts.reschedule(context, financePreferences)
+        }
     }
     val askToNotify = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        val set = waiting?.let(setters::get)
+        val key = waiting?.takeIf { it in setters }
         waiting = null
         if (granted) {
             alertsNote = null
-            set?.let { apply(it, true) }
+            key?.let { apply(it, true) }
         } else {
             alertsNote = blockedNote
         }
     }
     /** Turns a notification on (asking for the permission first, if need be) or off. */
     fun switch(key: String, on: Boolean) {
-        val set = setters.getValue(key)
         if (on && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !Alerts.canNotify(context)) {
             waiting = key
             askToNotify.launch(Manifest.permission.POST_NOTIFICATIONS)
         } else {
             // Before Android 13 nothing is asked: notifications blocked in the phone's settings are said so.
             alertsNote = if (on && !Alerts.canNotify(context)) blockedNote else null
-            apply(set, on)
+            apply(key, on)
         }
     }
 
@@ -181,26 +189,32 @@ fun AppSettingsScreen(
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
 
             Heading("Notifications")
+            if (alertSettings != null) {
+                SwitchRow(
+                    "Needs attention",
+                    "A notification when something new needs attention: a budget over its limit, a price change, " +
+                        "statements to import, a document that expires. The phone asks the server every hour, over Tailscale.",
+                    alertsOn,
+                ) { switch("alerts", it) }
+                SwitchRow("Money", "Budgets, subscriptions, statements and transactions.", moneyAlerts, enabled = alertsOn, indent = true) {
+                    alertSettings.setMoney(it)
+                    if (!it) AlertNotifications.removeModule(context, AlertNotificationSettings.MONEY)
+                }
+                SwitchRow("Documents", "Documents that expire soon, or that expired.", documentAlerts, enabled = alertsOn, indent = true) {
+                    alertSettings.setDocuments(it)
+                    if (!it) AlertNotifications.removeModule(context, AlertNotificationSettings.DOCUMENTS)
+                }
+            }
             SwitchRow(
-                "Budget alerts",
-                "A notification when a budget passes 80% and when it's used up, once each period. Checked every few hours.",
-                alerts,
+                "Budget warnings",
+                "A notification when a budget passes 80%, once each period. Checked on the phone every few hours.",
+                budgetWarnings,
             ) { switch("budgets", it) }
-            SwitchRow(
-                "Subscription price changes",
-                "A notification when a subscription or bill with a fixed price starts charging a different amount.",
-                priceAlerts,
-            ) { switch("prices", it) }
             SwitchRow(
                 "Monthly review",
                 "Early each month, the month before: what was spent against the month before it, and where most went.",
                 monthlyReview,
             ) { switch("review", it) }
-            SwitchRow(
-                "Import reminders",
-                "A notification when no statement has been imported for more than a week, and once a week after that until one is.",
-                importReminders,
-            ) { switch("imports", it) }
             alertsNote?.let {
                 Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(horizontal = 16.dp))
             }
@@ -220,7 +234,15 @@ private fun Heading(text: String) {
 }
 
 @Composable
-private fun SwitchRow(title: String, subtitle: String, checked: Boolean, enabled: Boolean = true, onChange: (Boolean) -> Unit) {
+private fun SwitchRow(
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    enabled: Boolean = true,
+    /** A switch under the one above it (a module of the notifications). */
+    indent: Boolean = false,
+    onChange: (Boolean) -> Unit,
+) {
     val haptics = LocalHapticFeedback.current
     Row(
         Modifier.fillMaxWidth()
@@ -228,7 +250,7 @@ private fun SwitchRow(title: String, subtitle: String, checked: Boolean, enabled
                 haptics.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
                 onChange(it)
             }
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(start = if (indent) 40.dp else 16.dp, end = 16.dp, top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {

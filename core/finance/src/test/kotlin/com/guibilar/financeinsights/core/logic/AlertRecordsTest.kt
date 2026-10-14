@@ -20,7 +20,12 @@ class AlertRecordsTest {
             "something-else",
         )
         assertEquals(
-            setOf("b1:2026-09", "b2:2025", "price:Netflix: Premium:2026-08-01", "review:2026-08", "import:2026-09-01:1"),
+            setOf(
+                "b1:2026-09", "b2:2025", "review:2026-08",
+                // Server alerts since T68: all their old records go.
+                "price:Netflix: Premium:2026-08-01", "price:Spotify:2026-09-20",
+                "import:2026-09-01:1", "import:2026-09-20:1", "import:2026-09-20:2",
+            ),
             staleAlertKeys(keys, today),
         )
     }
@@ -36,7 +41,7 @@ class AlertRecordsTest {
         assertEquals(mapOf("b1:all" to 80), budgetLevelsDropped(listOf(budget(85.0)), today, sent))
         assertEquals(mapOf("b1:all" to 0), budgetLevelsDropped(listOf(budget(40.0)), today, sent))
         assertEquals(emptyMap<String, Int>(), budgetLevelsDropped(listOf(budget(120.0)), today, sent))
-        // Forgotten, the next crossing is told.
-        assertEquals(1, budgetAlerts(listOf(budget(120.0)), today, mapOf("b1:all" to 0)).size)
+        // Forgotten, the next crossing of 80% is told.
+        assertEquals(1, budgetAlerts(listOf(budget(85.0)), today, mapOf("b1:all" to 0)).size)
     }
 }

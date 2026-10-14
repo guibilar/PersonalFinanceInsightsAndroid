@@ -108,9 +108,16 @@ The finance pages:
   - a lock on opening (fingerprint, face or the phone's PIN, again after a minute away);
   - hiding amounts on the widget.
 
-  Four kinds of notification can be turned on: budget alerts (at 80% and when used up), subscription price
-  changes, the monthly review, and a reminder when no statement has been imported for more than a week. A background
-  check runs every few hours while any of them is on.
+  **Notifications:**
+  - **Needs attention** (T68): the phone asks the server for its alerts (`GET /api/alerts`) every hour, over
+    Tailscale, and shows a notification for each new alert: a budget over its limit, a price change, statements to
+    import, unsorted transactions, a document that expires. More than 3 new alerts give one summary. A notification
+    goes away when its alert is resolved. A tap opens the alert's page, as on Today. A switch per module (Money,
+    Documents). The first poll after install, sign-in, or turning it on only notes the open alerts and notifies
+    nothing. "Hide amounts" hides the amounts in these notifications too, and with the app lock on the lock screen
+    shows only the kind of alert.
+  - **Budget warnings** (at 80%) and the **monthly review** are checked on the phone every few hours. The server has
+    no alert for them yet.
 - **Widget and shortcut:** a home-screen widget shows this month's spending and the fullest budgets; a tap opens the
   Money dashboard. Long-pressing the app's icon offers "Add transaction". The widget, the shortcut, the notifications
   and shared statements open their page over the Money home.
@@ -198,7 +205,7 @@ The app is split into Gradle modules, so that more modules (documents, tasks, an
 | `:core:ui` | Android library | The theme, the common components, the charts, and the frame of the settings pages. |
 | `:feature:finance` | Android library | The Money module: its home, the finance screens, their navigation graph, the finance notifications, the widget, and the finance settings (`FinancePreferences`). |
 | `:feature:documents` | Android library | The Documents module: the list, a document, the upload with the scanner and the pickers, the photo scaling, and its navigation graph (`documentsGraph`). It depends on the core modules only; the transactions of its links come from `:core:finance`. |
-| `:app` | Android app | `MainActivity`, the application class, the module registry, the navigation host with the bar (Today, Timeline, Capture, Modules, Search), sign-in, the lock, the account page and the app's settings. |
+| `:app` | Android app | `MainActivity`, the application class, the module registry, the navigation host with the bar (Today, Timeline, Capture, Modules, Search), sign-in, the lock, the account page, the app's settings, and the alert notifications (`notifications/`). |
 
 How they connect:
 
@@ -239,8 +246,14 @@ How they connect:
   `CurrentUser.canWrite`). A missing scope (an older server) counts as `full`. `AuthState.SignedIn.canWrite` goes to
   `MainScreen(canWrite = …)`, which passes it to Capture (the buttons are disabled), `documentsGraph(canWrite = …)`,
   and `AppFinanceDocuments.canWrite` (the "Documents" section of a transaction). In tests, `FakeAuthApi.scope` sets it.
-- The widget and the notifications need the session and the app's settings. They get them through the `FinanceHost`
-  interface, which the application class implements.
+- The widget and the local finance notifications need the session and the app's settings. They get them through the
+  `FinanceHost` interface, which the application class implements.
+- **Alert notifications (T68)** are in `:app` (`notifications/`), because they serve all modules.
+  `AlertPollWorker` (WorkManager, every 60 minutes, when online) calls `GET /api/alerts`.
+  `planAlertNotifications(...)` in `:core:today` decides what to show and what to remove. `SeenAlertStore`
+  (DataStore) keeps the alert ids of the last poll and the account. `AlertNotificationSettings` holds the switches.
+  A tap sends the alert's link to `MainActivity` (`ACTION_OPEN_ALERT`); `MainScreen` opens it with
+  `todayDestination(...)`. A failed poll (Tailscale off, or the session ended) changes nothing.
 - The plain Kotlin modules are tested on the JVM. The Android modules' tests include screenshot tests (Robolectric and
   Roborazzi) that render the screens with the recorded responses. They write to `<module>/build/shots`. CI uploads
   them on pull requests and when a run fails. The finance module's tests run in `TestFinanceApp` (see `feature/finance/src/test/resources/robolectric.properties`).

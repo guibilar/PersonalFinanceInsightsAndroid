@@ -34,7 +34,8 @@ class MoneyPrivacyTest {
         Money.hidden = { true }
         val budget = Budget(
             id = "b1", name = "Groceries", status = Status.Active, period = BudgetPeriod.Monthly, totalAmount = 150.0,
-            totalSpent = 165.0, totalRemaining = -15.0, percentageUsed = 110.0,
+            // 84%: the local warning (100% is a server alert since T68).
+            totalSpent = 126.0, totalRemaining = 24.0, percentageUsed = 84.0,
         )
 
         val alert = budgetAlerts(listOf(budget), LocalDate.of(2026, 10, 9), emptyMap()).single()

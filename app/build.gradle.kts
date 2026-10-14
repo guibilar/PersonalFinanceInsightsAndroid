@@ -88,6 +88,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.datastore.preferences)
+    // The alert notifications poll in the background (T68).
+    implementation(libs.androidx.work.runtime)
     implementation(libs.androidx.biometric)
     implementation(libs.androidx.fragment.ktx)
     implementation(platform(libs.compose.bom))
@@ -106,6 +108,7 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.work.testing)
     testImplementation(libs.roborazzi)
     testImplementation(libs.roborazzi.compose)
     testImplementation(libs.androidx.test.ext.junit)

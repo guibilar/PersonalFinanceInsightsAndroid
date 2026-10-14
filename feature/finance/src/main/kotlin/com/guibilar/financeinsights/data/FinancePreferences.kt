@@ -7,8 +7,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * The finance module's own settings, kept on the phone: its notifications and its widget. They share the app's
+ * The finance module's own settings, kept on the phone: its local notifications and its widget. They share the app's
  * settings file and keep their keys, so settings chosen before the module was split off stay as they were.
+ *
+ * Since T68, most finance notifications come from the server alerts (the app's `AlertNotificationSettings`, which also
+ * moved the old "priceAlerts" and "importReminders" settings there). Only two local rules stay: budget warnings at 80%
+ * and the monthly review, which have no server alert yet.
  */
 class FinancePreferences(context: Context) {
     private val prefs = context.getSharedPreferences("preferences", Context.MODE_PRIVATE)
@@ -18,23 +22,15 @@ class FinancePreferences(context: Context) {
     val hideWidgetAmounts: StateFlow<Boolean> = _hideWidgetAmounts.asStateFlow()
 
     private val _budgetAlerts = MutableStateFlow(prefs.getBoolean(KEY_BUDGET_ALERTS, false))
-    /** A notification when a budget passes 80% and 100%. */
+    /** A notification when a budget passes 80%. (At 100%, the server alert "budget-over" tells it.) */
     val budgetAlerts: StateFlow<Boolean> = _budgetAlerts.asStateFlow()
-
-    private val _priceAlerts = MutableStateFlow(prefs.getBoolean(KEY_PRICE_ALERTS, false))
-    /** A notification when a subscription's fixed price changes. */
-    val priceAlerts: StateFlow<Boolean> = _priceAlerts.asStateFlow()
 
     private val _monthlyReview = MutableStateFlow(prefs.getBoolean(KEY_MONTHLY_REVIEW, false))
     /** A notification early each month with the month before in review. */
     val monthlyReview: StateFlow<Boolean> = _monthlyReview.asStateFlow()
 
-    private val _importReminders = MutableStateFlow(prefs.getBoolean(KEY_IMPORT_REMINDERS, false))
-    /** A notification after more than a week without importing a statement, and weekly while it stays so. */
-    val importReminders: StateFlow<Boolean> = _importReminders.asStateFlow()
-
-    /** Any notification is on: the background check runs. */
-    val anyAlerts get() = budgetAlerts.value || priceAlerts.value || monthlyReview.value || importReminders.value
+    /** Any local notification is on: the background check runs. */
+    val anyAlerts get() = budgetAlerts.value || monthlyReview.value
 
     fun setHideWidgetAmounts(value: Boolean) {
         prefs.edit { putBoolean(KEY_HIDE_WIDGET_AMOUNTS, value) }
@@ -46,26 +42,14 @@ class FinancePreferences(context: Context) {
         _budgetAlerts.value = value
     }
 
-    fun setPriceAlerts(value: Boolean) {
-        prefs.edit { putBoolean(KEY_PRICE_ALERTS, value) }
-        _priceAlerts.value = value
-    }
-
     fun setMonthlyReview(value: Boolean) {
         prefs.edit { putBoolean(KEY_MONTHLY_REVIEW, value) }
         _monthlyReview.value = value
     }
 
-    fun setImportReminders(value: Boolean) {
-        prefs.edit { putBoolean(KEY_IMPORT_REMINDERS, value) }
-        _importReminders.value = value
-    }
-
     private companion object {
         const val KEY_BUDGET_ALERTS = "budgetAlerts"
         const val KEY_HIDE_WIDGET_AMOUNTS = "hideWidgetAmounts"
-        const val KEY_PRICE_ALERTS = "priceAlerts"
         const val KEY_MONTHLY_REVIEW = "monthlyReview"
-        const val KEY_IMPORT_REMINDERS = "importReminders"
     }
 }

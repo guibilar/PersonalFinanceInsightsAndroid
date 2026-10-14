@@ -1,0 +1,88 @@
+package com.guibilar.financeinsights.notifications
+
+import android.content.Context
+import androidx.core.content.edit
+import androidx.test.core.app.ApplicationProvider
+import com.guibilar.financeinsights.data.FinancePreferences
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+
+@RunWith(RobolectricTestRunner::class)
+class AlertNotificationSettingsTest {
+    private val context: Context = ApplicationProvider.getApplicationContext()
+    private val prefs = context.getSharedPreferences("preferences", Context.MODE_PRIVATE)
+
+    @Before
+    fun setUp() {
+        // The app's start already moved the (empty) settings: start again from the settings of an older app.
+        prefs.edit(commit = true) { clear() }
+    }
+
+    private fun olderApp(vararg on: String) = prefs.edit(commit = true) { on.forEach { putBoolean(it, true) } }
+
+    @Test
+    fun `a new install starts with the notifications off and both modules on`() {
+        val settings = AlertNotificationSettings(context)
+
+        assertFalse(settings.enabled.value)
+        assertTrue(settings.money.value)
+        assertTrue(settings.documents.value)
+    }
+
+    @Test
+    fun `an old price or import switch turns the notifications on, and its setting goes`() {
+        olderApp("priceAlerts")
+        assertTrue(AlertNotificationSettings(context).enabled.value)
+
+        prefs.edit(commit = true) { clear() }
+        olderApp("importReminders")
+        assertTrue(AlertNotificationSettings(context).enabled.value)
+
+        assertFalse(prefs.contains("priceAlerts"))
+        assertFalse(prefs.contains("importReminders"))
+    }
+
+    @Test
+    fun `the old budget alerts turn the notifications on and stay as the 80 percent warning`() {
+        olderApp("budgetAlerts", "monthlyReview")
+
+        val settings = AlertNotificationSettings(context)
+        val finance = FinancePreferences(context)
+
+        assertTrue(settings.enabled.value)
+        assertTrue(finance.budgetAlerts.value)
+        assertTrue(finance.monthlyReview.value)
+    }
+
+    @Test
+    fun `only the monthly review on leaves the notifications off`() {
+        olderApp("monthlyReview")
+
+        assertFalse(AlertNotificationSettings(context).enabled.value)
+    }
+
+    @Test
+    fun `the migration runs once`() {
+        olderApp("priceAlerts")
+        AlertNotificationSettings(context).setEnabled(false)
+
+        // The next start: the choice stays.
+        assertFalse(AlertNotificationSettings(context).enabled.value)
+    }
+
+    @Test
+    fun `each module has its switch, and a newer module follows the main switch only`() {
+        val settings = AlertNotificationSettings(context)
+        settings.setDocuments(false)
+
+        assertTrue(settings.notifies("Money"))
+        assertFalse(settings.notifies("Documents"))
+        assertTrue(settings.notifies("Tasks"))
+        assertEquals(false, AlertNotificationSettings(context).documents.value)
+    }
+}
