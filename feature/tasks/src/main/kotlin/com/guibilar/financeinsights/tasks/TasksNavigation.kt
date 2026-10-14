@@ -2,6 +2,7 @@ package com.guibilar.financeinsights.tasks
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -82,6 +83,7 @@ fun NavGraphBuilder.tasksGraph(
             focusQuickAdd = route.quickAdd,
             onBack = { nav.popBackStack() },
             sheet = {
+                val day = model.state.collectAsState().value.today
                 open?.let { id ->
                     val taskModel = viewModel(key = "task-$id") {
                         TaskViewModel(client.api(), client.api(), client.api(), id, onChanged = model::changed)
@@ -89,7 +91,7 @@ fun NavGraphBuilder.tasksGraph(
                     LaunchedEffect(taskModel) { taskModel.opened() }
                     TaskSheet(
                         model = taskModel,
-                        today = model.state.value.today,
+                        today = day,
                         canWrite = canWrite,
                         openDocument = openDocument,
                         openTransaction = openTransaction,

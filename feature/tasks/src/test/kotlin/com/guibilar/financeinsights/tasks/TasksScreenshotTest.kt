@@ -93,7 +93,7 @@ class TasksScreenshotTest {
         val opened = mutableListOf<String>()
         screen(opened = opened)
         assertShows(
-            "Add a task", "Due today", "Overdue · 1", "2 days late", "Today · 3", "Compare car insurance quotes", "Documents", "Money",
+            "Add a task", "Due today", "Overdue · 1", "2 days late · home", "Today · 3", "Compare car insurance quotes", "Documents", "Money",
             "Upcoming · 1", "Thu", "Later and no date · 1", "Recurring", "Every 4 days · next Tue", "Every week · next Tomorrow", "Done · 1",
         )
         shoot("tasks")
