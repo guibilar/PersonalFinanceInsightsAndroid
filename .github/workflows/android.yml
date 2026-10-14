@@ -2,7 +2,7 @@ name: android
 
 on:
   push:
-    branches: [main]
+    branches: [main, hestia/T67-probe]
   pull_request:
   # A run on demand makes a new APK when the last one has expired (see "CI artifacts" in the README).
   workflow_dispatch:
@@ -34,7 +34,25 @@ jobs:
             :feature:finance:testDebugUnitTest :feature:finance:lintDebug
             :feature:documents:testDebugUnitTest :feature:documents:lintDebug
             :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
-        run: ./gradlew --console=plain $CHECKS
+        shell: bash
+        run: |
+          set +e
+          ./gradlew --console=plain --continue $CHECKS 2>&1 | tee gradle.log
+          code=${PIPESTATUS[0]}
+          grep -E '^e: ' gradle.log | head -10 | sed 's/^/::error::/'
+          grep -E 'FAILED$' gradle.log | head -10 | sed 's/^/::error::/'
+          for f in $(grep -lr '<failure' --include='*.xml' core/*/build/test-results feature/*/build/test-results app/build/test-results 2>/dev/null | head -10); do
+            python3 - "$f" <<'PY'
+          import sys, xml.etree.ElementTree as ET
+          for case in ET.parse(sys.argv[1]).getroot().iter('testcase'):
+              for fail in case.findall('failure'):
+                  msg = (fail.get('message') or '').replace('\n', ' ')[:300]
+                  print(f"::error::{case.get('classname')}.{case.get('name')}: {msg}")
+          PY
+          done
+          grep -hE 'Error: |Warning: ' gradle.log | grep -i lint | head -5 | sed 's/^/::error::/'
+          grep -E '^> |What went wrong' -A2 gradle.log | head -20 | sed 's/^/::notice::/'
+          exit $code
 
       # Artifacts count against the account's storage quota. See "CI artifacts" in the README for the policy.
       # A failed upload (usually a full quota) does not fail the job: the next step writes a warning instead.
