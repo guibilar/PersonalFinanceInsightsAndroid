@@ -1,0 +1,76 @@
+# Probe for T56 only (branch probe/T56-shots). Renders the screenshots on main and on this branch in one job, and
+# compares their SHA-256. Not for review; the user deletes the branch.
+name: probe-shots
+
+on:
+  push:
+    branches: [probe/T56-shots]
+
+permissions:
+  contents: write
+
+jobs:
+  shots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Render on main
+        shell: bash
+        run: |
+          git worktree add "$RUNNER_TEMP/base" origin/main
+          cd "$RUNNER_TEMP/base"
+          ./gradlew --console=plain --no-build-cache :app:testDebugUnitTest :feature:finance:testDebugUnitTest :feature:documents:testDebugUnitTest
+          find app/build/shots feature/*/build/shots -name '*.png' -exec sha256sum {} + | sort -k2 > "$RUNNER_TEMP/base.txt"
+
+      - name: Render on the branch
+        shell: bash
+        run: |
+          ./gradlew --console=plain --no-build-cache :app:testDebugUnitTest :feature:finance:testDebugUnitTest :feature:documents:testDebugUnitTest
+          find app/build/shots feature/*/build/shots -name '*.png' -exec sha256sum {} + | sort -k2 > "$RUNNER_TEMP/branch.txt"
+
+      - name: Compare
+        shell: bash
+        run: |
+          python3 - "$RUNNER_TEMP/base.txt" "$RUNNER_TEMP/branch.txt" > "$RUNNER_TEMP/diff.txt" <<'PY'
+          import sys
+          def load(path):
+              return {line.split()[1]: line.split()[0] for line in open(path) if line.strip()}
+          base, branch = load(sys.argv[1]), load(sys.argv[2])
+          same = [k for k in branch if base.get(k) == branch[k]]
+          changed = sorted(k for k in branch if k in base and base[k] != branch[k])
+          new = sorted(k for k in branch if k not in base)
+          removed = sorted(k for k in base if k not in branch)
+          print(f"::notice title=Screenshots::branch {len(branch)}, main {len(base)}, same {len(same)}, changed {len(changed)}, new {len(new)}, removed {len(removed)}")
+          print("::notice title=Changed::" + (", ".join(changed) or "none"))
+          print("::notice title=New::" + (", ".join(new) or "none"))
+          print("::notice title=Removed::" + (", ".join(removed) or "none"))
+          for k in changed + new:
+              print("FILE " + k)
+          PY
+          grep -v '^FILE ' "$RUNNER_TEMP/diff.txt"
+
+      - name: Push the new and changed images to this branch
+        shell: bash
+        run: |
+          mkdir -p probe-shots
+          grep '^FILE ' "$RUNNER_TEMP/diff.txt" | cut -c6- | while read -r file; do
+            name=$(echo "$file" | tr '/' '_')
+            cp "$file" "probe-shots/$name"
+            if [ -f "$RUNNER_TEMP/base/$file" ]; then cp "$RUNNER_TEMP/base/$file" "probe-shots/main_$name"; fi
+          done
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add probe-shots
+          git commit -m "Probe images [skip ci]" || exit 0
+          git push origin HEAD:probe/T56-shots
