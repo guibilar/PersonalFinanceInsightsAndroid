@@ -21,6 +21,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.toRoute
 import com.guibilar.financeinsights.FinanceDocuments
+import com.guibilar.financeinsights.FinanceHome
 import com.guibilar.financeinsights.QuickAction
 import com.guibilar.financeinsights.core.api.FinanceApi
 import com.guibilar.financeinsights.core.logic.ReviewPeriod
@@ -275,6 +276,7 @@ fun NavGraphBuilder.financeGraph(
     amountsHidden: StateFlow<Boolean>? = null,
     setAmountsHidden: ((Boolean) -> Unit)? = null,
     documents: FinanceDocuments? = null,
+    home: FinanceHome? = null,
 ) {
     val padding = contentPadding
     val back: () -> Unit = { nav.popBackStack() }
@@ -390,6 +392,7 @@ fun NavGraphBuilder.financeGraph(
                 requests.importAccount = null
             },
             documents = documents,
+            home = home,
         )
     }
 }

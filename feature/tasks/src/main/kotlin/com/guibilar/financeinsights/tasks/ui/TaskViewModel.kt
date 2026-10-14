@@ -8,6 +8,9 @@ import com.guibilar.financeinsights.core.api.apiCall
 import com.guibilar.financeinsights.core.api.apiError
 import com.guibilar.financeinsights.core.documents.DocumentSummary
 import com.guibilar.financeinsights.core.documents.DocumentsApi
+import com.guibilar.financeinsights.core.home.HomeApi
+import com.guibilar.financeinsights.core.home.ItemLinkKinds
+import com.guibilar.financeinsights.core.home.ItemSummary
 import com.guibilar.financeinsights.core.logic.DataChanges
 import com.guibilar.financeinsights.core.logic.TransactionLookup
 import com.guibilar.financeinsights.core.logic.findTransaction
@@ -50,7 +53,7 @@ sealed interface Linked<out T> {
 }
 
 /** What a link picker lists. */
-enum class LinkPicker { Document, Transaction }
+enum class LinkPicker { Document, Transaction, Item }
 
 data class TaskState(
     val task: LoadState<TaskItem> = LoadState.Loading,
@@ -66,12 +69,15 @@ data class TaskState(
     val picker: LinkPicker? = null,
     val documentCandidates: LoadState<List<DocumentSummary>> = LoadState.Loading,
     val transactionCandidates: LoadState<List<Transaction>> = LoadState.Loading,
+    /** The items of the home that the task belongs to (both sides of the link); null without the Home module. */
+    val items: LoadState<List<ItemSummary>>? = null,
+    val itemCandidates: LoadState<List<ItemSummary>> = LoadState.Loading,
 )
 
 /**
  * One task, in the task sheet: its details (saved with a full PUT), done and undo, its links (a document or a
- * transaction, each read from its module), its last completions, and delete. [onChanged] runs after each write, so the
- * Tasks screen shows the change.
+ * transaction, each read from its module; the items of the home through [home], T88), its last completions, and
+ * delete. [onChanged] runs after each write, so the Tasks screen shows the change.
  */
 class TaskViewModel(
     private val api: TasksApi,
@@ -79,8 +85,10 @@ class TaskViewModel(
     private val finance: FinanceApi,
     private val id: String,
     private val onChanged: () -> Unit = {},
+    /** The Home API, for the items of the task; null leaves them out. */
+    private val home: HomeApi? = null,
 ) : ViewModel() {
-    private val _state = MutableStateFlow(TaskState())
+    private val _state = MutableStateFlow(TaskState(items = if (home != null) LoadState.Loading else null))
     val state: StateFlow<TaskState> = _state.asStateFlow()
 
     private val _messages = Channel<UiMessage>(Channel.BUFFERED)
@@ -120,6 +128,16 @@ class TaskViewModel(
     private fun show(loaded: LoadState<TaskItem>) {
         _state.update { it.copy(task = loaded) }
         loaded.valueOrNull?.let(::loadLinks)
+        if (loaded is LoadState.Loaded) loadItems()
+    }
+
+    /** The items of the task, from the Home module (both sides of the link). A failed reload keeps the list. */
+    private fun loadItems() {
+        val home = home ?: return
+        viewModelScope.launch {
+            val loaded = load("Could not load the items.") { home.byLink(ItemLinkKinds.TASK, id) }
+            _state.update { s -> if (loaded is LoadState.Failed && s.items is LoadState.Loaded) s else s.copy(items = loaded) }
+        }
     }
 
     /** Asks the modules for each linked thing that is not known yet. */
@@ -200,6 +218,14 @@ class TaskViewModel(
         "Linked to ${transaction.description}"
     }
 
+    /** Links the task to an item of the home (kind `Home.Item`): maintenance. */
+    fun linkItem(item: ItemSummary) = write("Could not link the item.") {
+        val link = api.addLink(id, NewTaskLink.item(item.id))
+        added(link)
+        loadItems()
+        "Linked to ${item.name}"
+    }
+
     private fun added(link: TaskLink) = _state.update { state ->
         val task = state.task.valueOrNull ?: return@update state
         state.copy(task = LoadState.Loaded(task.copy(links = task.links + link)))
@@ -211,6 +237,7 @@ class TaskViewModel(
             val task = state.task.valueOrNull ?: return@update state
             state.copy(task = LoadState.Loaded(task.copy(links = task.links.filterNot { it.id == link.id })))
         }
+        if (link.kind == TaskLinkKinds.HOME_ITEM) loadItems()
         "Link removed"
     }
 
@@ -249,6 +276,12 @@ class TaskViewModel(
                     )
                     val loaded = load("Could not load the transactions.") { finance.transactions(filter).items }
                     _state.update { it.copy(transactionCandidates = loaded) }
+                }
+                LinkPicker.Item -> {
+                    val home = home ?: return@launch
+                    _state.update { it.copy(itemCandidates = LoadState.Loading) }
+                    val loaded = load("Could not load the items.") { home.items(q = query, page = 1, pageSize = CANDIDATES).items }
+                    _state.update { it.copy(itemCandidates = loaded) }
                 }
             }
         }

@@ -60,7 +60,8 @@ internal fun alertAction(link: String?, open: (Any) -> Unit, openImport: (accoun
         is TodayDestination.Transaction -> {
             { open(TransactionsRoute(transactionId = destination.id)) }
         }
-        TodayDestination.Documents, is TodayDestination.Document, is TodayDestination.Tasks, is TodayDestination.Task, null -> null
+        TodayDestination.Documents, is TodayDestination.Document, is TodayDestination.Tasks, is TodayDestination.Task,
+        TodayDestination.Home, is TodayDestination.Room, is TodayDestination.Item, null -> null
     }
 
 /** Whether the "Needs attention" card shows: not while it loads, and not when all is well after a complete check. */

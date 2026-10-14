@@ -18,6 +18,7 @@ import com.guibilar.financeinsights.FakeAlertsApi
 import com.guibilar.financeinsights.DocumentsSamples
 import com.guibilar.financeinsights.FakeDocumentsApi
 import com.guibilar.financeinsights.FakeFinanceApi
+import com.guibilar.financeinsights.FakeHomeApi
 import com.guibilar.financeinsights.FakeTasksApi
 import com.guibilar.financeinsights.FakeTodayApi
 import com.guibilar.financeinsights.TodaySamples
@@ -49,9 +50,10 @@ class ShellNavigationTest {
     private val quickAction = MutableStateFlow<QuickAction?>(null)
     private val todayApi = FakeTodayApi()
     private val tasksApi = FakeTasksApi()
+    private val homeApi = FakeHomeApi()
 
     private fun show(canWrite: Boolean = true) {
-        val client = fakeApiClient(FakeFinanceApi(), todayApi, FakeDocumentsApi(), FakeAlertsApi(), tasksApi)
+        val client = fakeApiClient(FakeFinanceApi(), todayApi, FakeDocumentsApi(), FakeAlertsApi(), tasksApi, homeApi)
         compose.setContent {
             FinanceTheme(dynamicColor = false) { Surface { MainScreen(client, account, {}, quickAction = quickAction, canWrite = canWrite) } }
         }
@@ -155,7 +157,7 @@ class ShellNavigationTest {
         show()
         tab("Capture").performClick()
         compose.waitForIdle()
-        listOf("Task", "Photo", "Scan").forEach { compose.onNodeWithText(it).assertIsEnabled() }
+        listOf("Task", "Item", "Photo", "Scan").forEach { compose.onNodeWithText(it).assertIsEnabled() }
         compose.onNodeWithText("Voice").assertIsNotEnabled()
         compose.onNodeWithText("Expense").performClick()
         compose.waitForIdle()
@@ -167,7 +169,7 @@ class ShellNavigationTest {
         show(canWrite = false)
         tab("Capture").performClick()
         compose.waitForIdle()
-        listOf("Task", "Photo", "Scan", "Voice", "Expense").forEach { compose.onNodeWithText(it).assertIsNotEnabled() }
+        listOf("Task", "Item", "Photo", "Scan", "Voice", "Expense").forEach { compose.onNodeWithText(it).assertIsNotEnabled() }
         assertShows("Capture", "This account can only read. It cannot add anything.")
     }
 
@@ -367,5 +369,61 @@ class ShellNavigationTest {
         compose.waitForIdle()
         assertShows("the task sheet", "Mark done")
         assertTrue("the task was read", tasksApi.sent.any { it == "task" to "t3" })
+    }
+
+    // Home (T88).
+
+    @Test
+    fun `Modules opens Home, and Back returns to Modules`() {
+        show()
+        tab("Modules").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Home").performClick()
+        compose.waitForIdle()
+        assertShows("Home", "Inventory · 7 items")
+        tab("Modules").assertIsSelected()
+        compose.onNodeWithText("Kitchen").performClick()
+        compose.waitForIdle()
+        assertShows("the room", "Espresso machine")
+        back()
+        back()
+        assertShows("Modules", modules)
+    }
+
+    @Test
+    fun `Capture's Item opens the new item, and Back returns to Capture`() {
+        show()
+        tab("Capture").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Item").performClick()
+        compose.waitForIdle()
+        assertShows("the new item", "Add item")
+        assertShows("the new item", "Pick a photo")
+        back()
+        assertShows("Capture", "Expense")
+    }
+
+    @Test
+    fun `a Today warranty alert opens the item, over the Home screen`() {
+        val alert = TodayCard(
+            id = "home.warranty-ending.i1",
+            module = "Home",
+            type = TodayCardType.Attention,
+            kind = "warranty-ending",
+            title = "Warranty ends soon",
+            text = "The warranty of {item} ends on {date}",
+            values = mapOf("item" to TodayValue.plain("Dishwasher"), "date" to TodayValue.plain("Oct 20")),
+            severity = TodaySeverity.Neutral,
+            link = "/home/items/i1",
+        )
+        todayApi.answer = TodaySamples.complete.copy(cards = TodaySamples.complete.cards + alert)
+        show()
+        compose.onNodeWithText("The warranty of Dishwasher ends on Oct 20").performClick()
+        compose.waitForIdle()
+        assertShows("the item", "FD 9811 04532")
+        assertTrue("the item was read", homeApi.sent.any { it == "item" to "i1" })
+        tab("Modules").assertIsSelected()
+        back()
+        assertShows("Home", "Inventory · 7 items")
     }
 }

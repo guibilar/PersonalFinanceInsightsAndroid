@@ -31,6 +31,7 @@ import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material.icons.outlined.Sell
+import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material.icons.outlined.UploadFile
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -289,6 +290,8 @@ private fun attentionIcon(kind: String): ImageVector = when (kind) {
     "expiring", "expired" -> Icons.Outlined.Description
     // Tasks (T19): one overdue task, or many.
     "overdue", "overdue-many" -> Icons.Outlined.CheckBox
+    // Home (T22): a warranty that ends soon.
+    "warranty-ending" -> Icons.Outlined.VerifiedUser
     else -> Icons.Outlined.ErrorOutline
 }
 

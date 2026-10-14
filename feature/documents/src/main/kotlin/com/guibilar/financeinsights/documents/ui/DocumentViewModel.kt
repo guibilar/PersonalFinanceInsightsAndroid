@@ -190,6 +190,17 @@ class DocumentViewModel(
         "Linked to ${transaction.description}"
     }
 
+    /** Links the document to an item of the home inventory (T88, kind `Home.Item`). */
+    fun linkItem(itemId: String, name: String) = write("Could not link the item.") {
+        val link = api.addLink(id, NewDocumentLink.item(itemId))
+        _state.update { state ->
+            val document = state.document.valueOrNull ?: return@update state
+            state.copy(document = LoadState.Loaded(document.copy(links = document.links + link)))
+        }
+        DataChanges.changed()
+        "Linked to $name"
+    }
+
     fun unlink(link: DocumentLink) = write("Could not remove the link.") {
         api.removeLink(id, link.id)
         _state.update { state ->

@@ -33,6 +33,7 @@ class AlertNotificationSettingsTest {
         assertTrue(settings.money.value)
         assertTrue(settings.documents.value)
         assertTrue(settings.tasks.value)
+        assertTrue(settings.home.value)
     }
 
     @Test
@@ -103,5 +104,21 @@ class AlertNotificationSettingsTest {
         assertFalse(settings.notifies("Tasks"))
         assertTrue(settings.notifies("Documents"))
         assertEquals(false, AlertNotificationSettings(context).tasks.value)
+    }
+
+    @Test
+    fun `Home has its own switch (T88), on after an update`() {
+        prefs.edit(commit = true) {
+            putInt("alertNotifications.version", 1)
+            putBoolean("alertNotifications", true)
+        }
+        val settings = AlertNotificationSettings(context)
+        assertTrue(settings.home.value)
+
+        settings.setHome(false)
+
+        assertFalse(settings.notifies("Home"))
+        assertTrue(settings.notifies("Tasks"))
+        assertEquals(false, AlertNotificationSettings(context).home.value)
     }
 }

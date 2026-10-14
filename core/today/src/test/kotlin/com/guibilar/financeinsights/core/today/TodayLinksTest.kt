@@ -125,4 +125,24 @@ class TodayLinksTest {
         assertEquals(TodayDestination.Task("t1"), todayDestination("/tasks/t1/?x=1"))
         assertEquals(Money(MoneyLink.Home), todayDestination("/tasksx"))
     }
+
+    // Home (T22 sends "/home/items/<id>" for a warranty that ends soon; the web has "/home" and "/home/rooms/<id>").
+
+    @Test
+    fun `a warranty alert opens the item`() {
+        assertEquals(TodayDestination.Item("0199d1a2-0000-7000-8000-000000000001"), todayDestination("/home/items/0199d1a2-0000-7000-8000-000000000001"))
+        assertEquals(TodayDestination.Item("i1"), todayDestination("/home/items/i1/?x=1#top"))
+    }
+
+    @Test
+    fun `the Home links open the Home screen or a room`() {
+        assertEquals(TodayDestination.Home, todayDestination("/home"))
+        assertEquals(TodayDestination.Home, todayDestination("/home/"))
+        assertEquals(TodayDestination.Home, todayDestination("/home?q=bosch"))
+        assertEquals(TodayDestination.Home, todayDestination("/home/items/new"))
+        assertEquals(TodayDestination.Home, todayDestination("/home/items"))
+        assertEquals(TodayDestination.Home, todayDestination("/home/items/i1/history"))
+        assertEquals(TodayDestination.Room("r1"), todayDestination("/home/rooms/r1"))
+        assertEquals(Money(MoneyLink.Home), todayDestination("/homes"))
+    }
 }

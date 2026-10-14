@@ -65,6 +65,13 @@ import com.guibilar.financeinsights.documents.isDocumentsPage
 import com.guibilar.financeinsights.documents.openDocument
 import com.guibilar.financeinsights.documents.openDocuments
 import com.guibilar.financeinsights.documents.ui.DocumentSource
+import com.guibilar.financeinsights.home.HomeRoute
+import com.guibilar.financeinsights.home.addItem
+import com.guibilar.financeinsights.home.homeGraph
+import com.guibilar.financeinsights.home.isHomePage
+import com.guibilar.financeinsights.home.openHome
+import com.guibilar.financeinsights.home.openHomeItem
+import com.guibilar.financeinsights.home.openRoom
 import com.guibilar.financeinsights.notifications.AlertNotificationSettings
 import com.guibilar.financeinsights.security.AppLock
 import com.guibilar.financeinsights.tasks.TasksRoute
@@ -202,14 +209,14 @@ private data class TopLevel(
     val action: Boolean = false,
 )
 
-// The Money, Documents and Tasks pages, the app's settings and the account open from Modules, so they show under it.
+// The Money, Documents, Tasks and Home pages, the app's settings and the account open from Modules, so they show under it.
 private val topLevel = listOf(
     TopLevel("Today", Icons.Outlined.WbSunny, TodayRoute, { it.hasRoute<TodayRoute>() }),
     TopLevel("Timeline", Icons.Outlined.Timeline, TimelineRoute, { it.hasRoute<TimelineRoute>() }),
     TopLevel("Capture", Icons.Outlined.Add, CaptureRoute, { it.hasRoute<CaptureRoute>() }, action = true),
     TopLevel("Modules", Icons.Outlined.GridView, ModulesRoute, {
         it.hasRoute<ModulesRoute>() || it.isFinancePage() || it.isDocumentsPage() || it.isTasksPage() ||
-            it.hasRoute<AppSettingsRoute>() || it.hasRoute<AccountSettingsRoute>()
+            it.isHomePage() || it.hasRoute<AppSettingsRoute>() || it.hasRoute<AccountSettingsRoute>()
     }),
     TopLevel("Search", Icons.Outlined.Search, SearchRoute, { it.hasRoute<SearchRoute>() }),
 )
@@ -233,7 +240,7 @@ fun MainScreen(
     preferences: AppPreferences? = null,
     lock: AppLock? = null,
     financePreferences: FinancePreferences? = null,
-    /** False for a read-only user (T60): Capture, the Documents and the Tasks pages hide or disable their write actions. */
+    /** False for a read-only user (T60): Capture, the Documents, Tasks and Home pages hide or disable their write actions. */
     canWrite: Boolean = true,
     alertLink: MutableStateFlow<String?> = MutableStateFlow(null),
     alertSettings: AlertNotificationSettings? = null,
@@ -255,6 +262,9 @@ fun MainScreen(
             is TodayDestination.Document -> nav.openDocument(destination.id)
             is TodayDestination.Tasks -> nav.openTasks(destination.overdueOnly)
             is TodayDestination.Task -> nav.openTask(destination.id)
+            TodayDestination.Home -> nav.openHome()
+            is TodayDestination.Room -> nav.openRoom(destination.id)
+            is TodayDestination.Item -> nav.openHomeItem(destination.id)
         }
     }
     // A tapped alert notification (T68): its page, or Today for an alert with no link (and for the summary).
@@ -269,6 +279,12 @@ fun MainScreen(
     val financeDocuments = remember(nav, client, canWrite) { AppFinanceDocuments(nav, client, canWrite) }
     // A document's tasks: the same, for the Documents and Tasks modules (T84).
     val documentTasks = remember(nav, client, canWrite) { AppDocumentTasks(nav, client, canWrite) }
+    // The Home module and the others (T88): a document's and a task's items, "Add to inventory" in Money, and what the
+    // Home pages open and how they read photos.
+    val documentItems = remember(nav, client, canWrite) { AppDocumentItems(nav, client, canWrite) }
+    val taskItems = remember(nav, client) { AppTaskItems(nav, client) }
+    val financeHome = remember(nav, canWrite) { AppFinanceHome(nav, canWrite) }
+    val homeHost = remember(nav) { AppHomeHost(nav) }
     // A rail at the side on a wide screen (a tablet, an unfolded foldable, landscape); the bar below otherwise.
     val rail = windowWidth() >= MEDIUM_WIDTH
     fun select(item: TopLevel, selected: Boolean) {
@@ -325,6 +341,7 @@ fun MainScreen(
                                 MoneyHomeRoute -> nav.openMoneyHome()
                                 DocumentsRoute -> nav.openDocuments()
                                 is TasksRoute -> nav.openTasks()
+                                HomeRoute -> nav.openHome()
                                 else -> module.route?.let { nav.navigate(it) }
                             }
                         },
@@ -341,6 +358,7 @@ fun MainScreen(
                         onScan = { nav.addDocument(DocumentSource.Scan) },
                         onPhoto = { nav.addDocument(DocumentSource.Photos) },
                         onTask = { nav.addTask() },
+                        onItem = { nav.addItem() },
                     )
                 }
                 composable<ModulesRoute> {
@@ -368,6 +386,7 @@ fun MainScreen(
                     amountsHidden = preferences?.hideAmounts,
                     setAmountsHidden = preferences?.let { it::setHideAmounts },
                     documents = financeDocuments,
+                    home = financeHome,
                 )
                 documentsGraph(
                     nav = nav,
@@ -376,6 +395,7 @@ fun MainScreen(
                     openTransaction = { id -> nav.openTransaction(id) },
                     canWrite = canWrite,
                     tasks = documentTasks,
+                    items = documentItems,
                 )
                 tasksGraph(
                     nav = nav,
@@ -384,6 +404,14 @@ fun MainScreen(
                     // A linked document opens over the tasks, so Back returns to the task.
                     openDocument = { id -> nav.navigate(DocumentRoute(id)) },
                     openTransaction = { id -> nav.openTransaction(id) },
+                    canWrite = canWrite,
+                    items = taskItems,
+                )
+                homeGraph(
+                    nav = nav,
+                    client = client,
+                    contentPadding = padding,
+                    host = homeHost,
                     canWrite = canWrite,
                 )
                 composable<AppSettingsRoute> {

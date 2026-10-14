@@ -20,8 +20,17 @@ import com.github.takahirom.roborazzi.captureRoboImage
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.guibilar.financeinsights.FakeDocumentsApi
 import com.guibilar.financeinsights.FakeFinanceApi
+import com.guibilar.financeinsights.FakeHomeApi
 import com.guibilar.financeinsights.FakeTasksApi
+import com.guibilar.financeinsights.HomeSamples
 import com.guibilar.financeinsights.TasksSamples
+import com.guibilar.financeinsights.core.tasks.NewTaskLink
+import com.guibilar.financeinsights.core.tasks.RepeatMode
+import com.guibilar.financeinsights.core.tasks.RepeatUnit
+import com.guibilar.financeinsights.core.tasks.TaskItem
+import com.guibilar.financeinsights.core.tasks.TaskLink
+import com.guibilar.financeinsights.core.tasks.TaskLinkKinds
+import com.guibilar.financeinsights.core.tasks.TaskRepeat
 import com.guibilar.financeinsights.tasks.ui.TaskSheet
 import com.guibilar.financeinsights.tasks.ui.TaskViewModel
 import com.guibilar.financeinsights.tasks.ui.TasksScreen
@@ -223,5 +232,33 @@ class TasksScreenshotTest {
         screen(canWrite = false)
         compose.onAllNodesWithText("Buy printer paper").onFirst().assertExists()
         compose.onAllNodes(isToggleable()).onFirst().assertIsNotEnabled()
+    }
+
+    @Test
+    fun `the sheet shows the items of a task, and links another`() {
+        val home = FakeHomeApi()
+        api.tasks += TaskItem(
+            id = HomeSamples.FILTER_TASK,
+            title = "Clean the dishwasher filter",
+            dueOn = "2026-10-25",
+            repeat = TaskRepeat(1, RepeatUnit.Months, RepeatMode.FromCompletion),
+            links = listOf(TaskLink("k20", TaskLinkKinds.HOME_ITEM, HomeSamples.dishwasher.id, "2026-09-20T10:00:00Z")),
+        )
+        val openedItems = mutableListOf<String>()
+        val model = TaskViewModel(api, documents, finance, HomeSamples.FILTER_TASK, home = home)
+        show {
+            TaskSheet(model, TasksSamples.TODAY, canWrite = true, openDocument = {}, openTransaction = {}, onDismiss = {}, openItem = { openedItems += it })
+        }
+        assertShows("Dishwasher", "Home · Kitchen · Bosch SHX78 · Appliance", "Link to an item")
+        shootScreen("task-items")
+
+        compose.onNodeWithText("Dishwasher").performScrollTo().performClick()
+        assertEquals(listOf(HomeSamples.dishwasher.id), openedItems)
+
+        compose.onNodeWithText("Link to an item").performScrollTo().performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Sofa").performClick()
+        compose.waitForIdle()
+        assertTrue(api.sent.contains("addLink" to NewTaskLink.item(HomeSamples.sofa.id)))
     }
 }

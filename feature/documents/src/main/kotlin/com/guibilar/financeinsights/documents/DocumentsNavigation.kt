@@ -74,7 +74,8 @@ fun NavHostController.addDocumentTo(transactionId: String) {
 
 /**
  * The Documents pages, for the app's navigation host. [canWrite] false (a read-only user) hides every write action.
- * [openTransaction] opens a linked transaction in Money. [tasks] gives a document its "Tasks" section (T84).
+ * [openTransaction] opens a linked transaction in Money. [tasks] gives a document its "Tasks" section (T84), and
+ * [items] its "Items" section (T88).
  */
 fun NavGraphBuilder.documentsGraph(
     nav: NavHostController,
@@ -84,6 +85,7 @@ fun NavGraphBuilder.documentsGraph(
     canWrite: Boolean = true,
     today: () -> LocalDate = { LocalDate.now() },
     tasks: DocumentTasks? = null,
+    items: DocumentItems? = null,
 ) {
     composable<DocumentsRoute> {
         DocumentsListScreen(
@@ -106,6 +108,7 @@ fun NavGraphBuilder.documentsGraph(
             canWrite = canWrite,
             today = today(),
             tasks = tasks,
+            items = items,
         )
     }
     composable<AddDocumentRoute> { backStack ->

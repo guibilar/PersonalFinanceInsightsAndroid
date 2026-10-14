@@ -19,7 +19,9 @@ import com.guibilar.financeinsights.DocumentsSamples
 import com.guibilar.financeinsights.FakeDocumentsApi
 import com.guibilar.financeinsights.FakeFinanceApi
 import com.guibilar.financeinsights.FinanceDocuments
+import com.guibilar.financeinsights.FinanceHome
 import com.guibilar.financeinsights.core.documents.DocumentsApi
+import com.guibilar.financeinsights.core.model.Transaction
 import com.guibilar.financeinsights.ui.common.LoadState
 import com.guibilar.financeinsights.ui.theme.FinanceTheme
 import com.guibilar.financeinsights.ui.transactions.TransactionDocumentsContent
@@ -202,5 +204,43 @@ class TransactionDocumentsScreenshotTest {
         compose.waitForIdle()
         compose.onNodeWithText("Delete transaction").performScrollTo()
         compose.onNodeWithText("Link a document").assertDoesNotExist()
+    }
+
+    @Test
+    fun addToInventory() {
+        val added = mutableListOf<String>()
+        val home = object : FinanceHome {
+            override fun addToInventory(transaction: Transaction) {
+                added += transaction.id
+            }
+        }
+        val model = TransactionsViewModel(finance, TransactionsRoute(transactionId = metro)) { today }
+        compose.setContent {
+            FinanceTheme(dynamicColor = false) { Surface { TransactionsScreen(model, account, {}, PaddingValues(), home = home) } }
+        }
+        compose.waitForIdle()
+        compose.onNode(hasContentDescription("METRO 221", substring = true)).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Add to inventory").performScrollTo().performClick()
+        compose.waitForIdle()
+        assertEquals(listOf(metro), added)
+    }
+
+    @Test
+    fun noAddToInventoryForAReadOnlyUser() {
+        val home = object : FinanceHome {
+            override val canWrite = false
+
+            override fun addToInventory(transaction: Transaction) {}
+        }
+        val model = TransactionsViewModel(finance, TransactionsRoute(transactionId = metro)) { today }
+        compose.setContent {
+            FinanceTheme(dynamicColor = false) { Surface { TransactionsScreen(model, account, {}, PaddingValues(), home = home) } }
+        }
+        compose.waitForIdle()
+        compose.onNode(hasContentDescription("METRO 221", substring = true)).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Delete transaction").performScrollTo()
+        compose.onNodeWithText("Add to inventory").assertDoesNotExist()
     }
 }

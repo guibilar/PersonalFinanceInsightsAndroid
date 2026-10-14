@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- The theme is the app's: the module's own tests then render the screens in the same window as the app. -->
+    <application android:theme="@style/Theme.Finance">
+        <!-- The camera app writes a new photo, and the share sheet reads the export for insurance, through this
+             provider: only the files under the cache folder "home/", and only while they have them open. A class of
+             its own, so it does not clash with the provider of the Documents module. -->
+        <provider
+            android:name="com.guibilar.financeinsights.home.ui.HomeFileProvider"
+            android:authorities="${applicationId}.home"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/home_files" />
+        </provider>
+    </application>
+</manifest>

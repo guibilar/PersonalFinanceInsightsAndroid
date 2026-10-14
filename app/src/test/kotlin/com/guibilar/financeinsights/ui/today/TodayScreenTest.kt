@@ -124,7 +124,7 @@ class TodayScreenTest {
         assertShows("Documents", "Expiring soon", "Next on Oct 20, 2026", "Groceries is over its limit (112% used)")
         // Its "Coming soon" line is gone; the others stay.
         compose.onAllNodesWithText("Documents that expire soon").assertCountEquals(0)
-        assertShows("Home jobs that are due")
+        assertShows("Birthdays, and people to get in touch with")
         shoot("today-modules")
         // Documents is active (T12): its section opens its list, and its tile its page.
         compose.onNodeWithText("Open Documents").performClick()

@@ -20,11 +20,12 @@ import java.time.ZoneOffset
 
 // What the Tasks screens share: the module labels of the links, the date picker, and the saver of the form.
 
-/** The modules that a task links to, as short labels: "Documents", "Money". */
+/** The modules that a task links to, as short labels: "Documents", "Money", "Home". */
 fun linkLabels(task: TaskSummary): List<String> = task.links.mapNotNull {
     when (it.kind) {
         TaskLinkKinds.DOCUMENT -> "Documents"
         TaskLinkKinds.TRANSACTION -> "Money"
+        TaskLinkKinds.HOME_ITEM -> "Home"
         else -> null
     }
 }.distinct()

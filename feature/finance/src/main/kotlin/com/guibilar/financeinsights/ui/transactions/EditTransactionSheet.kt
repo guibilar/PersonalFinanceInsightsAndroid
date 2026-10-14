@@ -18,6 +18,7 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Chair
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.LinkOff
 import androidx.compose.material3.AlertDialog
@@ -50,6 +51,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import com.guibilar.financeinsights.FinanceDocuments
+import com.guibilar.financeinsights.FinanceHome
 import com.guibilar.financeinsights.core.logic.TextLimits
 import com.guibilar.financeinsights.core.logic.description
 import com.guibilar.financeinsights.core.logic.flowsFor
@@ -89,12 +91,13 @@ fun EditTransactionSheet(
     onDismiss: () -> Unit,
     tags: List<Tag> = emptyList(),
     documents: FinanceDocuments? = null,
+    home: FinanceHome? = null,
 ) {
     val scope = rememberCoroutineScope()
     val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     fun close() = scope.launch { sheet.hide() }.invokeOnCompletion { onDismiss() }
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheet) {
-        EditTransaction(transaction, categories, budgets, model, onClose = ::close, Modifier.navigationBarsPadding().imePadding(), tags, documents)
+        EditTransaction(transaction, categories, budgets, model, onClose = ::close, Modifier.navigationBarsPadding().imePadding(), tags, documents, home)
     }
 }
 
@@ -112,6 +115,7 @@ private fun EditTransaction(
     modifier: Modifier = Modifier,
     tags: List<Tag> = emptyList(),
     documents: FinanceDocuments? = null,
+    home: FinanceHome? = null,
 ) {
     val colors = LocalChartColors.current
     val scope = rememberCoroutineScope()
@@ -275,6 +279,13 @@ private fun EditTransaction(
             HorizontalDivider()
             TransactionDocumentsSection(transaction.id, documents)
         }
+        if (home != null && home.canWrite) {
+            HorizontalDivider()
+            AddToInventory {
+                home.addToInventory(transaction)
+                close()
+            }
+        }
         HorizontalDivider()
         TextButton(onClick = { confirmDelete = true }, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Outlined.Delete, null, tint = MaterialTheme.colorScheme.error)
@@ -404,5 +415,23 @@ fun DeletedTransactionSheet(transaction: Transaction, model: TransactionsViewMod
             }, modifier = Modifier.fillMaxWidth().height(48.dp)) { Text("Restore") }
             Spacer(Modifier.height(16.dp))
         }
+    }
+}
+
+/** "Add to inventory" (T88): a new item of the home with this purchase's description, price and day. */
+@Composable
+private fun AddToInventory(add: () -> Unit) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text("Home", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+        OutlinedButton(onClick = add) {
+            Icon(Icons.Outlined.Chair, null, Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text("Add to inventory")
+        }
+        Text(
+            "Adds a thing you bought to the home inventory, with this name, price and day.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }

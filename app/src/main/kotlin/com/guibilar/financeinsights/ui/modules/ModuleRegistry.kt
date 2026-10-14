@@ -9,6 +9,7 @@ import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.guibilar.financeinsights.documents.DocumentsRoute
+import com.guibilar.financeinsights.home.HomeRoute
 import com.guibilar.financeinsights.tasks.TasksRoute
 import com.guibilar.financeinsights.ui.MoneyHomeRoute
 
@@ -54,8 +55,8 @@ val MODULES = listOf(
         name = "Home",
         description = "What you own, and the jobs that keep it working",
         icon = Icons.Outlined.Home,
-        route = null,
-        status = ModuleStatus.ComingSoon,
+        route = HomeRoute,
+        status = ModuleStatus.Active,
         todayPreview = "Home jobs that are due",
     ),
     HestiaModule(
