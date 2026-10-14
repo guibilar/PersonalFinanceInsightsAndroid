@@ -133,13 +133,34 @@ class DocumentsViewModelsTest {
 
     @Test
     fun `a transaction that finance does not know is said so`() = runTest(dispatcher) {
+        val gone = "01a0ff22-0000-7000-8000-000000000000"
+        api.documents.replaceAll { if (it.id == "d3") it.copy(links = it.links.map { l -> l.copy(targetId = gone) }) else it }
+        val model = DocumentViewModel(api, finance, "d3")
+        advanceUntilIdle()
+
+        assertEquals(LinkedTransaction.Missing, model.state.value.transactions[gone])
+        // The live ones first, then the deleted ones.
+        assertEquals(listOf(null, true), finance.transactionFilters.map { it.hidden })
+    }
+
+    @Test
+    fun `a deleted transaction is found among the deleted ones`() = runTest(dispatcher) {
+        finance.deletedIds += DocumentsSamples.METRO_TRANSACTION
+        val model = DocumentViewModel(api, finance, "d3")
+        advanceUntilIdle()
+
+        val linked = model.state.value.transactions[DocumentsSamples.METRO_TRANSACTION] as LinkedTransaction.Found
+        assertTrue(linked.deleted)
+    }
+
+    @Test
+    fun `a link that is not a GUID is unknown, with no call to finance`() = runTest(dispatcher) {
         api.documents.replaceAll { if (it.id == "d3") it.copy(links = it.links.map { l -> l.copy(targetId = "gone") }) else it }
         val model = DocumentViewModel(api, finance, "d3")
         advanceUntilIdle()
 
         assertEquals(LinkedTransaction.Missing, model.state.value.transactions["gone"])
-        // The live ones first, then the deleted ones.
-        assertEquals(listOf(null, true), finance.transactionFilters.map { it.hidden })
+        assertTrue(finance.transactionFilters.isEmpty())
     }
 
     @Test

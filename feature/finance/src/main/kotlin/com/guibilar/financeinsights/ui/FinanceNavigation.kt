@@ -98,6 +98,11 @@ data class TransactionsRoute(
     val endDate: String? = null,
     val overTime: Boolean = false,
     val interval: BreakdownInterval? = null,
+    /**
+     * One transaction to show (a link to it): the list opens on its day and account, with its row highlighted. It
+     * replaces the other criteria. Use [openTransaction] to open it.
+     */
+    val transactionId: String? = null,
 ) {
     val criteria get() = TransactionCriteria(description = description, categoryId = categoryId, tagId = tagId, startDate = startDate, endDate = endDate)
 }
@@ -127,6 +132,14 @@ fun NavHostController.openFinancePage(route: Any) {
     if (!hasMoneyHome()) openMoneyHome()
     if (route != MoneyHomeRoute) navigate(route) { popUpTo<MoneyHomeRoute>() }
 }
+
+/**
+ * Opens one transaction from anywhere (Documents, Today, and later Timeline and Search): the Transactions page on its day
+ * and account, with its row highlighted for a short time. A deleted or unknown one shows a short message over the
+ * normal list. Back returns to the Money home, and then to where the user came from. This is the one way in: other
+ * modules get it through the app, not by a dependency on this module.
+ */
+fun NavHostController.openTransaction(id: String) = openFinancePage(TransactionsRoute(transactionId = id))
 
 private fun NavHostController.hasMoneyHome() = runCatching { getBackStackEntry<MoneyHomeRoute>() }.isSuccess
 

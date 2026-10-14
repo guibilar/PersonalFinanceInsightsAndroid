@@ -69,6 +69,8 @@ class FakeFinanceApi : FinanceApi {
     var budgetCount: Int? = null
     /** How the next imports go, one per file: an [ImportResult], or an [ApiError.Http] to refuse that file. */
     val importAnswers = ArrayDeque<Any>()
+    /** Recorded transactions that a look-up by id finds only among the deleted ones. */
+    val deletedIds = mutableSetOf<String>()
     /** What was sent, by call: the writes the app made. */
     val sent = mutableListOf<Pair<String, Any?>>()
 
@@ -117,9 +119,11 @@ class FakeFinanceApi : FinanceApi {
         transactionFilters += filter
         check("transactions")
         val all = fixture<Page<Transaction>>("transactions")
-        // One transaction by its id (a document's link reads it so).
+        // One transaction by its id (a link reads it so): a deleted one only with hidden = true.
         filter.transactionId?.let { id ->
-            val found = all.items.filter { it.id == id }.map(decorate)
+            val found = all.items.filter { it.id == id && (it.id in deletedIds) == (filter.hidden == true) }
+                .map { if (it.id in deletedIds) it.copy(hidden = true) else it }
+                .map(decorate)
             return Page(found, 1, filter.pageSize, totalCount = found.size, totalPages = 1)
         }
         if (filter.pageSize <= 5) return fixture("recent")
@@ -171,7 +175,8 @@ class FakeFinanceApi : FinanceApi {
     var netWorthReport: NetWorthReport? = null
 
     override suspend fun addTransaction(input: TransactionInput) = write("addTransaction", input) {
-        fixture<Page<Transaction>>("recent").items.first().copy(id = "new", description = input.description)
+        // The newest recorded transaction's id, so a link to the added one finds it.
+        fixture<Page<Transaction>>("recent").items.first().copy(description = input.description)
     }
 
     override suspend fun updateTransaction(id: String, update: TransactionUpdate) = write("updateTransaction", id to update) { transaction(id) }

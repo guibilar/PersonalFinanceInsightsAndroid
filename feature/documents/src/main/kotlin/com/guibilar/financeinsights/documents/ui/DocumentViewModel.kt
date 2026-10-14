@@ -15,6 +15,8 @@ import com.guibilar.financeinsights.core.documents.DocumentsApi
 import com.guibilar.financeinsights.core.documents.NewDocumentLink
 import com.guibilar.financeinsights.core.documents.OcrStatus
 import com.guibilar.financeinsights.core.logic.DataChanges
+import com.guibilar.financeinsights.core.logic.TransactionLookup
+import com.guibilar.financeinsights.core.logic.findTransaction
 import com.guibilar.financeinsights.core.model.SortDirection
 import com.guibilar.financeinsights.core.model.Transaction
 import com.guibilar.financeinsights.core.model.TransactionFilter
@@ -134,21 +136,20 @@ class DocumentViewModel(
         _state.update { state -> state.copy(transactions = state.transactions + ids.associateWith { LinkedTransaction.Loading }) }
         ids.forEach { transactionId ->
             viewModelScope.launch {
-                val found = findTransaction(transactionId)
+                val found = lookUp(transactionId)
                 _state.update { state -> state.copy(transactions = state.transactions + (transactionId to found)) }
             }
         }
     }
 
-    /** One transaction by its id (Hestia D13): the live ones first, then the deleted ones. */
-    private suspend fun findTransaction(transactionId: String): LinkedTransaction {
-        val live = apiCall { finance.transactions(TransactionFilter(transactionId = transactionId, page = 1, pageSize = 1)) }
-        live.getOrNull()?.items?.firstOrNull { it.id == transactionId }?.let { return LinkedTransaction.Found(it) }
-        if (live.isFailure) return LinkedTransaction.Failed
-        val hidden = apiCall { finance.transactions(TransactionFilter(transactionId = transactionId, hidden = true, page = 1, pageSize = 1)) }
-        hidden.getOrNull()?.items?.firstOrNull { it.id == transactionId }?.let { return LinkedTransaction.Found(it, deleted = true) }
-        return if (hidden.isFailure) LinkedTransaction.Failed else LinkedTransaction.Missing
-    }
+    /** One transaction by its id (Hestia D13), with the look-up that the Transactions page uses too. */
+    private suspend fun lookUp(transactionId: String): LinkedTransaction =
+        when (val found = finance.findTransaction(transactionId)) {
+            is TransactionLookup.Found -> LinkedTransaction.Found(found.transaction)
+            is TransactionLookup.Deleted -> LinkedTransaction.Found(found.transaction, deleted = true)
+            TransactionLookup.Missing -> LinkedTransaction.Missing
+            TransactionLookup.Failed -> LinkedTransaction.Failed
+        }
 
     /** Saves new details; null when done, or why not. */
     suspend fun save(details: DocumentDetails): String? {

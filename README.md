@@ -35,8 +35,8 @@ manuals:
   (PDF, JPEG, PNG, HEIC, WebP) before the upload.
 - A document shows its details (edit them, or delete the document), its files (an image opens in the app, a PDF in
   the phone's PDF viewer, from the app's cache), the text that the server read (OCR; while it runs, the page asks
-  again every 3 seconds for 2 minutes; "Run OCR again" when it failed), and the transactions it is linked to.
-  "Link to a transaction" picks one from the latest, or by a search.
+  again every 3 seconds for 2 minutes; "Run OCR again" when it failed), and the transactions it is linked to. A tap
+  on a linked transaction opens it in Money. "Link to a transaction" picks one from the latest, or by a search.
 - A Today item for a document that expires soon opens the document.
 
 **Sign in** with the server's address (where you open the web app, e.g. `https://finance.example.ts.net`) and your
@@ -72,6 +72,14 @@ The finance pages:
   - right to change its category.
 
   A long press ticks a row, to change many at once.
+
+  **A link to one transaction** (from a document, a Today item `/money/transactions?id=<id>`, or "View" in the
+  message after an add) opens the list on the day and account of the transaction, with no other filter. The row comes
+  into view and is highlighted for 3 seconds (with "Remove animations" on, it does not fade). If the day has more rows
+  than one page, the next pages load until the row is there. If the list cannot show it, a short message is over the
+  normal list: "The linked transaction does not exist." (also for an id that is not a GUID, with no call to the
+  server), "The linked transaction is deleted." (with "Show deleted transactions"), or "Could not load the linked
+  transaction.". The message goes when you close it, change the filters, or open the deleted list.
 
   You can also add transactions by hand. Import bank statements (CSV or PDF; several at once) from the phone, or
   share a CSV or PDF to the app from another app, then re-apply the rules.
@@ -172,10 +180,15 @@ How they connect:
   Money home. A module with cards gets its own section on Today, with no app change; a registry module with no cards
   stays under "Coming soon". After an import or a new transaction (`DataChanges.changed()`), the next Today load asks
   the server for new cards (`refresh=true`), and not its 30-second cache. `todayDestination(...)` gives a
-  `TodayDestination`: a Money page, the Documents list (`/documents`), or one document (`/documents/<id>`).
+  `TodayDestination`: a Money page, one transaction (`/money/transactions?id=<id>`), the Documents list
+  (`/documents`), or one document (`/documents/<id>`).
+- **One transaction:** `openTransaction(id)` in `:feature:finance` is the one way to open a transaction from another
+  page. Other modules get it through the app (Documents takes an `openTransaction` function), never by a dependency
+  on `:feature:finance`. The look-up (`findTransaction(id)` in `:core:finance`: the live transactions, then the deleted
+  ones) serves the Transactions page and the document page.
 - `:feature:documents` gives `documentsGraph(...)` and `openDocuments()`, `openDocument(id)` and `addDocument(source)`
   for the other pages (Today, Modules, Capture). It makes its APIs from the signed-in client. A linked transaction
-  opens the Transactions page through the app.
+  opens that transaction through the app (`openTransaction(id)`).
 - The module registry (`MODULES` in `:app`, `ui/modules/ModuleRegistry.kt`) lists each module with its name, icon,
   home route and status. The Modules page and Today read it.
 - Sign-in is in `:core:network`, not in a module. When you sign in, the app gets one `ApiClient` for the server. It has

@@ -68,6 +68,10 @@ data class TransactionsState(
     /** Ticked for a change to many at once; empty when not selecting. */
     val selected: Set<String> = emptySet(),
     val today: LocalDate = LocalDate.now(),
+    /** The row of a linked transaction (a link, or "View" after an add): highlighted for a short time, then null. */
+    val highlighted: String? = null,
+    /** Why a linked transaction is not in the list; shown over the normal list until closed or the filters change. */
+    val linkNotice: LinkNotice? = null,
 ) {
     val period get() = selectedPeriod?.let { breakdown.valueOrNull?.periods?.getOrNull(it) }
     val merchants get() = if (period != null) periodMerchants else (breakdown.valueOrNull?.topMerchants ?: emptyList()) + moreMerchants
@@ -87,4 +91,16 @@ sealed interface ImportOutcome {
     data class Imported(val result: ImportResult) : ImportOutcome
     data class Mismatch(val message: String) : ImportOutcome
     data class Failed(val message: String) : ImportOutcome
+}
+
+/** Why a link to one transaction does not show it. The texts are the same as on the web (T33). */
+enum class LinkNotice(val text: String) {
+    /** No transaction has the id, or the id is not a GUID. */
+    Missing("The linked transaction does not exist."),
+
+    /** It is deleted: the deleted list has it, to restore it. */
+    Deleted("The linked transaction is deleted."),
+
+    /** The look-up failed. */
+    Failed("Could not load the linked transaction."),
 }
