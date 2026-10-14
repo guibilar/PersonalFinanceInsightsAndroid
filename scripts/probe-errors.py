@@ -37,3 +37,20 @@ for line in lines:
 if chunk:
     print(f"::error title=Probe {count}::{chunk}")
 print(f"::notice title=Probe::{len(lines)} lines")
+
+# The failed tests, with the lines of the app's code in their stack (T88 probe).
+for path in glob.glob("**/build/test-results/**/TEST-*.xml", recursive=True):
+    try:
+        root = ET.parse(path).getroot()
+    except Exception:
+        continue
+    for case in root.iter("testcase"):
+        problem = case.find("failure")
+        if problem is None:
+            problem = case.find("error")
+        if problem is None:
+            continue
+        text = (problem.text or problem.get("message") or "")
+        keep = [l.strip() for l in text.splitlines() if "financeinsights" in l or "Caused" in l or "busy" in l.lower() or "Idle" in l][:25]
+        body = (case.get("name", "") + "\n" + "\n".join(keep))[:3500]
+        print("::error title=Probe stack::" + body.replace("%", "%25").replace("\r", "").replace("\n", "%0A"))
