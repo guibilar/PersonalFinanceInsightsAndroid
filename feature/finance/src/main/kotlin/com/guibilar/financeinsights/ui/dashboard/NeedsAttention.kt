@@ -43,13 +43,15 @@ import com.guibilar.financeinsights.ui.theme.LocalChartColors
 
 /**
  * What a Money alert opens from a Money page, through the one link map (`todayDestination`): [open] takes the route of
- * a finance page, [openImport] opens the transactions with the import. Null when the item opens nothing: no link, a
+ * a finance page, [openImport] opens the transactions with the import (with the account that the link names, T63). Null when the item opens nothing: no link, a
  * page of another module (Today opens those), or a link that this app does not know (the Money home is already open).
  */
-internal fun alertAction(link: String?, open: (Any) -> Unit, openImport: () -> Unit): (() -> Unit)? =
+internal fun alertAction(link: String?, open: (Any) -> Unit, openImport: (account: String?) -> Unit): (() -> Unit)? =
     when (val destination = todayDestination(link)) {
         is TodayDestination.Money -> when (destination.link) {
-            MoneyLink.Import -> openImport
+            MoneyLink.Import -> {
+                { openImport(destination.importAccount) }
+            }
             MoneyLink.Home -> null
             else -> {
                 { open(destination.link.route) }
@@ -88,7 +90,7 @@ internal fun NeedsAttention(
     alerts: LoadState<MoneyAlerts>,
     retry: () -> Unit,
     open: (Any) -> Unit,
-    openImport: () -> Unit,
+    openImport: (account: String?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (!alerts.showsCard) return

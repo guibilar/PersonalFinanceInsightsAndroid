@@ -142,6 +142,22 @@ class MoneyHomeTest {
     }
 
     @Test
+    fun `a statement item opens the import with its account`() {
+        val behind = AlertSamples.many.alerts.last().copy(
+            id = "money.statements-behind.a1", kind = "statements-behind", text = "Visa: statements reach Aug 31",
+            values = emptyMap(), link = "/money/transactions?importAccount=a1#import",
+        )
+        alerts.answer = AlertSamples.complete.copy(alerts = listOf(behind))
+        val accounts = mutableListOf<String?>()
+        val model = DashboardViewModel(api, alerts) { today }
+        show {
+            MoneyHomeScreen(model, PaddingValues(), onBack = {}, open = {}, openImport = {}, openAccountImport = { accounts += it })
+        }
+        compose.onNodeWithText("Visa: statements reach Aug 31").performScrollTo().performClick()
+        assertEquals(listOf<String?>("a1"), accounts)
+    }
+
+    @Test
     fun `each row opens its page`() {
         val opened = mutableListOf<Any>()
         alerts.answer = AlertSamples.noMoney

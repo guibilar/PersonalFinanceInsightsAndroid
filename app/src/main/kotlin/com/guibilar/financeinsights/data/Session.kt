@@ -22,8 +22,11 @@ sealed interface AuthState {
     ) : AuthState
     /** The stored session couldn't be checked (Tailscale off, server down): kept, to try again. */
     data class Unreachable(val message: String) : AuthState
-    /** [client] is the signed-in client: every module makes its API from it (`client.api<FinanceApi>()`). */
-    data class SignedIn(val username: String, val client: ApiClient) : AuthState
+    /**
+     * [client] is the signed-in client: every module makes its API from it (`client.api<FinanceApi>()`). [canWrite] is
+     * false for a read-only user (T60): the screens hide or disable their write actions.
+     */
+    data class SignedIn(val username: String, val client: ApiClient, val canWrite: Boolean = true) : AuthState
 }
 
 /** Who is signed in to which server, and the signed-in client for it. */
@@ -56,7 +59,7 @@ class Session(
         val client = client(server)
         val me = apiCall { client.auth.me() }
         _state.value = me.fold(
-            onSuccess = { AuthState.SignedIn(it.username, client) },
+            onSuccess = { AuthState.SignedIn(it.username, client, it.canWrite) },
             onFailure = { error ->
                 if ((error as ApiError).isUnauthorized) {
                     jar.clear()
@@ -96,7 +99,7 @@ class Session(
         return apiCall { client.auth.login(LoginInput(username.trim(), password)) }.map { user ->
             store.server = server
             store.username = user.username
-            _state.value = AuthState.SignedIn(user.username, client)
+            _state.value = AuthState.SignedIn(user.username, client, user.canWrite)
         }
     }
 
