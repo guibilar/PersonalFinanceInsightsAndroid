@@ -15,6 +15,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v7
 
@@ -44,6 +46,22 @@ jobs:
         if: ${{ !cancelled() }}
         shell: bash
         run: python3 scripts/probe-errors.py
+
+      - name: Push small copies of the images (temporary probe)
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          mkdir -p probe-shots
+          pip install --quiet pillow
+          for f in feature/home/build/shots/*.png feature/documents/build/shots/document-items.png feature/tasks/build/shots/task-items.png app/build/shots/capture.png app/build/shots/modules.png app/build/shots/settings.png app/build/shots/settings-notifications.png app/build/shots/today.png app/build/shots/tabs-modules.png; do
+            [ -f "$f" ] || continue
+            python3 -c "import sys; from PIL import Image; i=Image.open(sys.argv[1]).convert('RGB'); i=i.resize((i.width*9//20, i.height*9//20)); i.save(sys.argv[2], quality=70)" "$f" "probe-shots/$(basename "$f" .png).jpg"
+          done
+          git config user.name "probe"
+          git config user.email "probe@example.com"
+          git add probe-shots
+          git commit -m "Probe images" || true
+          git push origin HEAD:hestia/T88-probe || true
 
       # Task sessions cannot read the logs. These steps write the results as annotations (see "CI annotations").
       - name: Test results as annotations
