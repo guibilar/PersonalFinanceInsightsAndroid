@@ -48,6 +48,11 @@ def main():
     output = sys.argv[1]
     base = sys.argv[2] if len(sys.argv) > 2 else None
 
+    # Read the base list before the new list is written: on main, both are the same file.
+    base_list = None
+    if base and os.path.exists(base) and os.path.abspath(base) != os.path.abspath(output):
+        base_list = read_list(base)
+
     paths = sorted(glob.glob(os.path.join("**", "build", "shots", "**", "*.png"), recursive=True))
     images = {path.replace(os.sep, "/").replace("/build/shots/", ":"): short_hash(path) for path in paths}
 
@@ -60,14 +65,14 @@ def main():
         print("::notice title=Screenshots::No screenshot images. The screenshot tests did not run.")
         return 0
 
-    if not base or not os.path.exists(base):
+    if base_list is None:
         print(
             f"::notice title=Screenshots::{len(images)} images. "
             "No list from the base branch to compare with (it comes from the next run on main)."
         )
         return 0
 
-    base_commit, base_images = read_list(base)
+    base_commit, base_images = base_list
     changed = [f"{n} {base_images[n]}->{d}" for n, d in sorted(images.items()) if n in base_images and base_images[n] != d]
     added = [f"{n} {d}" for n, d in sorted(images.items()) if n not in base_images]
     removed = [f"{n} (was {d})" for n, d in sorted(base_images.items()) if n not in images]

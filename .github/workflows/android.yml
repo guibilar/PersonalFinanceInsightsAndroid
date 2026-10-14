@@ -61,7 +61,8 @@ jobs:
           OUTPUT: ${{ github.event_name == 'pull_request' && 'screenshots-head.txt' || 'screenshot-list/screenshots.txt' }}
         run: |
           mkdir -p screenshot-list
-          python3 scripts/screenshot-summary.py "$OUTPUT" screenshot-list/screenshots.txt
+          # On main the new list is written where the cache saves it; only a pull request compares with a base list.
+          python3 scripts/screenshot-summary.py "$OUTPUT" ${{ github.event_name == 'pull_request' && 'screenshot-list/screenshots.txt' || '' }}
 
       - name: Save the screenshot list of main
         if: ${{ success() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
