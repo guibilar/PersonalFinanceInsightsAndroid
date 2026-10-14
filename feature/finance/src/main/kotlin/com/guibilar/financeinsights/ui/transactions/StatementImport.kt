@@ -50,14 +50,18 @@ internal class StatementImport(
     private val _state = MutableStateFlow(ImportState())
     val state: StateFlow<ImportState> = _state.asStateFlow()
 
-    /** Opens the sheet; with [files] (shared to the app) ready to go. Files already uploading carry on. */
-    fun open(files: List<PickedFile> = emptyList()) {
+    /**
+     * Opens the sheet; with [files] (shared to the app) ready to go. Files already uploading carry on. [accountId] (from
+     * a "Statement to import" link, T63) picks that account, unless files are uploading to another one. An id that
+     * is not among the accounts picks nothing: the sheet then falls back as before.
+     */
+    fun open(files: List<PickedFile> = emptyList(), accountId: String? = null) {
         val current = _state.value
         if (current.uploading) {
             _state.update { it.copy(open = true) }
             if (files.isNotEmpty()) take(files)
         } else {
-            _state.value = ImportState(open = true, accountId = current.accountId)
+            _state.value = ImportState(open = true, accountId = accountId ?: current.accountId)
             take(files)
         }
     }

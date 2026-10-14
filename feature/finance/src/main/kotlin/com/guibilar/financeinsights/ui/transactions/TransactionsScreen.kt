@@ -104,6 +104,8 @@ fun TransactionsScreen(
     addRequested: Boolean = false,
     onAddTaken: () -> Unit = {},
     importRequested: Boolean = false,
+    /** The account to pick when [importRequested] opens the import ("Statement to import" on Today, T63). */
+    importAccount: String? = null,
     onImportTaken: () -> Unit = {},
     /** The Documents pages, for a transaction's "Documents" section; none in most tests. */
     documents: FinanceDocuments? = null,
@@ -141,7 +143,7 @@ fun TransactionsScreen(
     // "Import statements" from the dashboard.
     LaunchedEffect(importRequested) {
         if (importRequested) {
-            model.openImport()
+            model.openImport(accountId = importAccount)
             onImportTaken()
         }
     }

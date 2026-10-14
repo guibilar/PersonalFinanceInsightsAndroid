@@ -9,8 +9,11 @@ import java.net.URLDecoder
 
 /** A page of the app that a Today card opens. */
 sealed interface TodayDestination {
-    /** A finance page (or the Money home). */
-    data class Money(val link: MoneyLink) : TodayDestination
+    /**
+     * A finance page (or the Money home). For [MoneyLink.Import], [importAccount] is the account to pick
+     * ("/money/transactions?importAccount=<id>#import", T63); null picks as before.
+     */
+    data class Money(val link: MoneyLink, val importAccount: String? = null) : TodayDestination
 
     /** One transaction ("/money/transactions?id=<id>"), highlighted on its day and account. */
     data class Transaction(val id: String) : TodayDestination
@@ -54,7 +57,7 @@ fun todayDestination(link: String?): TodayDestination? {
     val transactionId = if (path == "/money/transactions") queryValue(query, "id") else null
     return when {
         transactionId != null -> TodayDestination.Transaction(transactionId)
-        path == "/money" || path.startsWith("/money/") -> TodayDestination.Money(moneyPage(path.removePrefix("/money").removePrefix("/"), fragment))
+        path == "/money" || path.startsWith("/money/") -> moneyDestination(path.removePrefix("/money").removePrefix("/"), fragment, query)
         path == "/documents" -> TodayDestination.Documents
         path.startsWith("/documents/") -> documentPage(path.removePrefix("/documents/"))
         else -> fallback
@@ -68,6 +71,16 @@ private fun queryValue(query: String, name: String): String? =
         val value = part.substringAfter('=', missingDelimiterValue = "")
         if (key == name) runCatching { URLDecoder.decode(value, Charsets.UTF_8.name()) }.getOrNull()?.takeIf { it.isNotBlank() } else null
     }
+
+private fun moneyDestination(page: String, fragment: String, query: String): TodayDestination.Money {
+    val link = moneyPage(page, fragment)
+    // "?importAccount=<id>#import": the import with that account picked (T63).
+    val account = if (link == MoneyLink.Import) queryValue(query, IMPORT_ACCOUNT) else null
+    return TodayDestination.Money(link, account)
+}
+
+/** The query value that picks the account of the import, as on the web (`IMPORT_ACCOUNT_KEY`). */
+private const val IMPORT_ACCOUNT = "importAccount"
 
 private fun moneyPage(page: String, fragment: String): MoneyLink {
     // "/money/transactions#import": the transactions, with the import open.
