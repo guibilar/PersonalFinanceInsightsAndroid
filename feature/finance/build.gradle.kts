@@ -1,5 +1,6 @@
 // The finance module: its screens, its navigation graph (financeGraph), its notifications and its widget.
-// It doesn't depend on the app: what it needs from it comes through FinanceHost.
+// It doesn't depend on the app: what it needs from it comes through FinanceHost, and the Documents pages through
+// FinanceDocuments (the Documents API comes from :core:documents; never a dependency on :feature:documents).
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.compose)
@@ -55,6 +56,7 @@ kotlin {
 }
 
 dependencies {
+    api(project(":core:documents"))
     api(project(":core:finance"))
     api(project(":core:ui"))
     implementation(libs.kotlinx.coroutines.android)
@@ -69,6 +71,7 @@ dependencies {
     debugImplementation(libs.compose.ui.test.manifest)
 
     testImplementation(testFixtures(project(":core:finance")))
+    testImplementation(testFixtures(project(":core:documents")))
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)

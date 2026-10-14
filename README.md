@@ -38,6 +38,7 @@ manuals:
   again every 3 seconds for 2 minutes; "Run OCR again" when it failed), and the transactions it is linked to. A tap
   on a linked transaction opens it in Money. "Link to a transaction" picks one from the latest, or by a search.
 - A Today item for a document that expires soon opens the document.
+- A transaction in Money shows its documents, and can add or link one (below, "Transactions").
 
 **Sign in** with the server's address (where you open the web app, e.g. `https://finance.example.ts.net`) and your
 username and password. The session is kept between launches, for 14 days of inactivity like the web's
@@ -67,7 +68,10 @@ The finance pages:
   see that period. "Where it went" lists the merchants, more on request.
 
   Tap a transaction to correct its description, category (optionally adding a rule so similar ones follow), what
-  it counts as, its note and tags, or to link it to a budget. Swipe a row:
+  it counts as, its note and tags, or to link it to a budget. Its "Documents" section lists the documents linked to
+  it (a tap opens one). "Add document" opens the Documents upload: the new document starts as a receipt, and after the
+  upload it is linked to the transaction and the page goes back (if the link fails, the document opens, with a
+  message). "Link a document" links one from the newest documents or a search. Swipe a row:
   - left to delete it, with Undo; deleted ones can be restored from the ⋮ menu;
   - right to change its category.
 
@@ -194,6 +198,10 @@ How they connect:
 - Sign-in is in `:core:network`, not in a module. When you sign in, the app gets one `ApiClient` for the server. It has
   one HTTP client and one cookie jar. Each module makes its Retrofit interface from it in one line:
   `client.api<FinanceApi>()`. The client makes each interface one time and keeps it. `MainScreen` gets the client.
+- **A transaction's documents:** `:feature:finance` reads them with the Documents API from `:core:documents`. The
+  pages (open a document, the upload for one transaction) come from the app through the `FinanceDocuments`
+  interface (`AppFinanceDocuments` in `:app`), which `financeGraph(documents = …)` takes. Without it, the section
+  does not show. `addDocumentTo(transactionId)` in `:feature:documents` opens the upload that links the new document.
 - The widget and the notifications need the session and the app's settings. They get them through the `FinanceHost`
   interface, which the application class implements.
 - The plain Kotlin modules are tested on the JVM. The Android modules' tests include screenshot tests (Robolectric and

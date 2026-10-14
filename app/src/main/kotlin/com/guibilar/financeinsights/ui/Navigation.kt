@@ -28,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -224,6 +225,8 @@ fun MainScreen(
     val entry by nav.currentBackStackEntryAsState()
     // Shared statements and quick actions (shortcut, widget, notifications, Capture) open their finance pages.
     val requests = rememberFinanceRequests(nav, sharedStatement, quickAction)
+    // A transaction's documents in Money: the app joins the two feature modules here (D14).
+    val financeDocuments = remember(nav, client) { AppFinanceDocuments(nav, client.api()) }
     // A rail at the side on a wide screen (a tablet, an unfolded foldable, landscape); the bar below otherwise.
     val rail = windowWidth() >= MEDIUM_WIDTH
     fun select(item: TopLevel, selected: Boolean) {
@@ -325,6 +328,7 @@ fun MainScreen(
                     requests = requests,
                     amountsHidden = preferences?.hideAmounts,
                     setAmountsHidden = preferences?.let { it::setHideAmounts },
+                    documents = financeDocuments,
                 )
                 documentsGraph(
                     nav = nav,

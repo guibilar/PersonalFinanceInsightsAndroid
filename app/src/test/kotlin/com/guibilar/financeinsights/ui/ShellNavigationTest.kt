@@ -5,6 +5,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -12,6 +13,8 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import com.guibilar.financeinsights.DocumentsSamples
 import com.guibilar.financeinsights.FakeDocumentsApi
 import com.guibilar.financeinsights.FakeFinanceApi
 import com.guibilar.financeinsights.FakeTodayApi
@@ -230,5 +233,46 @@ class ShellNavigationTest {
         assertShows("Search", "One search across all modules.")
         back()
         assertShows("Today", today)
+    }
+
+    /** A Today item that opens METRO 221 (2026-10-03), which has the Metro receipt, then the row's sheet. */
+    private fun openMetroSheet() {
+        val item = TodayCard(
+            id = "money.transaction",
+            module = "Money",
+            type = TodayCardType.Attention,
+            kind = "transaction",
+            title = "A transaction",
+            text = "Check METRO 221",
+            severity = TodaySeverity.Neutral,
+            link = "/money/transactions?id=${DocumentsSamples.METRO_TRANSACTION}",
+        )
+        todayApi.answer = TodaySamples.complete.copy(cards = TodaySamples.complete.cards + item)
+        show()
+        compose.onNodeWithText("Check METRO 221").performClick()
+        compose.waitForIdle()
+        compose.onNode(hasContentDescription("METRO 221", substring = true)).performClick()
+        compose.waitForIdle()
+    }
+
+    @Test
+    fun `a transaction's document opens over the transactions, and Back returns there`() {
+        openMetroSheet()
+        compose.onNodeWithText("Metro receipt").performScrollTo().performClick()
+        compose.waitForIdle()
+        assertShows("the document", "Link to a transaction")
+        tab("Modules").assertIsSelected()
+        back()
+        assertShows("the transactions", "Transactions")
+    }
+
+    @Test
+    fun `a transaction's Add document opens the upload for that transaction, and Back returns there`() {
+        openMetroSheet()
+        compose.onNodeWithText("Add document").performScrollTo().performClick()
+        compose.waitForIdle()
+        assertShows("the new document", "After the upload, the document is linked to the transaction that you came from.")
+        back()
+        assertShows("the transactions", "Transactions")
     }
 }

@@ -6,8 +6,10 @@ import com.guibilar.financeinsights.core.api.ApiError
 import com.guibilar.financeinsights.core.api.apiCall
 import com.guibilar.financeinsights.core.api.apiError
 import com.guibilar.financeinsights.core.documents.Document
+import com.guibilar.financeinsights.core.documents.DocumentKind
 import com.guibilar.financeinsights.core.documents.DocumentUpload
 import com.guibilar.financeinsights.core.documents.DocumentsApi
+import com.guibilar.financeinsights.core.documents.NewDocumentLink
 import com.guibilar.financeinsights.core.documents.UploadFile
 import com.guibilar.financeinsights.core.documents.uploadProblem
 import com.guibilar.financeinsights.core.logic.DataChanges
@@ -27,14 +29,25 @@ data class UploadState(
     val error: String? = null,
     /** The new document, once the server has it: the screen opens it. */
     val uploaded: Document? = null,
+    /** The transaction that the new document is linked to after the upload (from a transaction in Money); null without. */
+    val linkTo: String? = null,
+    /** The new document is linked to [linkTo]. */
+    val linked: Boolean = false,
+    /** Why the new document could not be linked to [linkTo]. The document is kept: its page can link it. */
+    val linkError: String? = null,
 ) {
     /** The title when the field is left empty: the server takes the name of the first file. */
     val titleHint get() = files.firstOrNull()?.name
 }
 
-/** A new document: the files picked (or scanned), the details, and the upload. */
-class UploadViewModel(private val api: DocumentsApi) : ViewModel() {
-    private val _state = MutableStateFlow(UploadState())
+/**
+ * A new document: the files picked (or scanned), the details, and the upload. With [linkTo] (a transaction id), the
+ * document starts as a receipt, and the upload links it to that transaction.
+ */
+class UploadViewModel(private val api: DocumentsApi, linkTo: String? = null) : ViewModel() {
+    private val _state = MutableStateFlow(
+        UploadState(linkTo = linkTo, draft = DetailsDraft(kind = if (linkTo != null) DocumentKind.Receipt else DocumentKind.Other)),
+    )
     val state: StateFlow<UploadState> = _state.asStateFlow()
 
     fun preparing(on: Boolean) = _state.update { it.copy(preparing = on) }
@@ -90,14 +103,27 @@ class UploadViewModel(private val api: DocumentsApi) : ViewModel() {
             )
             val result = apiCall { api.upload(upload.toMultipart()) }
             val error = result.apiError
-            if (error == null) DataChanges.changed()
-            _state.update { state ->
-                if (error == null) {
-                    state.copy(uploading = false, uploaded = result.getOrThrow())
-                } else {
-                    state.copy(uploading = false, error = uploadFailure(error))
-                }
+            if (error != null) {
+                _state.update { it.copy(uploading = false, error = uploadFailure(error)) }
+                return@launch
             }
+            DataChanges.changed()
+            val document = result.getOrThrow()
+            val linkTo = current.linkTo
+            val linkError = if (linkTo != null) link(document, linkTo) else null
+            _state.update { state ->
+                state.copy(uploading = false, uploaded = document, linked = linkTo != null && linkError == null, linkError = linkError)
+            }
+        }
+    }
+
+    /** Links the new document to the transaction; null when it is linked, else why not. */
+    private suspend fun link(document: Document, transactionId: String): String? {
+        val error = apiCall { api.addLink(document.id, NewDocumentLink.transaction(transactionId)) }.apiError ?: return null
+        return when {
+            // The link exists already: that is what was asked.
+            error is ApiError.Http && error.status == 409 -> null
+            else -> "Added “${document.title}”, but could not link it to the transaction. Link it here."
         }
     }
 

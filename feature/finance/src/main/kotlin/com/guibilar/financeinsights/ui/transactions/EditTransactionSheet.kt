@@ -49,6 +49,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
+import com.guibilar.financeinsights.FinanceDocuments
 import com.guibilar.financeinsights.core.logic.TextLimits
 import com.guibilar.financeinsights.core.logic.description
 import com.guibilar.financeinsights.core.logic.flowsFor
@@ -75,8 +76,8 @@ private const val PREVIEW_DEBOUNCE_MS = 300L
 
 /**
  * One transaction: what the bank says (date, amount, account) and what can be corrected (description, category,
- * what it counts as, its note and tags), linking it to a budget, and deleting it. A new category can spread to similar transactions
- * with a rule, as on the web.
+ * what it counts as, its note and tags), linking it to a budget, its documents ([documents]; none without it), and
+ * deleting it. A new category can spread to similar transactions with a rule, as on the web.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -87,12 +88,13 @@ fun EditTransactionSheet(
     model: TransactionsViewModel,
     onDismiss: () -> Unit,
     tags: List<Tag> = emptyList(),
+    documents: FinanceDocuments? = null,
 ) {
     val scope = rememberCoroutineScope()
     val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     fun close() = scope.launch { sheet.hide() }.invokeOnCompletion { onDismiss() }
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheet) {
-        EditTransaction(transaction, categories, budgets, model, onClose = ::close, Modifier.navigationBarsPadding().imePadding(), tags)
+        EditTransaction(transaction, categories, budgets, model, onClose = ::close, Modifier.navigationBarsPadding().imePadding(), tags, documents)
     }
 }
 
@@ -109,6 +111,7 @@ private fun EditTransaction(
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
     tags: List<Tag> = emptyList(),
+    documents: FinanceDocuments? = null,
 ) {
     val colors = LocalChartColors.current
     val scope = rememberCoroutineScope()
@@ -268,6 +271,10 @@ private fun EditTransaction(
 
         HorizontalDivider()
         BudgetLink(transaction, budgets, model, onDone = ::close)
+        if (documents != null) {
+            HorizontalDivider()
+            TransactionDocumentsSection(transaction.id, documents)
+        }
         HorizontalDivider()
         TextButton(onClick = { confirmDelete = true }, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Outlined.Delete, null, tint = MaterialTheme.colorScheme.error)
