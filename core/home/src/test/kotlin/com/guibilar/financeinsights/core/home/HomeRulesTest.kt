@@ -132,6 +132,9 @@ class HomeRulesTest {
         assertEquals(listOf("Smoke detectors"), api.items(room = NO_ROOM).items.map { it.name })
         assertEquals(listOf("Laptop"), api.items(warranty = WarrantyFilter.EXPIRED).items.map { it.name })
         assertEquals(listOf("Dishwasher"), api.byLink(ItemLinkKinds.TASK, HomeSamples.FILTER_TASK).map { it.name })
-        assertTrue(api.export().string().startsWith("﻿Room,Name"))
+        // UTF-8 with a byte order mark, so a spreadsheet reads the accents.
+        val csv = api.export().bytes()
+        assertEquals(listOf(0xEF, 0xBB, 0xBF), csv.take(3).map { it.toInt() and 0xFF })
+        assertTrue(String(csv, Charsets.UTF_8).contains("Kitchen,Dishwasher"))
     }
 }

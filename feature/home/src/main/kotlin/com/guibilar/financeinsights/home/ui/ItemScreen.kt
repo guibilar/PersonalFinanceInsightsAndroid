@@ -95,7 +95,7 @@ import com.guibilar.financeinsights.core.model.Transaction
 import com.guibilar.financeinsights.core.tasks.RepeatUnit
 import com.guibilar.financeinsights.home.HomeHost
 import com.guibilar.financeinsights.ui.common.DateField
-import com.guibilar.financeinsights.ui.common.DropdownPicker
+import com.guibilar.financeinsights.ui.common.ChoiceRow
 import com.guibilar.financeinsights.ui.common.ErrorState
 import com.guibilar.financeinsights.ui.common.FitText
 import com.guibilar.financeinsights.ui.common.LoadState
@@ -547,24 +547,16 @@ private fun MaintenanceDialog(
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = every,
-                        onValueChange = { text -> every = text.filter { it.isDigit() }.take(4) },
-                        label = { Text("Every") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.width(96.dp),
-                    )
-                    DropdownPicker(
-                        label = "Unit",
-                        options = RepeatUnit.entries,
-                        selected = unit,
-                        text = { u -> u?.many?.replaceFirstChar { it.uppercase() }.orEmpty() },
-                        onPick = { unit = it },
-                        modifier = Modifier.weight(1f),
-                    )
-                }
+                OutlinedTextField(
+                    value = every,
+                    onValueChange = { text -> every = text.filter { it.isDigit() }.take(4) },
+                    label = { Text("Every") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.width(120.dp),
+                )
+                // Chips, not a drop-down list: a menu in a dialog is a window over a window.
+                ChoiceRow(RepeatUnit.entries, unit, label = { u -> u.many.replaceFirstChar { it.uppercase() } }, onSelect = { unit = it })
                 DateField("First due", LocalDate.parse(first), onChange = { first = it.toString() }, modifier = Modifier.fillMaxWidth())
                 Text(
                     "The next date counts from the day you mark it done. The task shows in Tasks and on the Home screen.",
