@@ -270,7 +270,8 @@ private fun LinkDocumentDialog(model: TransactionDocumentsModel, onDismiss: () -
                     modifier = Modifier.fillMaxWidth(),
                 )
                 when (val candidates = model.candidates) {
-                    null, LoadState.Loading -> CircularProgressIndicator(Modifier.size(24.dp).align(Alignment.CenterHorizontally))
+                    // Text, not a spinner: the search answers fast, and a dialog over the sheet keeps it simple.
+                    null, LoadState.Loading -> Text("Searching…", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     is LoadState.Failed -> Text(candidates.message, color = MaterialTheme.colorScheme.error)
                     is LoadState.Loaded -> if (candidates.value.isEmpty()) {
                         Text(

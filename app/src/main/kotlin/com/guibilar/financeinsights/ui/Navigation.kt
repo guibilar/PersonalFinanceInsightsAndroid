@@ -226,7 +226,7 @@ fun MainScreen(
     // Shared statements and quick actions (shortcut, widget, notifications, Capture) open their finance pages.
     val requests = rememberFinanceRequests(nav, sharedStatement, quickAction)
     // A transaction's documents in Money: the app joins the two feature modules here (D14).
-    val financeDocuments = remember(nav, client) { AppFinanceDocuments(nav, client.api()) }
+    val financeDocuments = remember(nav, client) { AppFinanceDocuments(nav, client) }
     // A rail at the side on a wide screen (a tablet, an unfolded foldable, landscape); the bar below otherwise.
     val rail = windowWidth() >= MEDIUM_WIDTH
     fun select(item: TopLevel, selected: Boolean) {
