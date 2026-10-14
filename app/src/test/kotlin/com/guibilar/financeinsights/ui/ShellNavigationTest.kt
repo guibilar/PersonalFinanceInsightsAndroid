@@ -2,6 +2,7 @@ package com.guibilar.financeinsights.ui
 
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.Surface
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasText
@@ -11,8 +12,14 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import com.guibilar.financeinsights.FakeDocumentsApi
 import com.guibilar.financeinsights.FakeFinanceApi
 import com.guibilar.financeinsights.FakeTodayApi
+import com.guibilar.financeinsights.TodaySamples
+import com.guibilar.financeinsights.core.today.TodayCard
+import com.guibilar.financeinsights.core.today.TodayCardType
+import com.guibilar.financeinsights.core.today.TodaySeverity
+import com.guibilar.financeinsights.core.today.TodayValue
 import com.guibilar.financeinsights.fakeApiClient
 import com.guibilar.financeinsights.QuickAction
 import com.guibilar.financeinsights.ui.theme.FinanceTheme
@@ -35,9 +42,11 @@ class ShellNavigationTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
     private val account = AccountInfo("dev", "https://finance.example.ts.net")
     private val quickAction = MutableStateFlow<QuickAction?>(null)
+    private val todayApi = FakeTodayApi()
 
     private fun show() {
-        compose.setContent { FinanceTheme(dynamicColor = false) { Surface { MainScreen(fakeApiClient(FakeFinanceApi(), FakeTodayApi()), account, {}, quickAction = quickAction) } } }
+        val client = fakeApiClient(FakeFinanceApi(), todayApi, FakeDocumentsApi())
+        compose.setContent { FinanceTheme(dynamicColor = false) { Surface { MainScreen(client, account, {}, quickAction = quickAction) } } }
         compose.waitForIdle()
     }
 
@@ -134,14 +143,71 @@ class ShellNavigationTest {
     }
 
     @Test
-    fun `Capture's Expense opens the Add transaction form, and the other buttons are off`() {
+    fun `Capture's Expense opens the Add transaction form, and Voice is off`() {
         show()
         tab("Capture").performClick()
         compose.waitForIdle()
-        listOf("Photo", "Scan", "Voice").forEach { compose.onNodeWithText(it).assertIsNotEnabled() }
+        listOf("Photo", "Scan").forEach { compose.onNodeWithText(it).assertIsEnabled() }
+        compose.onNodeWithText("Voice").assertIsNotEnabled()
         compose.onNodeWithText("Expense").performClick()
         compose.waitForIdle()
         assertShows("the add form", "Add a transaction")
+    }
+
+    @Test
+    fun `Capture's Photo opens a new document, and Back returns to Capture`() {
+        show()
+        tab("Capture").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Photo").performClick()
+        compose.waitForIdle()
+        assertShows("the new document", "Add document")
+        back()
+        assertShows("Capture", "Expense")
+    }
+
+    @Test
+    fun `Modules opens Documents and a document, and Back returns through the list to Modules`() {
+        show()
+        tab("Modules").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Documents").performClick()
+        compose.waitForIdle()
+        assertShows("the Documents list", "All documents")
+        tab("Modules").assertIsSelected()
+        compose.onNodeWithText("Apartment lease").performClick()
+        compose.waitForIdle()
+        assertShows("the document", "Run OCR again")
+        tab("Modules").assertIsSelected()
+        back()
+        assertShows("the Documents list", "All documents")
+        back()
+        assertShows("Modules", modules)
+    }
+
+    @Test
+    fun `a Today document item opens the document over the list, and Back returns to the list, then Today`() {
+        val item = TodayCard(
+            id = "documents.expiring.d1",
+            module = "Documents",
+            type = TodayCardType.Attention,
+            kind = "expiring",
+            title = "Document expires soon",
+            text = "{title} expires on {day}",
+            values = mapOf("title" to TodayValue.plain("Car insurance policy"), "day" to TodayValue.day("2026-10-25")),
+            severity = TodaySeverity.Warning,
+            link = "/documents/d1",
+        )
+        todayApi.answer = TodaySamples.complete.copy(cards = TodaySamples.complete.cards + item)
+        show()
+        compose.onNodeWithText("Car insurance policy expires on Oct 25, 2026").performClick()
+        compose.waitForIdle()
+        assertShows("the document", "Renew online before the end of the month.")
+        tab("Modules").assertIsSelected()
+        back()
+        assertShows("the Documents list", "All documents")
+        back()
+        assertShows("Today", today)
     }
 
     @Test

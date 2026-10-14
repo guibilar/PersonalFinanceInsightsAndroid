@@ -38,25 +38,25 @@ import com.guibilar.financeinsights.ui.common.FitText
 import com.guibilar.financeinsights.ui.common.ReadableColumn
 
 /**
- * Quick capture: four buttons, as in the design. Only "Expense" works for now: it opens the "Add transaction" form.
- * Photo, Scan and Voice come with the Documents and Inbox modules.
+ * Quick capture: four buttons, as in the design. "Photo" and "Scan" add a document (the photo picker, or the
+ * document scanner); "Expense" opens the "Add transaction" form. Voice comes with the Inbox module.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CaptureScreen(contentPadding: PaddingValues, onExpense: () -> Unit) {
+fun CaptureScreen(contentPadding: PaddingValues, onExpense: () -> Unit, onScan: () -> Unit = {}, onPhoto: () -> Unit = {}) {
     Column(Modifier.fillMaxSize().padding(bottom = contentPadding.calculateBottomPadding())) {
         TopAppBar(title = { FitText("Capture", fontWeight = FontWeight.SemiBold, minFontSize = 14.sp) })
         ReadableColumn {
             Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text("Add something in a few taps.", style = MaterialTheme.typography.bodyMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    CaptureButton(Icons.Outlined.PhotoCamera, "Photo", enabled = false, Modifier.weight(1f)) {}
-                    CaptureButton(Icons.Outlined.DocumentScanner, "Scan", enabled = false, Modifier.weight(1f)) {}
+                    CaptureButton(Icons.Outlined.PhotoCamera, "Photo", enabled = true, Modifier.weight(1f), onPhoto)
+                    CaptureButton(Icons.Outlined.DocumentScanner, "Scan", enabled = true, Modifier.weight(1f), onScan)
                     CaptureButton(Icons.Outlined.Mic, "Voice", enabled = false, Modifier.weight(1f)) {}
                     CaptureButton(Icons.Outlined.Payments, "Expense", enabled = true, Modifier.weight(1f), onExpense)
                 }
                 Text(
-                    "Photo, Scan and Voice are coming soon.",
+                    "Photo and Scan add a document. Voice is coming soon.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

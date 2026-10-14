@@ -30,6 +30,8 @@ data class TransactionFilter(
     val budgetId: String? = null,
     /** True: only deleted (hidden) transactions. */
     val hidden: Boolean? = null,
+    /** One transaction by its id (with page size 1; with [hidden] true, a deleted one). Hestia D13. */
+    val transactionId: String? = null,
     val sortBy: TransactionSortField? = null,
     val sortDirection: SortDirection? = null,
     val page: Int = 1,

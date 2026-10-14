@@ -53,6 +53,13 @@ import com.guibilar.financeinsights.data.AppPreferences
 import com.guibilar.financeinsights.data.AuthState
 import com.guibilar.financeinsights.data.FinancePreferences
 import com.guibilar.financeinsights.data.Session
+import com.guibilar.financeinsights.documents.DocumentsRoute
+import com.guibilar.financeinsights.documents.addDocument
+import com.guibilar.financeinsights.documents.documentsGraph
+import com.guibilar.financeinsights.documents.isDocumentsPage
+import com.guibilar.financeinsights.documents.openDocument
+import com.guibilar.financeinsights.documents.openDocuments
+import com.guibilar.financeinsights.documents.ui.DocumentSource
 import com.guibilar.financeinsights.security.AppLock
 import com.guibilar.financeinsights.security.authenticate
 import com.guibilar.financeinsights.security.canAuthenticate
@@ -68,6 +75,7 @@ import com.guibilar.financeinsights.ui.shell.PlaceholderScreen
 import com.guibilar.financeinsights.ui.signin.LockScreen
 import com.guibilar.financeinsights.ui.signin.SignInScreen
 import com.guibilar.financeinsights.ui.signin.UnreachableScreen
+import com.guibilar.financeinsights.ui.today.TodayDestination
 import com.guibilar.financeinsights.ui.today.TodayScreen
 import com.guibilar.financeinsights.ui.today.TodayViewModel
 import com.guibilar.financeinsights.ui.transactions.PickedFile
@@ -177,13 +185,14 @@ private data class TopLevel(
     val action: Boolean = false,
 )
 
-// The Money pages, the app's settings and the account open from Modules, so they show under it.
+// The Money and Documents pages, the app's settings and the account open from Modules, so they show under it.
 private val topLevel = listOf(
     TopLevel("Today", Icons.Outlined.WbSunny, TodayRoute, { it.hasRoute<TodayRoute>() }),
     TopLevel("Timeline", Icons.Outlined.Timeline, TimelineRoute, { it.hasRoute<TimelineRoute>() }),
     TopLevel("Capture", Icons.Outlined.Add, CaptureRoute, { it.hasRoute<CaptureRoute>() }, action = true),
     TopLevel("Modules", Icons.Outlined.GridView, ModulesRoute, {
-        it.hasRoute<ModulesRoute>() || it.isFinancePage() || it.hasRoute<AppSettingsRoute>() || it.hasRoute<AccountSettingsRoute>()
+        it.hasRoute<ModulesRoute>() || it.isFinancePage() || it.isDocumentsPage() || it.hasRoute<AppSettingsRoute>() ||
+            it.hasRoute<AccountSettingsRoute>()
     }),
     TopLevel("Search", Icons.Outlined.Search, SearchRoute, { it.hasRoute<SearchRoute>() }),
 )
@@ -265,9 +274,19 @@ fun MainScreen(
                         model = viewModel { TodayViewModel(todayApi) },
                         modules = MODULES,
                         contentPadding = padding,
-                        open = { link -> requests.open(nav, link) },
+                        open = { destination ->
+                            when (destination) {
+                                is TodayDestination.Money -> requests.open(nav, destination.link)
+                                TodayDestination.Documents -> nav.openDocuments()
+                                is TodayDestination.Document -> nav.openDocument(destination.id)
+                            }
+                        },
                         openModule = { module ->
-                            if (module.route == MoneyHomeRoute) nav.openMoneyHome() else module.route?.let { nav.navigate(it) }
+                            when (module.route) {
+                                MoneyHomeRoute -> nav.openMoneyHome()
+                                DocumentsRoute -> nav.openDocuments()
+                                else -> module.route?.let { nav.navigate(it) }
+                            }
                         },
                     )
                 }
@@ -275,7 +294,12 @@ fun MainScreen(
                     PlaceholderScreen("Timeline", Icons.Outlined.Timeline, "Everything that happened, day by day, from all modules.", padding)
                 }
                 composable<CaptureRoute> {
-                    CaptureScreen(padding, onExpense = { quickAction.value = QuickAction.AddTransaction })
+                    CaptureScreen(
+                        padding,
+                        onExpense = { quickAction.value = QuickAction.AddTransaction },
+                        onScan = { nav.addDocument(DocumentSource.Scan) },
+                        onPhoto = { nav.addDocument(DocumentSource.Photos) },
+                    )
                 }
                 composable<ModulesRoute> {
                     ModulesScreen(
@@ -300,6 +324,13 @@ fun MainScreen(
                     requests = requests,
                     amountsHidden = preferences?.hideAmounts,
                     setAmountsHidden = preferences?.let { it::setHideAmounts },
+                )
+                documentsGraph(
+                    nav = nav,
+                    client = client,
+                    contentPadding = padding,
+                    // Until T56 opens one transaction, a linked transaction opens the Transactions page.
+                    openTransaction = { requests.open(nav, MoneyLink.Transactions) },
                 )
                 composable<AppSettingsRoute> {
                     if (preferences != null && financePreferences != null) {

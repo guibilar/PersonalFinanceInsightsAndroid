@@ -117,6 +117,11 @@ class FakeFinanceApi : FinanceApi {
         transactionFilters += filter
         check("transactions")
         val all = fixture<Page<Transaction>>("transactions")
+        // One transaction by its id (a document's link reads it so).
+        filter.transactionId?.let { id ->
+            val found = all.items.filter { it.id == id }.map(decorate)
+            return Page(found, 1, filter.pageSize, totalCount = found.size, totalPages = 1)
+        }
         if (filter.pageSize <= 5) return fixture("recent")
         // Two pages of the recorded 50, so paging can be seen.
         val half = all.items.size / 2

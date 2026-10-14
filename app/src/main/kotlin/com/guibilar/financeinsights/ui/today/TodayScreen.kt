@@ -26,6 +26,7 @@ import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.Autorenew
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Dashboard
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material.icons.outlined.Sell
@@ -62,7 +63,6 @@ import com.guibilar.financeinsights.core.today.TodaySeverity
 import com.guibilar.financeinsights.core.today.TodayTrend
 import com.guibilar.financeinsights.core.today.filledText
 import com.guibilar.financeinsights.core.today.valueText
-import com.guibilar.financeinsights.ui.MoneyLink
 import com.guibilar.financeinsights.ui.common.ErrorState
 import com.guibilar.financeinsights.ui.common.ReadableColumn
 import com.guibilar.financeinsights.ui.common.SectionCard
@@ -121,7 +121,7 @@ fun TodayScreen(
     model: TodayViewModel,
     modules: List<HestiaModule>,
     contentPadding: PaddingValues,
-    open: (MoneyLink) -> Unit,
+    open: (TodayDestination) -> Unit,
     openModule: (HestiaModule) -> Unit,
 ) {
     val state by model.state.collectAsState()
@@ -179,7 +179,7 @@ fun TodayScreen(
 
 /** A module's heading, its status, and its tiles. */
 @Composable
-private fun Section(section: TodaySection, open: (MoneyLink) -> Unit, openModule: (HestiaModule) -> Unit, retry: () -> Unit) {
+private fun Section(section: TodaySection, open: (TodayDestination) -> Unit, openModule: (HestiaModule) -> Unit, retry: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -247,7 +247,7 @@ private fun Tiles(tiles: List<@Composable (Modifier) -> Unit>) {
 private val ALL_IN_A_ROW_WIDTH = 700.dp
 
 @Composable
-private fun Tile(card: TodayCard, module: HestiaModule?, open: (MoneyLink) -> Unit, modifier: Modifier = Modifier) {
+private fun Tile(card: TodayCard, module: HestiaModule?, open: (TodayDestination) -> Unit, modifier: Modifier = Modifier) {
     val destination = todayDestination(card.link)
     StatTile(
         card.title,
@@ -280,6 +280,8 @@ private fun attentionIcon(kind: String): ImageVector = when (kind) {
     "statements-not-imported", "statements-behind" -> Icons.Outlined.UploadFile
     "price-changed" -> Icons.Outlined.Autorenew
     "unsorted" -> Icons.Outlined.Sell
+    // Documents (T11): a document that expires soon, or that expired.
+    "expiring", "expired" -> Icons.Outlined.Description
     else -> Icons.Outlined.ErrorOutline
 }
 
@@ -296,7 +298,7 @@ private fun severityColor(severity: TodaySeverity): Color {
 
 /** What needs a look, from all modules, each opening where it is dealt with. Only shown when something does. */
 @Composable
-private fun NeedsAttention(items: List<TodayCard>, open: (MoneyLink) -> Unit) {
+private fun NeedsAttention(items: List<TodayCard>, open: (TodayDestination) -> Unit) {
     val onContainer = MaterialTheme.colorScheme.onTertiaryContainer
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),

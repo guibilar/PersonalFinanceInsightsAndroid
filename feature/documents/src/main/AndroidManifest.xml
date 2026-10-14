@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- The theme is the app's: the module's own tests then render the screens in the same window as the app. -->
+    <application android:theme="@style/Theme.Finance">
+        <!-- A document's file opens in another app (a PDF viewer, the gallery) from the app's cache, through this
+             provider: the other app can read only that file, and only while it has it open. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.documents"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/document_files" />
+        </provider>
+    </application>
+</manifest>
