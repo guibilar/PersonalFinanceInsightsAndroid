@@ -57,9 +57,10 @@ jobs:
         shell: bash
         run: |
           mkdir -p probe-shots
+          pip install --quiet pillow
           for f in feature/tasks/build/shots/*.png feature/documents/build/shots/document-tasks.png app/build/shots/capture.png app/build/shots/modules.png app/build/shots/settings-notifications.png app/build/shots/today.png; do
             [ -f "$f" ] || continue
-            convert "$f" -resize 40% -quality 60 "probe-shots/$(basename "$f" .png).jpg"
+            python3 -c "import sys; from PIL import Image; i=Image.open(sys.argv[1]).convert('RGB'); i=i.resize((i.width*2//5, i.height*2//5)); i.save(sys.argv[2], quality=60)" "$f" "probe-shots/$(basename "$f" .png).jpg"
           done
           git config user.name "probe"
           git config user.email "probe@example.com"
