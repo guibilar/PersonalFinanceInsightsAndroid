@@ -2,7 +2,7 @@ name: android
 
 on:
   push:
-    branches: [main]
+    branches: [main, hestia/T88-probe]
   pull_request:
   # A run on demand makes a new APK when the last one has expired (see "CI artifacts" in the README).
   workflow_dispatch:
@@ -38,7 +38,12 @@ jobs:
             :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
         # --continue runs the tests of all modules after a failure, so the annotations below list all failed tests.
         shell: bash
-        run: ./gradlew --console=plain --continue $CHECKS
+        run: ./gradlew --console=plain --continue $CHECKS 2>&1 | tee gradle.log
+
+      - name: Probe errors (temporary)
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: python3 scripts/probe-errors.py
 
       # Task sessions cannot read the logs. These steps write the results as annotations (see "CI annotations").
       - name: Test results as annotations
