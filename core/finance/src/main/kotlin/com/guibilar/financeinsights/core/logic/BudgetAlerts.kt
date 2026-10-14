@@ -11,7 +11,7 @@ data class BudgetAlert(
     val budgetId: String,
     /** The budget and its current period: a monthly budget can alert again next month. */
     val key: String,
-    /** 80 (nearly used up) or 100 (used up or over). */
+    /** Always 80 (nearly used up): the server alert "budget-over" tells when a budget is used up (T68). */
     val level: Int,
     val title: String,
     val text: String,
@@ -21,12 +21,14 @@ data class BudgetAlert(
 val ALERT_LEVELS = listOf(80, 100)
 
 /**
- * The alerts due now: each active budget past a threshold it hasn't alerted at in its current period ([sent] is
- * the highest level already sent, by key). Passing 100 straight away gives one alert, not two.
+ * The warnings due now: each active budget between 80% and 100% that hasn't alerted at 80 or more in its current period
+ * ([sent] is the highest level already sent, by key). A budget at 100% or more gets no local alert: the server alert
+ * "budget-over" (Hestia.Api, Alerts module) tells it, and the phone polls it (T68). There is no server rule for 80% yet.
  */
 fun budgetAlerts(budgets: List<Budget>, today: LocalDate, sent: Map<String, Int>): List<BudgetAlert> =
     budgets.filter { it.status == Status.Active && it.totalAmount > 0 }.mapNotNull { budget ->
         val level = ALERT_LEVELS.lastOrNull { budget.percentageUsed >= it } ?: return@mapNotNull null
+        if (level >= 100) return@mapNotNull null
         val key = "${budget.id}:${periodKey(budget.period, today)}"
         if (level <= (sent[key] ?: 0)) return@mapNotNull null
         val period = when (budget.period) {
@@ -38,14 +40,9 @@ fun budgetAlerts(budgets: List<Budget>, today: LocalDate, sent: Map<String, Int>
             budgetId = budget.id,
             key = key,
             level = level,
-            title = if (level >= 100) "${budget.name} is used up" else "${budget.name} is nearly used up",
-            text = if (budget.totalRemaining < 0) {
-                "${Money.format(budget.totalSpent)} of ${Money.format(budget.totalAmount)}$period: " +
-                    "${Money.format(-budget.totalRemaining)} over."
-            } else {
-                "${Money.format(budget.totalSpent)} of ${Money.format(budget.totalAmount)}$period " +
-                    "(${Money.percentUsed(budget.percentageUsed)}): ${Money.format(budget.totalRemaining)} left."
-            },
+            title = "${budget.name} is nearly used up",
+            text = "${Money.format(budget.totalSpent)} of ${Money.format(budget.totalAmount)}$period " +
+                "(${Money.percentUsed(budget.percentageUsed)}): ${Money.format(budget.totalRemaining)} left.",
         )
     }
 

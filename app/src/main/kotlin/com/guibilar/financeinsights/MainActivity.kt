@@ -18,6 +18,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import com.guibilar.financeinsights.data.ThemeChoice
+import com.guibilar.financeinsights.notifications.AlertNotifications
 import com.guibilar.financeinsights.ui.FinanceRoot
 import com.guibilar.financeinsights.ui.theme.FinanceTheme
 import com.guibilar.financeinsights.ui.transactions.readFile
@@ -58,7 +59,10 @@ class MainActivity : FragmentActivity() {
                 onDispose {}
             }
             FinanceTheme(darkTheme = dark, dynamicColor = dynamicColor) {
-                FinanceRoot(app.session, app.sharedStatement, app.quickAction, app.lock, app.preferences, app.financePreferences)
+                FinanceRoot(
+                    app.session, app.sharedStatement, app.quickAction, app.lock, app.preferences, app.financePreferences,
+                    alertLink = app.alertLink, alertSettings = app.alertSettings,
+                )
             }
         }
     }
@@ -84,6 +88,11 @@ class MainActivity : FragmentActivity() {
         // Reopened from Recents after Back closed it, the app is handed the intent that first started it again: a
         // statement shared back then (no longer readable), or a shortcut's or notification's page. Not asked for now.
         if (intent == null || (intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) != 0) return
+        // An alert notification (T68): its page opens once signed in, through the same link map as Today.
+        if (intent.action == AlertNotifications.ACTION_OPEN_ALERT) {
+            app.alertLink.value = intent.getStringExtra(AlertNotifications.EXTRA_LINK).orEmpty()
+            return
+        }
         when (val action = QuickAction.of(intent.action)) {
             null -> takeStatement(intent)
             else -> {

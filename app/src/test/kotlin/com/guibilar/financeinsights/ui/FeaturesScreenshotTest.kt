@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.guibilar.financeinsights.FakeAlertsApi
@@ -18,6 +19,7 @@ import com.guibilar.financeinsights.fakeApiClient
 import com.guibilar.financeinsights.data.AppPreferences
 import com.guibilar.financeinsights.data.FinancePreferences
 import com.guibilar.financeinsights.data.ThemeChoice
+import com.guibilar.financeinsights.notifications.AlertNotificationSettings
 import com.guibilar.financeinsights.ui.settings.AppSettingsScreen
 import com.guibilar.financeinsights.ui.signin.LockScreen
 import com.guibilar.financeinsights.ui.theme.FinanceTheme
@@ -52,10 +54,27 @@ class FeaturesScreenshotTest {
     fun settings() {
         val preferences = AppPreferences(ApplicationProvider.getApplicationContext())
         val financePreferences = FinancePreferences(ApplicationProvider.getApplicationContext())
-        show { AppSettingsScreen(preferences, financePreferences, null, PaddingValues(), onBack = {}) }
+        val alertSettings = AlertNotificationSettings(ApplicationProvider.getApplicationContext())
+        show { AppSettingsScreen(preferences, financePreferences, null, PaddingValues(), onBack = {}, alertSettings = alertSettings) }
         compose.onNodeWithText("Dark").performClick()
         assertEquals(ThemeChoice.Dark, preferences.theme.value)
         shoot("settings")
+    }
+
+    @Test
+    @Config(qualifiers = "w400dp-h900dp-xxhdpi")
+    fun notificationSettings() {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val alertSettings = AlertNotificationSettings(context).apply {
+            setEnabled(true)
+            setDocuments(false)
+        }
+        show { AppSettingsScreen(AppPreferences(context), FinancePreferences(context), null, PaddingValues(), onBack = {}, alertSettings = alertSettings) }
+        compose.onNodeWithText("Monthly review").performScrollTo()
+        // A module switch: Money off.
+        compose.onNodeWithText("Money").performClick()
+        assertEquals(false, alertSettings.money.value)
+        shoot("settings-notifications")
     }
 
     @Test

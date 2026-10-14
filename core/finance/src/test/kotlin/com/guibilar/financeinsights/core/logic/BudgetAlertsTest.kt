@@ -17,7 +17,7 @@ class BudgetAlertsTest {
     )
 
     @Test
-    fun `alerts once at 80 and once at 100, per month`() {
+    fun `warns once at 80, per month, and leaves 100 to the server alert`() {
         val first = budgetAlerts(listOf(budget(84.0)), today, emptyMap()).single()
         assertEquals(80, first.level)
         assertEquals("Groceries is nearly used up", first.title)
@@ -25,17 +25,16 @@ class BudgetAlertsTest {
 
         assertTrue(budgetAlerts(listOf(budget(90.0)), today, mapOf(first.key to 80)).isEmpty())
 
-        val over = budgetAlerts(listOf(budget(110.0)), today, mapOf(first.key to 80)).single()
-        assertEquals(100, over.level)
-        assertEquals("$165.00 of $150.00 this month: $15.00 over.", over.text)
+        // Used up: the server alert "budget-over" tells it (T68).
+        assertTrue(budgetAlerts(listOf(budget(110.0)), today, mapOf(first.key to 80)).isEmpty())
 
         // Next month starts over.
         assertEquals(1, budgetAlerts(listOf(budget(84.0)), today.plusMonths(1), mapOf(first.key to 100)).size)
     }
 
     @Test
-    fun `straight past 100 is one alert, and inactive or under 80 none`() {
-        assertEquals(listOf(100), budgetAlerts(listOf(budget(120.0)), today, emptyMap()).map { it.level })
+    fun `straight past 100, inactive, or under 80 is no local alert`() {
+        assertTrue(budgetAlerts(listOf(budget(120.0)), today, emptyMap()).isEmpty())
         assertTrue(budgetAlerts(listOf(budget(79.9)), today, emptyMap()).isEmpty())
         assertTrue(budgetAlerts(listOf(budget(120.0, status = Status.Inactive)), today, emptyMap()).isEmpty())
     }

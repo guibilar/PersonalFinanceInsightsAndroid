@@ -52,6 +52,7 @@ import com.guibilar.financeinsights.core.api.FinanceApi
 import com.guibilar.financeinsights.core.today.AlertsApi
 import com.guibilar.financeinsights.core.today.TodayApi
 import com.guibilar.financeinsights.core.today.TodayDestination
+import com.guibilar.financeinsights.core.today.todayDestination
 import com.guibilar.financeinsights.data.AppPreferences
 import com.guibilar.financeinsights.data.AuthState
 import com.guibilar.financeinsights.data.FinancePreferences
@@ -63,6 +64,7 @@ import com.guibilar.financeinsights.documents.isDocumentsPage
 import com.guibilar.financeinsights.documents.openDocument
 import com.guibilar.financeinsights.documents.openDocuments
 import com.guibilar.financeinsights.documents.ui.DocumentSource
+import com.guibilar.financeinsights.notifications.AlertNotificationSettings
 import com.guibilar.financeinsights.security.AppLock
 import com.guibilar.financeinsights.security.authenticate
 import com.guibilar.financeinsights.security.canAuthenticate
@@ -117,6 +119,9 @@ fun FinanceRoot(
     lock: AppLock? = null,
     preferences: AppPreferences? = null,
     financePreferences: FinancePreferences? = null,
+    /** The link of a tapped alert notification ("" for Today), until it is opened (T68). */
+    alertLink: MutableStateFlow<String?> = MutableStateFlow(null),
+    alertSettings: AlertNotificationSettings? = null,
 ) {
     val state by session.state.collectAsState()
     val locked = lock?.locked?.collectAsState()?.value == true
@@ -170,6 +175,8 @@ fun FinanceRoot(
                     preferences = preferences,
                     financePreferences = financePreferences,
                     lock = lock,
+                    alertLink = alertLink,
+                    alertSettings = alertSettings,
                 )
             }
         }
@@ -221,6 +228,8 @@ fun MainScreen(
     financePreferences: FinancePreferences? = null,
     /** False for a read-only user (T60): Capture and the Documents pages hide or disable their write actions. */
     canWrite: Boolean = true,
+    alertLink: MutableStateFlow<String?> = MutableStateFlow(null),
+    alertSettings: AlertNotificationSettings? = null,
 ) {
     // Each module makes its API from the signed-in client (the client keeps it, so it is the same object every time).
     val api: FinanceApi = client.api()
@@ -230,6 +239,23 @@ fun MainScreen(
     val entry by nav.currentBackStackEntryAsState()
     // Shared statements and quick actions (shortcut, widget, notifications, Capture) open their finance pages.
     val requests = rememberFinanceRequests(nav, sharedStatement, quickAction)
+    // A Today card or an alert notification opens its page here, through the one link map (`todayDestination`).
+    fun openDestination(destination: TodayDestination) {
+        when (destination) {
+            is TodayDestination.Money -> requests.open(nav, destination.link, destination.importAccount)
+            is TodayDestination.Transaction -> nav.openTransaction(destination.id)
+            TodayDestination.Documents -> nav.openDocuments()
+            is TodayDestination.Document -> nav.openDocument(destination.id)
+        }
+    }
+    // A tapped alert notification (T68): its page, or Today for an alert with no link (and for the summary).
+    val pendingAlert by alertLink.collectAsState()
+    LaunchedEffect(pendingAlert) {
+        val link = pendingAlert ?: return@LaunchedEffect
+        val destination = todayDestination(link)
+        if (destination == null) nav.openTab(TodayRoute) else openDestination(destination)
+        alertLink.value = null
+    }
     // A transaction's documents in Money: the app joins the two feature modules here (D14).
     val financeDocuments = remember(nav, client, canWrite) { AppFinanceDocuments(nav, client, canWrite) }
     // A rail at the side on a wide screen (a tablet, an unfolded foldable, landscape); the bar below otherwise.
@@ -282,14 +308,7 @@ fun MainScreen(
                         model = viewModel { TodayViewModel(todayApi) },
                         modules = MODULES,
                         contentPadding = padding,
-                        open = { destination ->
-                            when (destination) {
-                                is TodayDestination.Money -> requests.open(nav, destination.link, destination.importAccount)
-                                is TodayDestination.Transaction -> nav.openTransaction(destination.id)
-                                TodayDestination.Documents -> nav.openDocuments()
-                                is TodayDestination.Document -> nav.openDocument(destination.id)
-                            }
-                        },
+                        open = { openDestination(it) },
                         openModule = { module ->
                             when (module.route) {
                                 MoneyHomeRoute -> nav.openMoneyHome()
@@ -346,7 +365,10 @@ fun MainScreen(
                 )
                 composable<AppSettingsRoute> {
                     if (preferences != null && financePreferences != null) {
-                        AppSettingsScreen(preferences, financePreferences, lock, padding, onBack = { nav.popBackStack() })
+                        AppSettingsScreen(
+                            preferences, financePreferences, lock, padding, onBack = { nav.popBackStack() },
+                            alertSettings = alertSettings,
+                        )
                     }
                 }
                 composable<AccountSettingsRoute> {

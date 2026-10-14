@@ -39,7 +39,7 @@ class AlertsTest {
             ExistingPeriodicWorkPolicy.UPDATE,
             PeriodicWorkRequestBuilder<AlertWorker>(6, TimeUnit.HOURS).build(),
         )
-        preferences.setImportReminders(true)
+        preferences.setMonthlyReview(true)
 
         Alerts.keepScheduled(context, preferences)
         val first = work.getWorkInfosForUniqueWork("alerts").get().single().id

@@ -29,8 +29,6 @@ import com.guibilar.financeinsights.core.api.apiError
 import com.guibilar.financeinsights.core.logic.BudgetAlert
 import com.guibilar.financeinsights.core.logic.budgetAlerts
 import com.guibilar.financeinsights.core.logic.budgetLevelsDropped
-import com.guibilar.financeinsights.core.logic.importReminder
-import com.guibilar.financeinsights.core.logic.priceAlerts
 import com.guibilar.financeinsights.core.logic.reviewAlert
 import com.guibilar.financeinsights.core.logic.reviewKey
 import com.guibilar.financeinsights.core.logic.staleAlertKeys
@@ -39,12 +37,12 @@ import com.guibilar.financeinsights.core.model.BudgetFilter
 import com.guibilar.financeinsights.core.model.Status
 import com.guibilar.financeinsights.widget.SpendingWidget
 import java.time.LocalDate
-import java.time.ZoneId
 import java.util.concurrent.TimeUnit
 
 /**
- * The notifications: a check every few hours (when online) for budgets passing 80% and 100%, price changes, the monthly
- * review and import reminders.
+ * The local finance notifications: a check every few hours (when online) for budgets passing 80% and for the monthly
+ * review. All other notifications come from the server alerts, which the app polls (T68, `AlertNotifications` in the
+ * app): a budget over its limit, price changes, statements to import, and more. These two rules have no server alert.
  */
 object Alerts {
     private const val WORK = "alerts"
@@ -78,35 +76,34 @@ object Alerts {
         WorkManager.getInstance(context).cancelUniqueWork(WORK)
     }
 
-    /** Checks in the background while any notification is on (budgets, price changes, the monthly review, import reminders). */
+    /** Checks in the background while a local notification is on (budget warnings, the monthly review). */
     fun reschedule(context: Context, preferences: FinancePreferences) {
         if (preferences.anyAlerts) schedule(context) else cancel(context)
     }
 
-    /** Price changes and the monthly review, apart from the budgets in the phone's notification settings. */
+    /** The monthly review, apart from the budget warnings in the phone's notification settings. */
     const val INSIGHTS_CHANNEL = "insights"
 
-    /** The import reminders, a channel of their own so they can be silenced alone. */
-    const val REMINDERS_CHANNEL = "reminders"
+    /** The channel of the old import reminders, removed in T68 (the server alert "statements-not-imported" tells it). */
+    private const val OLD_REMINDERS_CHANNEL = "reminders"
 
-    /** The "Budgets" and "Subscriptions and reviews" channels, in the phone's notification settings. */
+    /**
+     * The "Budget warnings" and "Monthly review" channels, in the phone's notification settings. The ids stay, so a
+     * channel that the person silenced stays silenced; only the names change.
+     */
     fun createChannel(context: Context) {
         val manager = context.getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(
-            NotificationChannel(CHANNEL, "Budgets", NotificationManager.IMPORTANCE_DEFAULT).apply {
-                description = "When a budget is nearly or fully used up"
+            NotificationChannel(CHANNEL, "Budget warnings", NotificationManager.IMPORTANCE_DEFAULT).apply {
+                description = "When a budget is nearly used up (80%)"
             },
         )
         manager.createNotificationChannel(
-            NotificationChannel(INSIGHTS_CHANNEL, "Subscriptions and reviews", NotificationManager.IMPORTANCE_DEFAULT).apply {
-                description = "When a subscription's price changes, and the month before in review"
+            NotificationChannel(INSIGHTS_CHANNEL, "Monthly review", NotificationManager.IMPORTANCE_DEFAULT).apply {
+                description = "The month before in review, early each month"
             },
         )
-        manager.createNotificationChannel(
-            NotificationChannel(REMINDERS_CHANNEL, "Import reminders", NotificationManager.IMPORTANCE_DEFAULT).apply {
-                description = "When no statement has been imported for more than a week"
-            },
-        )
+        manager.deleteNotificationChannel(OLD_REMINDERS_CHANNEL)
     }
 
     /** A notification on the insights channel that opens [action]'s screen; [id] replaces an earlier one of it. */
@@ -230,8 +227,6 @@ internal class SentAlerts(context: Context) {
     }
 }
 
-private const val IMPORT_REMINDER_ID = 7_000
-
 class AlertWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         val host = applicationContext.financeHost
@@ -262,16 +257,6 @@ class AlertWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
                 sent.record(alert)
             }
         }
-        if (preferences.priceAlerts.value) {
-            val recurring = apiCall { api.recurring() }.orRetry()
-            if (recurring != null) priceAlerts(recurring, today, sent.all()).forEach { alert ->
-                Alerts.notifyInsight(
-                    applicationContext, alert.key.hashCode(), QuickAction.Subscriptions.intentAction, alert.title, alert.text, private,
-                    "A subscription's price changed",
-                )
-                sent.record(alert.key, 1)
-            }
-        }
         if (preferences.monthlyReview.value) {
             val key = reviewKey(today)
             if (key != null && sent.all()[key] == null) {
@@ -284,17 +269,6 @@ class AlertWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
                     )
                     sent.record(key, 1)
                 }
-            }
-        }
-        if (preferences.importReminders.value) {
-            val accounts = apiCall { api.accounts() }.orRetry()
-            if (accounts != null) importReminder(accounts, today, ZoneId.systemDefault(), sent.all())?.let { reminder ->
-                // One at a time: a later week's reminder replaces the one before.
-                Alerts.notifyInsight(
-                    applicationContext, IMPORT_REMINDER_ID, QuickAction.Import.intentAction, reminder.title, reminder.text, private,
-                    "Time to import your statements", Alerts.REMINDERS_CHANNEL,
-                )
-                sent.record(reminder.key, 1)
             }
         }
         return if (retry) Result.retry() else Result.success()
