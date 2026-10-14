@@ -65,6 +65,12 @@ android {
     }
 }
 
+// The screenshot tests write build/shots, which is not a declared output. A test result from the build cache
+// does not bring these images back, so the tests always run (T27).
+tasks.withType<Test>().configureEach {
+    outputs.doNotCacheIf("The screenshot tests write build/shots, which is not a declared output") { true }
+}
+
 kotlin {
     jvmToolchain(21)
     compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) }

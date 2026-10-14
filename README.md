@@ -169,6 +169,28 @@ A failed upload does not fail the run. The step **Warn about failed uploads** th
 **Actions** tab, or with `gh api -X DELETE repos/guibilar/PersonalFinanceInsightsAndroid/actions/artifacts/<id>`.
 Each new upload step must set `retention-days` and `continue-on-error: true`, and the warning step must name it.
 
+### CI annotations
+
+CI writes its results as annotations, so you can see them on the run page (and with
+`gh api repos/guibilar/PersonalFinanceInsightsAndroid/check-runs/<id>/annotations`) without the logs or artifacts.
+The steps run also when the tests fail.
+
+| Annotation | Step | Contents |
+| --- | --- | --- |
+| Notice `Tests :<module>` | Test results as annotations | Totals of one module: tests, passed, failed, skipped, and time |
+| Error `Failed test :<module>` | Test results as annotations | The test name and the first lines of its message (at most 9; then one error with the number of the others) |
+| Notice `Screenshots` | Screenshot summary as an annotation | The number of images, and the short hash (SHA-256, 10 characters) of each new, changed, or removed image, compared with `main` |
+
+- The scripts are `scripts/test-annotations.py` (JUnit XML in `<module>/build/test-results/`) and
+  `scripts/screenshot-summary.py` (PNG files in `<module>/build/shots/`).
+- Gradle runs with `--continue`, so a failure in one module does not hide the results of the others.
+- A run on `main` saves its list of screenshot hashes in the Actions cache (`screenshots-<commit>`). A pull request
+  restores the list of its base commit, or else the newest list of `main`. A hash that changes shows a changed
+  image. Download the `screenshots` artifact to look at it.
+- The screenshot tests (`:app`, `:feature:finance`, `:feature:documents`) are not cacheable, because the images are
+  not a declared output. Thus CI always renders them.
+- GitHub shows at most 10 notices and 10 errors per step. Keep this limit in mind when you add a module.
+
 ## Modules
 
 The app is split into Gradle modules, so that more modules (documents, tasks, and so on) can be added next to finance.
