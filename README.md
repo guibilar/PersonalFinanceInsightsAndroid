@@ -185,7 +185,10 @@ How they connect:
   stays under "Coming soon". After an import or a new transaction (`DataChanges.changed()`), the next Today load asks
   the server for new cards (`refresh=true`), and not its 30-second cache. `todayDestination(...)` gives a
   `TodayDestination`: a Money page, one transaction (`/money/transactions?id=<id>`), the Documents list
-  (`/documents`), or one document (`/documents/<id>`).
+  (`/documents`), or one document (`/documents/<id>`). "Statement to import" for one account
+  (`/money/transactions?importAccount=<id>#import`, T63) opens the import sheet with that account picked
+  (`TodayDestination.Money.importAccount`, then `FinanceRequests.importAccount`). An account that is not in the list
+  picks nothing, as before.
 - **One transaction:** `openTransaction(id)` in `:feature:finance` is the one way to open a transaction from another
   page. Other modules get it through the app (Documents takes an `openTransaction` function), never by a dependency
   on `:feature:finance`. The look-up (`findTransaction(id)` in `:core:finance`: the live transactions, then the deleted

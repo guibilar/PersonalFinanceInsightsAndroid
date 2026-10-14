@@ -382,8 +382,8 @@ class TransactionsViewModel(
         return error.accountMismatch?.let { ImportOutcome.Mismatch(it) } ?: ImportOutcome.Failed(error.importMessage())
     }
 
-    /** Opens the import; with [files] shared to the app, ready to go. */
-    fun openImport(files: List<PickedFile> = emptyList()) = statements.open(files)
+    /** Opens the import; with [files] shared to the app, ready to go, and [accountId] picked (T63). */
+    fun openImport(files: List<PickedFile> = emptyList(), accountId: String? = null) = statements.open(files, accountId)
 
     fun closeImport() = statements.close()
 

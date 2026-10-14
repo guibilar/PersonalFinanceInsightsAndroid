@@ -279,7 +279,7 @@ fun MainScreen(
                         contentPadding = padding,
                         open = { destination ->
                             when (destination) {
-                                is TodayDestination.Money -> requests.open(nav, destination.link)
+                                is TodayDestination.Money -> requests.open(nav, destination.link, destination.importAccount)
                                 is TodayDestination.Transaction -> nav.openTransaction(destination.id)
                                 TodayDestination.Documents -> nav.openDocuments()
                                 is TodayDestination.Document -> nav.openDocument(destination.id)

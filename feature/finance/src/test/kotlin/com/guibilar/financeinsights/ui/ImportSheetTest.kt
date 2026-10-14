@@ -52,6 +52,41 @@ class ImportSheetTest {
         assertTrue(api.sent.none { it.first == "importStatement" })
     }
 
+    @Test
+    fun `a link with an account picks that account, and the files go into it`() {
+        val model = TransactionsViewModel(api, TransactionsRoute()) { LocalDate.of(2026, 10, 3) }
+        api.importAnswers += ImportResult(read = 1, added = 1, skipped = 0, balance = null, balanceDate = null)
+        model.openImport(listOf(PickedFile("June.csv", ByteArray(10))), accountId = SAVINGS)
+        compose.setContent {
+            FinanceTheme(dynamicColor = false) {
+                Surface {
+                    val state by model.state.collectAsState()
+                    ImportSheet(state.accounts, model, {}, state.accountsLoaded)
+                }
+            }
+        }
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Import").performScrollTo().performClick()
+        compose.waitForIdle()
+
+        val sent = api.sent.single { it.first == "importStatement" }.second as List<*>
+        assertEquals(SAVINGS, sent[0])
+    }
+
+    @Test
+    fun `a link with an unknown account picks nothing, and a later open keeps the last choice`() {
+        val model = TransactionsViewModel(api, TransactionsRoute()) { LocalDate.of(2026, 10, 3) }
+        model.openImport(accountId = "not-an-account")
+        assertEquals("not-an-account", model.importState.value.accountId)
+        model.closeImport()
+
+        model.chooseImportAccount(SAVINGS)
+        model.closeImport()
+        model.openImport()
+        assertEquals(SAVINGS, model.importState.value.accountId)
+    }
+
     private fun showSheet(model: TransactionsViewModel, files: List<PickedFile>, onDismiss: () -> Unit = {}) {
         model.openImport(files)
         compose.setContent {
@@ -106,5 +141,10 @@ class ImportSheetTest {
         compose.waitForIdle()
         assertEquals(3, api.sent.count { it.first == "importStatement" })
         assertTrue(dismissed)
+    }
+
+    private companion object {
+        /** "Savings" in the sample accounts: one of several that take statements. */
+        const val SAVINGS = "5b0c4b8e-3f5e-4c1a-9d53-0c2f7a1e8a02"
     }
 }
