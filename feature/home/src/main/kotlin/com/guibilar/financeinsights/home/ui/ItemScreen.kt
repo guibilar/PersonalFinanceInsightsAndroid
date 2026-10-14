@@ -252,7 +252,7 @@ fun ItemScreen(
         }
     }
     if (addingTask && item != null) {
-        MaintenanceDialog(item.name, today, save = model::addMaintenance, onDismiss = { addingTask = false })
+        MaintenanceSheet(item.name, today, save = model::addMaintenance, onDismiss = { addingTask = false })
     }
     when (state.picker) {
         ItemPicker.Document -> PickerSheet(
@@ -519,9 +519,10 @@ private fun MaintenanceSection(tasks: List<ItemTask>, today: LocalDate, canWrite
     }
 }
 
-/** A new maintenance task: what to do, how often (after each done), and the first day. */
+/** A new maintenance task in a sheet: what to do, how often (after each done), and the first day. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MaintenanceDialog(
+private fun MaintenanceSheet(
     itemName: String,
     today: LocalDate,
     save: suspend (String, Int?, RepeatUnit, LocalDate) -> String?,
@@ -534,50 +535,53 @@ private fun MaintenanceDialog(
     var error by remember { mutableStateOf<String?>(null) }
     var saving by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Add maintenance") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text("What to do") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                OutlinedTextField(
-                    value = every,
-                    onValueChange = { text -> every = text.filter { it.isDigit() }.take(4) },
-                    label = { Text("Every") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.width(120.dp),
-                )
-                // Chips, not a drop-down list: a menu in a dialog is a window over a window.
-                ChoiceRow(RepeatUnit.entries, unit, label = { u -> u.many.replaceFirstChar { it.uppercase() } }, onSelect = { unit = it })
-                DateField("First due", LocalDate.parse(first), onChange = { first = it.toString() }, modifier = Modifier.fillMaxWidth())
-                Text(
-                    "The next date counts from the day you mark it done. The task shows in Tasks and on the Home screen.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+        Column(
+            Modifier.padding(horizontal = 20.dp).navigationBarsPadding().imePadding().verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text("New maintenance task", style = MaterialTheme.typography.titleLarge)
+            OutlinedTextField(
+                value = title,
+                onValueChange = { title = it },
+                label = { Text("What to do") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = every,
+                onValueChange = { text -> every = text.filter { it.isDigit() }.take(4) },
+                label = { Text("Every") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.width(120.dp),
+            )
+            ChoiceRow(RepeatUnit.entries, unit, label = { u -> u.many.replaceFirstChar { it.uppercase() } }, onSelect = { unit = it })
+            DateField("First due", LocalDate.parse(first), onChange = { first = it.toString() }, modifier = Modifier.fillMaxWidth())
+            Text(
+                "The next date counts from the day you mark it done. The task shows in Tasks and on the Home screen.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                TextButton(onClick = onDismiss) { Text("Cancel") }
+                Button(
+                    enabled = !saving,
+                    onClick = {
+                        saving = true
+                        scope.launch {
+                            error = save(title, every.toIntOrNull(), unit, LocalDate.parse(first))
+                            saving = false
+                            if (error == null) onDismiss()
+                        }
+                    },
+                ) { Text("Add the task") }
             }
-        },
-        confirmButton = {
-            TextButton(enabled = !saving, onClick = {
-                saving = true
-                scope.launch {
-                    error = save(title, every.toIntOrNull(), unit, LocalDate.parse(first))
-                    saving = false
-                    if (error == null) onDismiss()
-                }
-            }) { Text("Add") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-    )
+            Spacer(Modifier.height(16.dp))
+        }
+    }
 }
 
 /** The item's details in a sheet: the form, and Save. */
