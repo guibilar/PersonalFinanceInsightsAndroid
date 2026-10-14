@@ -59,7 +59,8 @@ import kotlinx.coroutines.launch
 
 /**
  * A new document: scan it, or pick photos or files, then give its details and upload it. [start] opens that source
- * at once (Capture's "Scan" and "Photo"). After the upload, [uploaded] opens the new document.
+ * at once (Capture's "Scan" and "Photo"). After the upload, [uploaded] opens the new document. With a transaction to
+ * link to ([UploadState.linkTo]), the page says so, and [uploaded] comes after the link.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -103,6 +104,13 @@ fun UploadScreen(
                         SourceButton(Icons.Outlined.DocumentScanner, "Scan", Modifier.weight(1f), enabled = !state.uploading) { pickers.launch(DocumentSource.Scan) }
                         SourceButton(Icons.Outlined.Image, "Photos", Modifier.weight(1f), enabled = !state.uploading) { pickers.launch(DocumentSource.Photos) }
                         SourceButton(Icons.Outlined.Folder, "Files", Modifier.weight(1f), enabled = !state.uploading) { pickers.launch(DocumentSource.Files) }
+                    }
+                    if (state.linkTo != null) {
+                        Text(
+                            "After the upload, the document is linked to the transaction that you came from.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                     FilesCard(state.files, state.preparing, remove = model::remove, enabled = !state.uploading)
                     state.error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }

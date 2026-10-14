@@ -66,7 +66,7 @@ data class DocumentState(
 
 /**
  * One document: its details (edited with a full PUT), its files, its OCR text, and its links to transactions. While
- * the OCR is Pending, it reads the document again every [pollEveryMs], for at most [pollForMs].
+ * the OCR is Pending, it reads the document again every [pollEveryMs], for at most [pollForMs]. [notice] shows once.
  */
 class DocumentViewModel(
     private val api: DocumentsApi,
@@ -74,6 +74,8 @@ class DocumentViewModel(
     private val id: String,
     private val pollEveryMs: Long = POLL_EVERY_MS,
     private val pollForMs: Long = POLL_FOR_MS,
+    /** A message to show once when the page opens, for example a link that failed after the upload. */
+    notice: String? = null,
 ) : ViewModel() {
     private val _state = MutableStateFlow(DocumentState())
     val state: StateFlow<DocumentState> = _state.asStateFlow()
@@ -85,6 +87,7 @@ class DocumentViewModel(
     private var candidatesJob: Job? = null
 
     init {
+        notice?.let { _messages.trySend(UiMessage(it)) }
         reload()
     }
 

@@ -4,6 +4,7 @@ import com.guibilar.financeinsights.DocumentsSamples
 import com.guibilar.financeinsights.FakeDocumentsApi
 import com.guibilar.financeinsights.FakeFinanceApi
 import com.guibilar.financeinsights.core.documents.DocumentKind
+import com.guibilar.financeinsights.core.documents.NewDocumentLink
 import com.guibilar.financeinsights.core.documents.OcrStatus
 import com.guibilar.financeinsights.core.documents.UploadFile
 import com.guibilar.financeinsights.core.logic.DataChanges
@@ -16,6 +17,7 @@ import com.guibilar.financeinsights.documents.ui.UploadViewModel
 import com.guibilar.financeinsights.ui.common.LoadState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -316,5 +318,73 @@ class DocumentsViewModelsTest {
 
         assertEquals("The server refused the upload as too large. Try fewer files, or smaller ones.", model.state.value.error)
         assertNull(model.state.value.uploaded)
+    }
+
+    // The upload from a transaction (T14).
+
+    @Test
+    fun `an upload from a transaction starts as a receipt, and links the new document to it`() = runTest(dispatcher) {
+        val transaction = DocumentsSamples.METRO_TRANSACTION
+        val model = UploadViewModel(api, linkTo = transaction)
+        assertEquals(DocumentKind.Receipt, model.state.value.draft.kind)
+        model.add(listOf(pdf))
+
+        model.upload()
+        advanceUntilIdle()
+
+        val state = model.state.value
+        val document = state.uploaded!!
+        assertTrue(state.linked)
+        assertNull(state.linkError)
+        assertEquals("Receipt", api.uploads.single().first { it.first == "kind" }.second)
+        assertEquals("addLink" to NewDocumentLink.transaction(transaction), api.sent.last())
+        assertEquals(listOf(transaction), api.documents.first { it.id == document.id }.links.map { it.targetId })
+    }
+
+    @Test
+    fun `a link that exists already counts as made`() = runTest(dispatcher) {
+        api.refusing["addLink"] = ApiError.Http(409, "Conflict", "The document has this link already.", null, emptyMap())
+        val model = UploadViewModel(api, linkTo = DocumentsSamples.METRO_TRANSACTION)
+        model.add(listOf(pdf))
+
+        model.upload()
+        advanceUntilIdle()
+
+        assertTrue(model.state.value.linked)
+    }
+
+    @Test
+    fun `a failed link keeps the new document, and says to link it on its page`() = runTest(dispatcher) {
+        api.failing += "addLink"
+        val model = UploadViewModel(api, linkTo = DocumentsSamples.METRO_TRANSACTION)
+        model.add(listOf(pdf))
+        model.edit(model.state.value.draft.copy(title = "Metro"))
+
+        model.upload()
+        advanceUntilIdle()
+
+        val state = model.state.value
+        assertFalse(state.linked)
+        assertEquals("Added “Metro”, but could not link it to the transaction. Link it here.", state.linkError)
+        assertEquals("Metro", state.uploaded?.title)
+        assertFalse(state.uploading)
+    }
+
+    @Test
+    fun `an upload without a transaction does not link`() = runTest(dispatcher) {
+        val model = UploadViewModel(api)
+        model.add(listOf(pdf))
+        model.upload()
+        advanceUntilIdle()
+
+        assertFalse(model.state.value.linked)
+        assertTrue(api.sent.none { it.first == "addLink" })
+    }
+
+    @Test
+    fun `a document page opened with a notice shows it once`() = runTest(dispatcher) {
+        val model = DocumentViewModel(api, finance, "d3", notice = "Added “Metro”, but could not link it.")
+        advanceUntilIdle()
+        assertEquals("Added “Metro”, but could not link it.", model.messages.first().text)
     }
 }

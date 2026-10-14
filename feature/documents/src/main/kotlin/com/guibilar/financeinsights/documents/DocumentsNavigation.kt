@@ -27,13 +27,16 @@ import java.time.LocalDate
 @Serializable
 data object DocumentsRoute
 
-/** One document. Web route `/documents/<id>`. */
+/** One document. Web route `/documents/<id>`. [notice] shows once, as a message (a link that failed after an upload). */
 @Serializable
-data class DocumentRoute(val id: String)
+data class DocumentRoute(val id: String, val notice: String? = null)
 
-/** A new document; [source] (a [DocumentSource] name) opens that picker at once. */
+/**
+ * A new document; [source] (a [DocumentSource] name) opens that picker at once. With [transactionId], the upload links
+ * the new document to that transaction, then goes back (a transaction's "Add document" in Money).
+ */
 @Serializable
-data class AddDocumentRoute(val source: String? = null)
+data class AddDocumentRoute(val source: String? = null, val transactionId: String? = null)
 
 /** Whether a page is one of the Documents module's: the app's bar shows them under Modules. */
 fun NavDestination.isDocumentsPage(): Boolean =
@@ -62,6 +65,14 @@ fun NavHostController.addDocument(source: DocumentSource? = null) {
 }
 
 /**
+ * Opens a new document for one transaction, over the page that is open (a transaction in Money). After the upload,
+ * the document is linked to the transaction and the page goes back. If the link fails, the new document opens.
+ */
+fun NavHostController.addDocumentTo(transactionId: String) {
+    navigate(AddDocumentRoute(transactionId = transactionId))
+}
+
+/**
  * The Documents pages, for the app's navigation host. [canWrite] false (a read-only user) hides every write action.
  * [openTransaction] opens a linked transaction in Money.
  */
@@ -87,7 +98,7 @@ fun NavGraphBuilder.documentsGraph(
     composable<DocumentRoute> { backStack ->
         val route = backStack.toRoute<DocumentRoute>()
         DocumentScreen(
-            model = viewModel { DocumentViewModel(client.api(), client.api(), route.id) },
+            model = viewModel { DocumentViewModel(client.api(), client.api(), route.id, notice = route.notice) },
             contentPadding = contentPadding,
             onBack = { nav.popBackStack() },
             openTransaction = openTransaction,
@@ -97,11 +108,20 @@ fun NavGraphBuilder.documentsGraph(
     }
     composable<AddDocumentRoute> { backStack ->
         val route = backStack.toRoute<AddDocumentRoute>()
+        val model = viewModel { UploadViewModel(client.api(), linkTo = route.transactionId) }
         UploadScreen(
-            model = viewModel { UploadViewModel(client.api()) },
+            model = model,
             contentPadding = contentPadding,
             onClose = { nav.popBackStack() },
-            uploaded = { id -> nav.navigate(DocumentRoute(id)) { popUpTo<AddDocumentRoute> { inclusive = true } } },
+            uploaded = { id ->
+                val state = model.state.value
+                if (state.linked) {
+                    // Back to the transaction, which shows the new document.
+                    nav.popBackStack()
+                } else {
+                    nav.navigate(DocumentRoute(id, notice = state.linkError)) { popUpTo<AddDocumentRoute> { inclusive = true } }
+                }
+            },
             start = route.source?.let { name -> DocumentSource.entries.firstOrNull { it.name == name } },
         )
     }

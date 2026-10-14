@@ -10,6 +10,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureScreenRoboImage
+import com.guibilar.financeinsights.FakeDocumentsApi
 import com.guibilar.financeinsights.FakeFinanceApi
 import com.guibilar.financeinsights.FakeTodayApi
 import com.guibilar.financeinsights.fakeApiClient
@@ -66,7 +67,7 @@ class FeaturesScreenshotTest {
     @Test
     @Config(qualifiers = "w360dp-h780dp-xxhdpi")
     fun fiveTabsFitAPhone() {
-        show { MainScreen(fakeApiClient(FakeFinanceApi(), FakeTodayApi()), account, {}) }
+        show { MainScreen(fakeApiClient(FakeFinanceApi(), FakeTodayApi(), FakeDocumentsApi()), account, {}) }
         compose.onNode(hasText("Modules") and isSelectable()).performClick()
         compose.waitForIdle()
         listOf("Today", "Timeline", "Capture", "Modules", "Search").forEach { compose.onNode(hasText(it) and isSelectable()).assertExists() }
