@@ -50,13 +50,13 @@ fun ItemForm(draft: ItemDraft, rooms: List<Room>, onChange: (ItemDraft) -> Unit,
             onPick = { onChange(draft.copy(roomId = it.id)) },
             modifier = Modifier.fillMaxWidth(),
         )
-        TextField("Category", draft.category, "Appliance, Electronics, Furniture") { onChange(draft.copy(category = it)) }
+        TextField("Category", draft.category, Modifier.fillMaxWidth(), "Appliance, Electronics, Furniture") { onChange(draft.copy(category = it)) }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TextField("Brand", draft.brand, modifier = Modifier.weight(1f)) { onChange(draft.copy(brand = it)) }
-            TextField("Model", draft.model, modifier = Modifier.weight(1f)) { onChange(draft.copy(model = it)) }
+            TextField("Brand", draft.brand, Modifier.weight(1f)) { onChange(draft.copy(brand = it)) }
+            TextField("Model", draft.model, Modifier.weight(1f)) { onChange(draft.copy(model = it)) }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TextField("Serial number", draft.serialNumber, modifier = Modifier.weight(2f), capitalize = false) { onChange(draft.copy(serialNumber = it)) }
+            TextField("Serial number", draft.serialNumber, Modifier.weight(2f), capitalize = false) { onChange(draft.copy(serialNumber = it)) }
             NumberField("Quantity", draft.quantity, draft.quantityError, KeyboardType.Number, Modifier.weight(1f)) {
                 onChange(draft.copy(quantity = it.filter(Char::isDigit).take(6)))
             }
@@ -99,8 +99,8 @@ fun ItemForm(draft: ItemDraft, rooms: List<Room>, onChange: (ItemDraft) -> Unit,
 private fun TextField(
     label: String,
     value: String,
+    modifier: Modifier = Modifier,
     placeholder: String? = null,
-    modifier: Modifier = Modifier.fillMaxWidth(),
     capitalize: Boolean = true,
     onChange: (String) -> Unit,
 ) {
