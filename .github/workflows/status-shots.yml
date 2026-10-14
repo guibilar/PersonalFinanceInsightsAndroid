@@ -1,0 +1,38 @@
+name: status-shots
+
+# Probe only: records the Roborazzi screenshots and commits them to this branch, because CI artifacts are not readable from the planning workspace.
+on:
+  push:
+    branches: [probe/status-shots]
+
+permissions:
+  contents: write
+
+jobs:
+  shots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Record screenshots
+        shell: bash
+        run: ./gradlew --console=plain --continue --no-build-cache :feature:finance:testDebugUnitTest :feature:documents:testDebugUnitTest :app:testDebugUnitTest
+      - name: Commit screenshots
+        if: ${{ !cancelled() && !contains(github.event.head_commit.message, '[shots]') }}
+        shell: bash
+        run: |
+          mkdir -p status-shots
+          for d in app feature/finance feature/documents; do
+            [ -d "$d/build/shots" ] && cp -r "$d/build/shots" "status-shots/$(echo $d | tr / -)"
+          done
+          echo "::notice::$(find status-shots -name '*.png' | wc -l) screenshots"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898783+github-actions[bot]@users.noreply.github.com"
+          git add status-shots
+          git commit -m "Screenshots [shots]"
+          git push
