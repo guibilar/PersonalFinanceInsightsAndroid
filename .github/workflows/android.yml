@@ -2,7 +2,7 @@ name: android
 
 on:
   push:
-    branches: [main]
+    branches: [main, hestia/T27-probe-failed-test]
   pull_request:
   # A run on demand makes a new APK when the last one has expired (see "CI artifacts" in the README).
   workflow_dispatch:
