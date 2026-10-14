@@ -64,6 +64,8 @@ kotlin {
 dependencies {
     api(project(":core:documents"))
     api(project(":core:finance"))
+    // The "Tasks" section of a document (T84): the Tasks API only, never :feature:tasks (D14).
+    api(project(":core:tasks"))
     api(project(":core:ui"))
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.core.ktx)
@@ -78,6 +80,7 @@ dependencies {
     testImplementation(testFixtures(project(":core:network")))
     testImplementation(testFixtures(project(":core:finance")))
     testImplementation(testFixtures(project(":core:documents")))
+    testImplementation(testFixtures(project(":core:tasks")))
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)

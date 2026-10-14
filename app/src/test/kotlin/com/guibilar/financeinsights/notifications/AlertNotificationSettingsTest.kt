@@ -26,12 +26,13 @@ class AlertNotificationSettingsTest {
     private fun olderApp(vararg on: String) = prefs.edit(commit = true) { on.forEach { putBoolean(it, true) } }
 
     @Test
-    fun `a new install starts with the notifications off and both modules on`() {
+    fun `a new install starts with the notifications off and all modules on`() {
         val settings = AlertNotificationSettings(context)
 
         assertFalse(settings.enabled.value)
         assertTrue(settings.money.value)
         assertTrue(settings.documents.value)
+        assertTrue(settings.tasks.value)
     }
 
     @Test
@@ -83,6 +84,24 @@ class AlertNotificationSettingsTest {
         assertTrue(settings.notifies("Money"))
         assertFalse(settings.notifies("Documents"))
         assertTrue(settings.notifies("Tasks"))
+        assertTrue(settings.notifies("Garden"))
         assertEquals(false, AlertNotificationSettings(context).documents.value)
+    }
+
+    @Test
+    fun `Tasks has its own switch (T84), on after an update from T68`() {
+        // The settings of T68: migrated, with no Tasks key.
+        prefs.edit(commit = true) {
+            putInt("alertNotifications.version", 1)
+            putBoolean("alertNotifications", true)
+        }
+        val settings = AlertNotificationSettings(context)
+        assertTrue(settings.tasks.value)
+
+        settings.setTasks(false)
+
+        assertFalse(settings.notifies("Tasks"))
+        assertTrue(settings.notifies("Documents"))
+        assertEquals(false, AlertNotificationSettings(context).tasks.value)
     }
 }

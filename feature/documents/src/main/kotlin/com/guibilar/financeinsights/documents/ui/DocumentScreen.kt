@@ -91,6 +91,7 @@ import com.guibilar.financeinsights.core.documents.formatSize
 import com.guibilar.financeinsights.core.logic.Money
 import com.guibilar.financeinsights.core.logic.formatDay
 import com.guibilar.financeinsights.core.model.Transaction
+import com.guibilar.financeinsights.documents.DocumentTasks
 import com.guibilar.financeinsights.ui.common.ErrorState
 import com.guibilar.financeinsights.ui.common.FitText
 import com.guibilar.financeinsights.ui.common.LoadState
@@ -112,7 +113,8 @@ private const val OCR_PREVIEW_LINES = 6
 
 /**
  * One document (design canvas, "Documents"): its details, its files, its text, and its links. [canWrite] false (a
- * read-only user) hides edit, delete, link, and the OCR retry. [openTransaction] opens a linked transaction.
+ * read-only user) hides edit, delete, link, and the OCR retry. [openTransaction] opens a linked transaction. [tasks]
+ * shows the "Tasks" section (T84); none hides it.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -123,6 +125,7 @@ fun DocumentScreen(
     openTransaction: (String) -> Unit,
     canWrite: Boolean = true,
     today: LocalDate = LocalDate.now(),
+    tasks: DocumentTasks? = null,
 ) {
     val state by model.state.collectAsState()
     val snackbar = remember { SnackbarHostState() }
@@ -198,6 +201,7 @@ fun DocumentScreen(
                                 unlink = { unlinking = it.id },
                                 add = { model.findCandidates() },
                             )
+                            if (tasks != null) DocumentTasksSection(loaded.value, tasks, today, canWrite)
                             Spacer(Modifier.height(24.dp))
                         }
                     }

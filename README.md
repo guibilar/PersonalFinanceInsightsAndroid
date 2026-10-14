@@ -14,13 +14,13 @@ The bar at the bottom has five items: **Today**, **Timeline**, **Capture** (the 
   (Money first, with its four headline tiles), then one "Needs attention" list, then a card for the modules that are
   coming. A tile or an item opens its page. Pull down to get new cards. If a module could not load all its figures,
   Today says so; if a module failed, it has its own "Try again".
-- **Modules** lists the modules. Money opens its home and Documents its list; Home, People, Journal and Tasks are
-  "Coming soon". Under them are the app's settings and your account.
+- **Modules** lists the modules. Money opens its home, Documents its list, and Tasks its screen; Home, People and
+  Journal are "Coming soon". Under them are the app's settings and your account.
 - **Money** (its home) has the four tiles, the Money items of "Needs attention" (the same as on Today), and a row for each finance page: Dashboard, Net worth and Review; Transactions,
   Budgets and Subscriptions; and Accounts, Categories, Tags and Rules. Back from a finance page returns to the Money
   home, and then to where you opened it from.
-- **Capture** has four buttons. "Scan" opens the document scanner and "Photo" the photo picker, for a new document;
-  "Expense" opens the "Add transaction" form; Voice is coming soon.
+- **Capture** has five buttons. "Task" opens the quick add of Tasks; "Expense" opens the "Add transaction" form;
+  "Scan" opens the document scanner and "Photo" the photo picker, for a new document; Voice is coming soon.
 - **Timeline** and **Search** are placeholders for now.
 
 **Documents** (on Hestia.Api, `/api/documents`) keeps receipts, warranties, leases, tax slips, insurance policies and
@@ -39,6 +39,25 @@ manuals:
   on a linked transaction opens it in Money. "Link to a transaction" picks one from the latest, or by a search.
 - A Today item for a document that expires soon opens the document.
 - A transaction in Money shows its documents, and can add or link one (below, "Transactions").
+- A document shows its tasks (a tap opens one in Tasks). On a document with an expiry date, "Add task" adds
+  "Renew <title>", due 14 days before the expiry (or today, when that day is past), linked to the document.
+
+**Tasks** (on Hestia.Api, `/api/tasks`) keeps to-dos and repeated home tasks:
+
+- The quick add at the top: type a title and press Enter. The task is due today; the chip under the field picks
+  tomorrow, next week, another day, or no date.
+- The open tasks are in sections: "Overdue", "Today", "Upcoming" (the next 7 days), "Later and no date", and
+  "Recurring" (each repeated task with its rule and next date). A repeated task that is due shows in "Overdue" or
+  "Today" too. "Done" (the last 20 done tasks) is closed until you tap it. "Today" is the server's day
+  (`GET /api/tasks/summary`), so the sections match Today and the alerts.
+- A checkbox marks a task done; the message offers "Undo". A repeated task moves to its next date and stays open.
+  Unchecking a done task opens it again.
+- A tap on a task opens its sheet: title, notes, due date, tags, the repeat (every N days, weeks, months or years;
+  "after each done" or "on a fixed schedule"), "Mark done" and "Undo the last done", the links (a tap opens the
+  document or the transaction; "Link to a document" and "Link to a transaction" pick one from a search), the last
+  times it was done, and delete.
+- Today: the "Tasks" tile opens the screen. An overdue task (`/tasks/<id>`) opens its sheet; "N tasks are overdue"
+  (`/tasks?due=overdue`) shows only the overdue tasks, with "Show all".
 
 **Sign in** with the server's address (where you open the web app, e.g. `https://finance.example.ts.net`) and your
 username and password. The session is kept between launches, for 14 days of inactivity like the web's
@@ -111,9 +130,9 @@ The finance pages:
   **Notifications:**
   - **Needs attention** (T68): the phone asks the server for its alerts (`GET /api/alerts`) every hour, over
     Tailscale, and shows a notification for each new alert: a budget over its limit, a price change, statements to
-    import, unsorted transactions, a document that expires. More than 3 new alerts give one summary. A notification
-    goes away when its alert is resolved. A tap opens the alert's page, as on Today. A switch per module (Money,
-    Documents). The first poll after install, sign-in, or turning it on only notes the open alerts and notifies
+    import, unsorted transactions, a document that expires, an overdue task. More than 3 new alerts give one summary.
+    A notification goes away when its alert is resolved. A tap opens the alert's page, as on Today. A switch per
+    module (Money, Documents, Tasks). The first poll after install, sign-in, or turning it on only notes the open alerts and notifies
     nothing. "Hide amounts" hides the amounts in these notifications too, and with the app lock on the lock screen
     shows only the kind of alert.
   - **Budget warnings** (at 80%) and the **monthly review** are checked on the phone every few hours. The server has
@@ -148,7 +167,7 @@ tab and click **Run workflow** on `main` (see [CI artifacts](#ci-artifacts)).
 ## Building
 
 - JDK 21 and the Android SDK (platform 37.2; Gradle downloads what is missing when the SDK's licences are accepted).
-- `./gradlew :core:common:test :core:network:test :core:finance:test :core:today:test :core:documents:test :core:ui:lintDebug :feature:finance:testDebugUnitTest :feature:finance:lintDebug :feature:documents:testDebugUnitTest :feature:documents:lintDebug :app:testDebugUnitTest :app:lintDebug :app:assembleDebug`
+- `./gradlew :core:common:test :core:network:test :core:finance:test :core:today:test :core:documents:test :core:tasks:test :core:ui:lintDebug :feature:finance:testDebugUnitTest :feature:finance:lintDebug :feature:documents:testDebugUnitTest :feature:documents:lintDebug :feature:tasks:testDebugUnitTest :feature:tasks:lintDebug :app:testDebugUnitTest :app:lintDebug :app:assembleDebug`
 
 This is the command that CI runs. Lint fails the build on any new warning. `app/lint-baseline.xml` holds the one left on
 purpose: the target SDK, which is raised as a change of its own.
@@ -187,9 +206,10 @@ The steps run also when the tests fail.
 - A run on `main` saves its list of screenshot hashes in the Actions cache (`screenshots-<commit>`). A pull request
   restores the list of its base commit, or else the newest list of `main`. A hash that changes shows a changed
   image. Download the `screenshots` artifact to look at it.
-- The screenshot tests (`:app`, `:feature:finance`, `:feature:documents`) are not cacheable, because the images are
+- The screenshot tests (`:app`, `:feature:finance`, `:feature:documents`, `:feature:tasks`) are not cacheable, because the images are
   not a declared output. Thus CI always renders them.
-- GitHub shows at most 10 notices and 10 errors per step. Keep this limit in mind when you add a module.
+- GitHub shows at most 10 notices and 10 errors per step. Keep this limit in mind when you add a module. With
+  `:core:tasks` and `:feature:tasks`, the app has 10 modules with tests: one more puts the totals into one notice.
 
 ## Modules
 
@@ -202,9 +222,11 @@ The app is split into Gradle modules, so that more modules (documents, tasks, an
 | `:core:finance` | Plain Kotlin | The finance API's models and client, and the logic that the finance screens share (date presets, dashboard figures, the rules of the phone's finance notifications). Its test fixtures hold the fake API with responses recorded from a real backend. |
 | `:core:today` | Plain Kotlin | The Today API (`TodayApi`, `GET /api/today`) and the Alerts API (`AlertsApi`, `GET /api/alerts`) with their models, the filler that puts the app's money, percent and date formats into the card texts (it hides amounts in privacy mode), and the one map from a card's or an alert's link to a page of the app (`todayDestination`). Its test fixtures hold the fake `TodayApi` and `AlertsApi`, and sample answers. |
 | `:core:documents` | Plain Kotlin | The Documents API (`DocumentsApi`, `/api/documents`) and its models, the upload form (`DocumentUpload`, multipart) with the checks of size and type, and the expiry and photo-size rules. Its test fixtures hold the fake `DocumentsApi` and sample documents. |
+| `:core:tasks` | Plain Kotlin | The Tasks API (`TasksApi`, `/api/tasks`) and its models, and the rules of the Tasks screen: the sections, the short labels of due dates and repeats, the repeat form (`TaskDraft`), the quick add, and the "Renew" task of a document. Its test fixtures hold the fake `TasksApi` (done, undo and the repeat rules in memory) and sample tasks. |
 | `:core:ui` | Android library | The theme, the common components, the charts, and the frame of the settings pages. |
 | `:feature:finance` | Android library | The Money module: its home, the finance screens, their navigation graph, the finance notifications, the widget, and the finance settings (`FinancePreferences`). |
 | `:feature:documents` | Android library | The Documents module: the list, a document, the upload with the scanner and the pickers, the photo scaling, and its navigation graph (`documentsGraph`). It depends on the core modules only; the transactions of its links come from `:core:finance`. |
+| `:feature:tasks` | Android library | The Tasks module: the Tasks screen (quick add, sections, done and undo), the task sheet (details, repeat, links, completions, delete), and its navigation graph (`tasksGraph`). It depends on the core modules only: linked documents come from `:core:documents`, linked transactions from `:core:finance`. |
 | `:app` | Android app | `MainActivity`, the application class, the module registry, the navigation host with the bar (Today, Timeline, Capture, Modules, Search), sign-in, the lock, the account page, the app's settings, and the alert notifications (`notifications/`). |
 
 How they connect:
@@ -222,7 +244,8 @@ How they connect:
   stays under "Coming soon". After an import or a new transaction (`DataChanges.changed()`), the next Today load asks
   the server for new cards (`refresh=true`), and not its 30-second cache. `todayDestination(...)` gives a
   `TodayDestination`: a Money page, one transaction (`/money/transactions?id=<id>`), the Documents list
-  (`/documents`), or one document (`/documents/<id>`). "Statement to import" for one account
+  (`/documents`), one document (`/documents/<id>`), the Tasks screen (`/tasks`, or `/tasks?due=overdue` for the
+  overdue tasks only), or one task (`/tasks/<id>`). "Statement to import" for one account
   (`/money/transactions?importAccount=<id>#import`, T63) opens the import sheet with that account picked
   (`TodayDestination.Money.importAccount`, then `FinanceRequests.importAccount`). An account that is not in the list
   picks nothing, as before.
@@ -233,6 +256,12 @@ How they connect:
 - `:feature:documents` gives `documentsGraph(...)` and `openDocuments()`, `openDocument(id)` and `addDocument(source)`
   for the other pages (Today, Modules, Capture). It makes its APIs from the signed-in client. A linked transaction
   opens that transaction through the app (`openTransaction(id)`).
+- `:feature:tasks` gives `tasksGraph(...)` and `openTasks(overdueOnly)`, `openTask(id)` and `addTask()` for the other
+  pages (Today, Modules, Capture, a notification). One route, `TasksRoute`, holds the overdue filter, the task to open
+  and the quick add. A linked document or transaction opens through the app (`openDocument`, `openTransaction`).
+- **A document's tasks (T84):** `:feature:documents` reads them with the Tasks API from `:core:tasks`. Opening a task
+  comes from the app through the `DocumentTasks` interface (`AppDocumentTasks` in `:app`), which
+  `documentsGraph(tasks = …)` takes. Without it, the section does not show.
 - The module registry (`MODULES` in `:app`, `ui/modules/ModuleRegistry.kt`) lists each module with its name, icon,
   home route and status. The Modules page and Today read it.
 - Sign-in is in `:core:network`, not in a module. When you sign in, the app gets one `ApiClient` for the server. It has
@@ -245,7 +274,8 @@ How they connect:
 - **A read-only user (T60):** `GET /api/Auth/me` and the sign-in give a `scope` (`full` or `read-only`;
   `CurrentUser.canWrite`). A missing scope (an older server) counts as `full`. `AuthState.SignedIn.canWrite` goes to
   `MainScreen(canWrite = …)`, which passes it to Capture (the buttons are disabled), `documentsGraph(canWrite = …)`,
-  and `AppFinanceDocuments.canWrite` (the "Documents" section of a transaction). In tests, `FakeAuthApi.scope` sets it.
+  `tasksGraph(canWrite = …)` (no quick add, no checkboxes, the task sheet as text), `AppFinanceDocuments.canWrite`
+  (the "Documents" section of a transaction), and `AppDocumentTasks.canWrite` (the "Tasks" section of a document). In tests, `FakeAuthApi.scope` sets it.
 - The widget and the local finance notifications need the session and the app's settings. They get them through the
   `FinanceHost` interface, which the application class implements.
 - **Alert notifications (T68)** are in `:app` (`notifications/`), because they serve all modules.

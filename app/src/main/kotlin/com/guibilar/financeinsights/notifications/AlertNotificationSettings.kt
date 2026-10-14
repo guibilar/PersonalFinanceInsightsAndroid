@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
  * Migration of the old local notifications (once, on the first start after T68):
  * - The notifications are on when the old "Budget alerts", "Subscription price changes" or "Import reminders" switch
  *   was on: the server alerts tell these now ("budget-over", "price-changed", "statements-not-imported").
- * - Money and Documents start on.
+ * - Money and Documents start on. Tasks (T84) starts on too: a new key, so no migration step.
  * - The old "priceAlerts" and "importReminders" settings are removed. "budgetAlerts" stays: it is now the local
  *   warning at 80% (no server alert yet), with "monthlyReview" (`FinancePreferences`).
  */
@@ -36,10 +36,15 @@ class AlertNotificationSettings(context: Context) {
     /** Notifications for the alerts of the Documents module. */
     val documents: StateFlow<Boolean> = _documents.asStateFlow()
 
+    private val _tasks = MutableStateFlow(prefs.getBoolean(KEY_TASKS, true))
+    /** Notifications for the alerts of the Tasks module (overdue tasks). */
+    val tasks: StateFlow<Boolean> = _tasks.asStateFlow()
+
     /** Whether the alerts of [module] give notifications. A module with no switch here (a newer one) does. */
     fun notifies(module: String): Boolean = when (module) {
         MONEY -> money.value
         DOCUMENTS -> documents.value
+        TASKS -> tasks.value
         else -> true
     }
 
@@ -56,6 +61,11 @@ class AlertNotificationSettings(context: Context) {
     fun setDocuments(value: Boolean) {
         prefs.edit { putBoolean(KEY_DOCUMENTS, value) }
         _documents.value = value
+    }
+
+    fun setTasks(value: Boolean) {
+        prefs.edit { putBoolean(KEY_TASKS, value) }
+        _tasks.value = value
     }
 
     private fun migrate() {
@@ -75,10 +85,12 @@ class AlertNotificationSettings(context: Context) {
         /** The module names of the server (`AlertDto.module`). */
         const val MONEY = "Money"
         const val DOCUMENTS = "Documents"
+        const val TASKS = "Tasks"
 
         private const val KEY_ENABLED = "alertNotifications"
         private const val KEY_MONEY = "alertNotifications.Money"
         private const val KEY_DOCUMENTS = "alertNotifications.Documents"
+        private const val KEY_TASKS = "alertNotifications.Tasks"
         private const val KEY_VERSION = "alertNotifications.version"
         private const val VERSION = 1
 

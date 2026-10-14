@@ -13,6 +13,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.guibilar.financeinsights.FakeAlertsApi
 import com.guibilar.financeinsights.FakeDocumentsApi
+import com.guibilar.financeinsights.FakeTasksApi
 import com.guibilar.financeinsights.FakeFinanceApi
 import com.guibilar.financeinsights.FakeTodayApi
 import com.guibilar.financeinsights.fakeApiClient
@@ -74,6 +75,11 @@ class FeaturesScreenshotTest {
         // A module switch: Money off.
         compose.onNodeWithText("Money").performClick()
         assertEquals(false, alertSettings.money.value)
+        // Tasks (T84) has its own switch too.
+        compose.onNodeWithText("Tasks").performScrollTo().performClick()
+        assertEquals(false, alertSettings.tasks.value)
+        compose.onNodeWithText("Tasks").performClick()
+        assertEquals(true, alertSettings.tasks.value)
         shoot("settings-notifications")
     }
 
@@ -87,7 +93,7 @@ class FeaturesScreenshotTest {
     @Test
     @Config(qualifiers = "w360dp-h780dp-xxhdpi")
     fun fiveTabsFitAPhone() {
-        show { MainScreen(fakeApiClient(FakeFinanceApi(), FakeTodayApi(), FakeDocumentsApi(), FakeAlertsApi()), account, {}) }
+        show { MainScreen(fakeApiClient(FakeFinanceApi(), FakeTodayApi(), FakeDocumentsApi(), FakeAlertsApi(), FakeTasksApi()), account, {}) }
         compose.onNode(hasText("Modules") and isSelectable()).performClick()
         compose.waitForIdle()
         listOf("Today", "Timeline", "Capture", "Modules", "Search").forEach { compose.onNode(hasText(it) and isSelectable()).assertExists() }
