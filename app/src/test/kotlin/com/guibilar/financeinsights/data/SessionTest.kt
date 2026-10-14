@@ -6,6 +6,7 @@ import com.guibilar.financeinsights.FakeFinanceApi
 import com.guibilar.financeinsights.core.api.ApiError
 import com.guibilar.financeinsights.core.api.FinanceApi
 import com.guibilar.financeinsights.core.api.PersistentCookieJar
+import com.guibilar.financeinsights.core.model.CurrentUser
 import com.guibilar.financeinsights.core.model.LoginInput
 import com.guibilar.financeinsights.fakeApiClient
 import kotlinx.coroutines.test.runTest
@@ -47,6 +48,19 @@ class SessionTest {
         auth.failing.clear()
         session.resume()
         assertEquals("dev", (session.state.value as AuthState.SignedIn).username)
+    }
+
+    @Test
+    fun `the scope of the user says if the screens can write`() = runTest {
+        session.resume()
+        assertTrue((session.state.value as AuthState.SignedIn).canWrite)
+
+        auth.scope = CurrentUser.READ_ONLY_SCOPE
+        session.resume()
+        assertFalse((session.state.value as AuthState.SignedIn).canWrite)
+
+        session.signIn(SERVER, "dev", "a password")
+        assertFalse((session.state.value as AuthState.SignedIn).canWrite)
     }
 
     @Test

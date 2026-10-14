@@ -47,9 +47,11 @@ class ShellNavigationTest {
     private val quickAction = MutableStateFlow<QuickAction?>(null)
     private val todayApi = FakeTodayApi()
 
-    private fun show() {
+    private fun show(canWrite: Boolean = true) {
         val client = fakeApiClient(FakeFinanceApi(), todayApi, FakeDocumentsApi())
-        compose.setContent { FinanceTheme(dynamicColor = false) { Surface { MainScreen(client, account, {}, quickAction = quickAction) } } }
+        compose.setContent {
+            FinanceTheme(dynamicColor = false) { Surface { MainScreen(client, account, {}, quickAction = quickAction, canWrite = canWrite) } }
+        }
         compose.waitForIdle()
     }
 
@@ -155,6 +157,28 @@ class ShellNavigationTest {
         compose.onNodeWithText("Expense").performClick()
         compose.waitForIdle()
         assertShows("the add form", "Add a transaction")
+    }
+
+    @Test
+    fun `a read-only user gets Capture disabled, and says why`() {
+        show(canWrite = false)
+        tab("Capture").performClick()
+        compose.waitForIdle()
+        listOf("Photo", "Scan", "Voice", "Expense").forEach { compose.onNodeWithText(it).assertIsNotEnabled() }
+        assertShows("Capture", "This account can only read. It cannot add anything.")
+    }
+
+    @Test
+    fun `a read-only user sees a document without its change actions`() {
+        show(canWrite = false)
+        tab("Modules").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Documents").performClick()
+        compose.waitForIdle()
+        assertTrue("no scan action", compose.onAllNodes(hasContentDescription("Scan a document")).fetchSemanticsNodes().isEmpty())
+        compose.onNodeWithText("Apartment lease").performClick()
+        compose.waitForIdle()
+        assertTrue("no OCR retry", !shows("Run OCR again"))
     }
 
     @Test

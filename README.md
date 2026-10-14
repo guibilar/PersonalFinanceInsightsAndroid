@@ -202,6 +202,10 @@ How they connect:
   pages (open a document, the upload for one transaction) come from the app through the `FinanceDocuments`
   interface (`AppFinanceDocuments` in `:app`), which `financeGraph(documents = …)` takes. Without it, the section
   does not show. `addDocumentTo(transactionId)` in `:feature:documents` opens the upload that links the new document.
+- **A read-only user (T60):** `GET /api/Auth/me` and the sign-in give a `scope` (`full` or `read-only`;
+  `CurrentUser.canWrite`). A missing scope (an older server) counts as `full`. `AuthState.SignedIn.canWrite` goes to
+  `MainScreen(canWrite = …)`, which passes it to Capture (the buttons are disabled), `documentsGraph(canWrite = …)`,
+  and `AppFinanceDocuments.canWrite` (the "Documents" section of a transaction). In tests, `FakeAuthApi.scope` sets it.
 - The widget and the notifications need the session and the app's settings. They get them through the `FinanceHost`
   interface, which the application class implements.
 - The plain Kotlin modules are tested on the JVM. The Android modules' tests include screenshot tests (Robolectric and

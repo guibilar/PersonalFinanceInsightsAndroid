@@ -39,24 +39,35 @@ import com.guibilar.financeinsights.ui.common.ReadableColumn
 
 /**
  * Quick capture: four buttons, as in the design. "Photo" and "Scan" add a document (the photo picker, or the
- * document scanner); "Expense" opens the "Add transaction" form. Voice comes with the Inbox module.
+ * document scanner); "Expense" opens the "Add transaction" form. Voice comes with the Inbox module. For a read-only
+ * user ([canWrite] false, T60), every button is disabled and the note says why.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CaptureScreen(contentPadding: PaddingValues, onExpense: () -> Unit, onScan: () -> Unit = {}, onPhoto: () -> Unit = {}) {
+fun CaptureScreen(
+    contentPadding: PaddingValues,
+    onExpense: () -> Unit,
+    onScan: () -> Unit = {},
+    onPhoto: () -> Unit = {},
+    canWrite: Boolean = true,
+) {
     Column(Modifier.fillMaxSize().padding(bottom = contentPadding.calculateBottomPadding())) {
         TopAppBar(title = { FitText("Capture", fontWeight = FontWeight.SemiBold, minFontSize = 14.sp) })
         ReadableColumn {
             Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text("Add something in a few taps.", style = MaterialTheme.typography.bodyMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    CaptureButton(Icons.Outlined.PhotoCamera, "Photo", enabled = true, Modifier.weight(1f), onPhoto)
-                    CaptureButton(Icons.Outlined.DocumentScanner, "Scan", enabled = true, Modifier.weight(1f), onScan)
+                    CaptureButton(Icons.Outlined.PhotoCamera, "Photo", enabled = canWrite, Modifier.weight(1f), onPhoto)
+                    CaptureButton(Icons.Outlined.DocumentScanner, "Scan", enabled = canWrite, Modifier.weight(1f), onScan)
                     CaptureButton(Icons.Outlined.Mic, "Voice", enabled = false, Modifier.weight(1f)) {}
-                    CaptureButton(Icons.Outlined.Payments, "Expense", enabled = true, Modifier.weight(1f), onExpense)
+                    CaptureButton(Icons.Outlined.Payments, "Expense", enabled = canWrite, Modifier.weight(1f), onExpense)
                 }
                 Text(
-                    "Photo and Scan add a document. Voice is coming soon.",
+                    if (canWrite) {
+                        "Photo and Scan add a document. Voice is coming soon."
+                    } else {
+                        "This account can only read. It cannot add anything."
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

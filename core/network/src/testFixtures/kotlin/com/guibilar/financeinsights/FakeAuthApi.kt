@@ -17,6 +17,8 @@ class FakeAuthApi : AuthApi {
     val refusing = mutableMapOf<String, ApiError.Http>()
     /** Every call made, by name, with what was sent. */
     val sent = mutableListOf<Pair<String, Any?>>()
+    /** The scope that sign-in and `me` answer (T60). */
+    var scope: String = CurrentUser.FULL_SCOPE
 
     private fun <T> call(name: String, body: Any?, answer: () -> T): T {
         sent += name to body
@@ -25,9 +27,9 @@ class FakeAuthApi : AuthApi {
         return answer()
     }
 
-    override suspend fun login(login: LoginInput) = call("login", login) { CurrentUser("dev") }
+    override suspend fun login(login: LoginInput) = call("login", login) { CurrentUser("dev", scope) }
     override suspend fun logout() = call("logout", null) {}
-    override suspend fun me() = call("me", null) { CurrentUser("dev") }
+    override suspend fun me() = call("me", null) { CurrentUser("dev", scope) }
     override suspend fun changePassword(change: ChangePasswordInput) = call("changePassword", change) {}
     override suspend fun signOutOthers() = call("signOutOthers", null) { SignedOutSessions(2) }
 }
