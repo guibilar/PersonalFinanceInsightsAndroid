@@ -10,6 +10,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import com.github.takahirom.roborazzi.captureScreenRoboImage
+import com.guibilar.financeinsights.FakeAlertsApi
 import com.guibilar.financeinsights.FakeFinanceApi
 import com.guibilar.financeinsights.core.logic.Money
 import com.guibilar.financeinsights.ui.dashboard.DashboardScreen
@@ -31,6 +32,7 @@ import java.time.LocalDate
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w400dp-h1500dp-xxhdpi")
 class PrivacyModeTest {
+    private val alerts = FakeAlertsApi()
     @get:Rule val compose = createComposeRule()
     private val hidden = mutableStateOf(false)
 
@@ -50,7 +52,7 @@ class PrivacyModeTest {
     @Test
     fun hidesAndShowsEveryAmount() {
         Money.hidden = { hidden.value }
-        val model = DashboardViewModel(FakeFinanceApi()) { LocalDate.of(2026, 10, 4) }
+        val model = DashboardViewModel(FakeFinanceApi(), alerts) { LocalDate.of(2026, 10, 4) }
         compose.setContent {
             FinanceTheme(darkTheme = false, dynamicColor = false) {
                 Surface {

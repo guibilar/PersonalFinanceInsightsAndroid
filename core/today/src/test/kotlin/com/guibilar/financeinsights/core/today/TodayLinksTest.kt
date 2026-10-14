@@ -1,7 +1,6 @@
-package com.guibilar.financeinsights.ui.today
+package com.guibilar.financeinsights.core.today
 
-import com.guibilar.financeinsights.ui.MoneyLink
-import com.guibilar.financeinsights.ui.today.TodayDestination.Money
+import com.guibilar.financeinsights.core.today.TodayDestination.Money
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test

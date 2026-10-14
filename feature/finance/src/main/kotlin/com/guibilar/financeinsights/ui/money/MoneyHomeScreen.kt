@@ -33,7 +33,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -45,7 +44,6 @@ import com.guibilar.financeinsights.ui.AccountsRoute
 import com.guibilar.financeinsights.ui.BudgetsRoute
 import com.guibilar.financeinsights.ui.CategoriesRoute
 import com.guibilar.financeinsights.ui.DashboardRoute
-import com.guibilar.financeinsights.ui.MoneyLink
 import com.guibilar.financeinsights.ui.NetWorthRoute
 import com.guibilar.financeinsights.ui.ReviewRoute
 import com.guibilar.financeinsights.ui.RulesRoute
@@ -55,11 +53,10 @@ import com.guibilar.financeinsights.ui.TransactionsRoute
 import com.guibilar.financeinsights.ui.common.FitText
 import com.guibilar.financeinsights.ui.common.ReadableColumn
 import com.guibilar.financeinsights.ui.dashboard.DashboardViewModel
-import com.guibilar.financeinsights.ui.theme.LocalChartColors
 
 /**
- * The Money module's home: the four headline tiles, then a row for each finance page, in the web's groups (Overview,
- * Spending, Setup). [open] takes the route of the page to open; [openImport] opens the transactions with the import.
+ * The Money module's home: the four headline tiles and what needs attention (the server's Money alerts, as on Today),
+ * then a row for each finance page, in the web's groups (Overview, Spending, Setup). [open] takes the route of the page to open; [openImport] opens the transactions with the import.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,7 +73,6 @@ fun MoneyHomeScreen(
         model.resumed()
         onPauseOrDispose {}
     }
-    val attention = state.attention().size
     Column(Modifier.fillMaxSize().padding(bottom = contentPadding.calculateBottomPadding())) {
         TopAppBar(
             title = { FitText("Money", fontWeight = FontWeight.SemiBold, minFontSize = 14.sp) },
@@ -87,40 +83,9 @@ fun MoneyHomeScreen(
             // On a tablet, a centred column rather than rows stretched across the screen.
             ReadableColumn {
                 Column(Modifier.verticalScroll(rememberScrollState())) {
-                    MoneyGlance(
-                        state,
-                        open = { link ->
-                            when (link) {
-                                MoneyLink.NetWorth -> open(NetWorthRoute)
-                                MoneyLink.Budgets -> open(BudgetsRoute)
-                                MoneyLink.Subscriptions -> open(SubscriptionsRoute)
-                                MoneyLink.Rules -> open(RulesRoute)
-                                MoneyLink.Import -> openImport()
-                                // Not from the glance; Today opens these.
-                                MoneyLink.Home -> {}
-                                MoneyLink.Dashboard -> open(DashboardRoute)
-                                MoneyLink.Transactions -> open(TransactionsRoute())
-                                MoneyLink.Review -> open(ReviewRoute())
-                                MoneyLink.Categories -> open(CategoriesRoute)
-                                MoneyLink.Tags -> open(TagsRoute)
-                                MoneyLink.Accounts -> open(AccountsRoute)
-                            }
-                        },
-                        modifier = Modifier.padding(16.dp),
-                        // The dashboard holds the list; its row says how many.
-                        attention = false,
-                    )
+                    MoneyGlance(state, open = open, openImport = openImport, retry = model::retryAlerts, modifier = Modifier.padding(16.dp))
                     Group("Overview")
-                    Entry(
-                        Icons.Outlined.Dashboard,
-                        "Dashboard",
-                        when (attention) {
-                            0 -> "The month at a glance, with charts"
-                            1 -> "1 item needs attention"
-                            else -> "$attention items need attention"
-                        },
-                        supportingColor = if (attention > 0) LocalChartColors.current.negative else null,
-                    ) { open(DashboardRoute) }
+                    Entry(Icons.Outlined.Dashboard, "Dashboard", "The month at a glance, with charts") { open(DashboardRoute) }
                     Entry(Icons.AutoMirrored.Outlined.ShowChart, "Net worth", "What the accounts hold, less what the cards owe") { open(NetWorthRoute) }
                     Entry(Icons.Outlined.CalendarMonth, "Review", "A month or a year against the one before") { open(ReviewRoute()) }
                     HorizontalDivider(Modifier.padding(vertical = 8.dp))
@@ -152,10 +117,10 @@ private fun Group(title: String) {
 }
 
 @Composable
-private fun Entry(icon: ImageVector, title: String, subtitle: String, supportingColor: Color? = null, onClick: () -> Unit) {
+private fun Entry(icon: ImageVector, title: String, subtitle: String, onClick: () -> Unit) {
     ListItem(
         headlineContent = { Text(title) },
-        supportingContent = { Text(subtitle, color = supportingColor ?: Color.Unspecified) },
+        supportingContent = { Text(subtitle) },
         leadingContent = { Icon(icon, null, tint = MaterialTheme.colorScheme.primary) },
         modifier = Modifier.clickable(onClick = onClick),
     )

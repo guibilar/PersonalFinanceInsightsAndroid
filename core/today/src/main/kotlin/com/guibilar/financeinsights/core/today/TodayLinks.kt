@@ -1,13 +1,16 @@
-package com.guibilar.financeinsights.ui.today
+package com.guibilar.financeinsights.core.today
 
-import com.guibilar.financeinsights.ui.MoneyLink
 import java.net.URLDecoder
 
-// The one place that turns a Today card's link into a page of this app. The server sends web routes (the same links as
-// the web app, for example "/money/budgets", "/money/rules#unsorted", "/money/transactions?id=<id>" or
-// "/documents/<id>"), so both clients use one contract.
+// The one place that turns the link of a Today card or an alert into a page of this app. The server sends web routes
+// (the same links as the web app, for example "/money/budgets", "/money/rules#unsorted", "/money/transactions?id=<id>"
+// or "/documents/<id>"), so both clients use one contract. Today (in :app) and the Money pages (in :feature:finance)
+// both use this map, so it is here and not in one of them.
 
-/** A page of the app that a Today card opens. */
+/** A finance page that a link leads to. Each Money page turns it into its route. */
+enum class MoneyLink { Home, Dashboard, Transactions, Import, Budgets, NetWorth, Subscriptions, Review, Rules, Categories, Tags, Accounts }
+
+/** A page of the app that a Today card or an alert opens. */
 sealed interface TodayDestination {
     /** A finance page (or the Money home). */
     data class Money(val link: MoneyLink) : TodayDestination

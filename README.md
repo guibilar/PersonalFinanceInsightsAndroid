@@ -16,7 +16,7 @@ The bar at the bottom has five items: **Today**, **Timeline**, **Capture** (the 
   Today says so; if a module failed, it has its own "Try again".
 - **Modules** lists the modules. Money opens its home and Documents its list; Home, People, Journal and Tasks are
   "Coming soon". Under them are the app's settings and your account.
-- **Money** (its home) has the four tiles and a row for each finance page: Dashboard, Net worth and Review; Transactions,
+- **Money** (its home) has the four tiles, the Money items of "Needs attention" (the same as on Today), and a row for each finance page: Dashboard, Net worth and Review; Transactions,
   Budgets and Subscriptions; and Accounts, Categories, Tags and Rules. Back from a finance page returns to the Money
   home, and then to where you opened it from.
 - **Capture** has four buttons. "Scan" opens the document scanner and "Photo" the photo picker, for a new document;
@@ -47,12 +47,18 @@ username and password. The session is kept between launches, for 14 days of inac
 The finance pages:
 
 - **Dashboard** has headline tiles: spent this month against a usual month at the same point, left over this month, net
-  worth and budgets over their limit. Then **Needs attention**, where each item opens the place to deal with it:
+  worth and budgets over their limit. Then **Needs attention**, where each item opens the place to deal with it. The
+  items come from the server (`GET /api/alerts`, the Money alerts of Hestia's Alerts module), so the Money home, the
+  dashboard and Today show the same items; the app has no copy of the rules. Today the server finds:
   - budgets over their limit;
   - no statement imported for more than a week;
   - an account whose statements stop before last month;
   - a subscription whose price changed;
   - transactions left in Other because no rule names their merchant.
+
+  If some data did not load in the server's last check, a short note says that the list can be out of date. If the
+  list could not load, the card says so, with "Try again". Pull to refresh, "Try again", and the first load after an
+  import or a new transaction ask the server to check its rules first (`refresh=true`).
 
   The cards below cover:
   - where the month is heading (spent, payments still due, usual spending for the days left);
@@ -164,8 +170,8 @@ The app is split into Gradle modules, so that more modules (documents, tasks, an
 | --- | --- | --- |
 | `:core:common` | Plain Kotlin | Amounts and days as the app shows them (`Money`, `formatDay`), privacy mode, and `DataChanges` (the data changed in the app). |
 | `:core:network` | Plain Kotlin | The HTTP client (Retrofit, OkHttp) with the cookie jar kept in the app's private storage, the server's address, and API errors. Sign-in (`AuthApi`, the `/api/Auth/*` endpoints) and the signed-in client (`ApiClient`) that all modules share. Its test fixtures hold the fake `AuthApi` and `fakeApiClient(...)`. |
-| `:core:finance` | Plain Kotlin | The finance API's models and client, and the logic that the finance screens share (date presets, dashboard figures, alerts, attention items). Its test fixtures hold the fake API with responses recorded from a real backend. |
-| `:core:today` | Plain Kotlin | The Today API (`TodayApi`, `GET /api/today`) and its models, and the filler that puts the app's money, percent and date formats into the card texts (it hides amounts in privacy mode). Its test fixtures hold the fake `TodayApi` and sample answers. |
+| `:core:finance` | Plain Kotlin | The finance API's models and client, and the logic that the finance screens share (date presets, dashboard figures, the rules of the phone's finance notifications). Its test fixtures hold the fake API with responses recorded from a real backend. |
+| `:core:today` | Plain Kotlin | The Today API (`TodayApi`, `GET /api/today`) and the Alerts API (`AlertsApi`, `GET /api/alerts`) with their models, the filler that puts the app's money, percent and date formats into the card texts (it hides amounts in privacy mode), and the one map from a card's or an alert's link to a page of the app (`todayDestination`). Its test fixtures hold the fake `TodayApi` and `AlertsApi`, and sample answers. |
 | `:core:documents` | Plain Kotlin | The Documents API (`DocumentsApi`, `/api/documents`) and its models, the upload form (`DocumentUpload`, multipart) with the checks of size and type, and the expiry and photo-size rules. Its test fixtures hold the fake `DocumentsApi` and sample documents. |
 | `:core:ui` | Android library | The theme, the common components, the charts, and the frame of the settings pages. |
 | `:feature:finance` | Android library | The Money module: its home, the finance screens, their navigation graph, the finance notifications, the widget, and the finance settings (`FinancePreferences`). |
@@ -177,10 +183,12 @@ How they connect:
 - `:feature:finance` does not depend on `:app`. The app calls `financeGraph(...)` in its navigation host. The bar shows
   the finance pages under Modules (`isFinancePage()`). `rememberFinanceRequests(...)` sends shared statements and quick
   actions (shortcut, widget, notifications, Capture) to the finance pages, over the Money home (`openFinancePage(...)`).
-  The Money home shows its tiles with `MoneyGlance(...)`.
+  The Money home shows its tiles and its "Needs attention" items with `MoneyGlance(...)`. The items are the server's Money
+  alerts (`AlertsApi`); their links go through the same `todayDestination(...)` as Today, and `MoneyLink.route` gives
+  each finance page's route.
 - **Today** (`:app`, `ui/today`) reads only the Today API. The server owns the card rules, so Today and the web show
   the same cards. A card's link is a web route (for example `/money/budgets`); `todayDestination(...)` in
-  `TodayLinks.kt` is the one place that turns it into a page of the app. A link that the app does not know opens the
+  `TodayLinks.kt` (in `:core:today`) is the one place that turns it into a page of the app. A link that the app does not know opens the
   Money home. A module with cards gets its own section on Today, with no app change; a registry module with no cards
   stays under "Coming soon". After an import or a new transaction (`DataChanges.changed()`), the next Today load asks
   the server for new cards (`refresh=true`), and not its 30-second cache. `todayDestination(...)` gives a

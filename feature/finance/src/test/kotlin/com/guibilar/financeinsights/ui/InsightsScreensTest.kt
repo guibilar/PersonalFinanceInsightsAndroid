@@ -13,6 +13,8 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import com.github.takahirom.roborazzi.captureScreenRoboImage
+import com.guibilar.financeinsights.AlertSamples
+import com.guibilar.financeinsights.FakeAlertsApi
 import com.guibilar.financeinsights.FakeFinanceApi
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.hasText
@@ -49,6 +51,7 @@ import java.time.LocalDate
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w400dp-h1500dp-xxhdpi")
 class InsightsScreensTest {
+    private val alerts = FakeAlertsApi()
     @get:Rule val compose = createComposeRule()
     private val api = FakeFinanceApi()
     private val today = LocalDate.of(2026, 10, 4)
@@ -95,17 +98,18 @@ class InsightsScreensTest {
 
     @Test
     fun dashboardForecast() {
-        var rules = 0
-        val model = DashboardViewModel(api) { today }
-        show { DashboardScreen(model, AccountInfo("dev", "s"), {}, PaddingValues(), {}, openRules = { rules++ }) }
+        val pages = mutableListOf<Any>()
+        val model = DashboardViewModel(api, alerts) { today }
+        show { DashboardScreen(model, AccountInfo("dev", "s"), {}, PaddingValues(), {}, openPage = { pages += it }) }
 
         compose.onNodeWithText("Where the month is heading").assertExists()
         compose.onNodeWithText("$2,065.19").assertExists()
         compose.onNodeWithText("Budgets at this pace").performScrollTo()
         shoot("dashboard-forecast")
 
+        // The server's alert for unsorted transactions links to "/money/rules#unsorted".
         compose.onNodeWithText("in Other because no rule names", substring = true).performScrollTo().performClick()
-        assertEquals(1, rules)
+        assertEquals(listOf<Any>(RulesRoute), pages)
     }
 
     @Test
@@ -118,7 +122,8 @@ class InsightsScreensTest {
             depositedThisYear = 5300.0, roomLeft = 1700.0, lastTransactionDate = "2026-06-16T00:00:00Z",
             balance = AccountBalance("b1", "2026-06-30T00:00:00Z", 4380.73),
         )
-        val model = DashboardViewModel(api) { today }
+        alerts.answer = AlertSamples.many
+        val model = DashboardViewModel(api, alerts) { today }
         show {
             DashboardScreen(
                 model, AccountInfo("dev", "s"), {}, PaddingValues(), {},
@@ -132,7 +137,7 @@ class InsightsScreensTest {
         assertEquals(1, netWorth)
         compose.onNodeWithText("Needs attention").performScrollTo()
         shoot("dashboard-attention")
-        compose.onNodeWithText("Wealthsimple TFSA: statements reach Jun 30, 2026. Import last month's").performClick()
+        compose.onNodeWithText("No statements imported in 9 days").performScrollTo().performClick()
         assertEquals(1, imports)
 
         // Further down the list: composed once scrolled to.

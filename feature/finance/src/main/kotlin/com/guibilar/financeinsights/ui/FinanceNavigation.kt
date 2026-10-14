@@ -26,6 +26,8 @@ import com.guibilar.financeinsights.core.api.FinanceApi
 import com.guibilar.financeinsights.core.logic.ReviewPeriod
 import com.guibilar.financeinsights.core.model.BreakdownInterval
 import com.guibilar.financeinsights.core.model.TransactionCriteria
+import com.guibilar.financeinsights.core.today.AlertsApi
+import com.guibilar.financeinsights.core.today.MoneyLink
 import com.guibilar.financeinsights.ui.budgets.BudgetsScreen
 import com.guibilar.financeinsights.ui.budgets.BudgetsViewModel
 import com.guibilar.financeinsights.ui.dashboard.DashboardScreen
@@ -144,8 +146,24 @@ fun NavHostController.openTransaction(id: String) = openFinancePage(Transactions
 
 private fun NavHostController.hasMoneyHome() = runCatching { getBackStackEntry<MoneyHomeRoute>() }.isSuccess
 
-/** Where a Money tile or an attention item leads, from outside the Money pages (Today). */
-enum class MoneyLink { Home, Dashboard, Transactions, Import, Budgets, NetWorth, Subscriptions, Review, Rules, Categories, Tags, Accounts }
+/**
+ * The route of a finance page. [MoneyLink.Import] is the transactions: the caller also asks for the import. The link
+ * itself comes from the one link map in `:core:today` (`todayDestination`).
+ */
+val MoneyLink.route: Any
+    get() = when (this) {
+        MoneyLink.Home -> MoneyHomeRoute
+        MoneyLink.Dashboard -> DashboardRoute
+        MoneyLink.Transactions, MoneyLink.Import -> TransactionsRoute()
+        MoneyLink.NetWorth -> NetWorthRoute
+        MoneyLink.Budgets -> BudgetsRoute
+        MoneyLink.Subscriptions -> SubscriptionsRoute
+        MoneyLink.Review -> ReviewRoute()
+        MoneyLink.Rules -> RulesRoute
+        MoneyLink.Categories -> CategoriesRoute
+        MoneyLink.Tags -> TagsRoute
+        MoneyLink.Accounts -> AccountsRoute
+    }
 
 /**
  * What came from outside the screens, until they take it: statements shared to the app, and the "Add transaction"
@@ -177,23 +195,8 @@ class FinanceRequests internal constructor(
 
 /** Opens what a Money tile or attention item leads to, from outside the Money pages (Today). */
 fun FinanceRequests.open(nav: NavHostController, link: MoneyLink) {
-    when (link) {
-        MoneyLink.Home -> nav.openFinancePage(MoneyHomeRoute)
-        MoneyLink.Dashboard -> nav.openFinancePage(DashboardRoute)
-        MoneyLink.Transactions -> nav.openFinancePage(TransactionsRoute())
-        MoneyLink.NetWorth -> nav.openFinancePage(NetWorthRoute)
-        MoneyLink.Budgets -> nav.openFinancePage(BudgetsRoute)
-        MoneyLink.Subscriptions -> nav.openFinancePage(SubscriptionsRoute)
-        MoneyLink.Review -> nav.openFinancePage(ReviewRoute())
-        MoneyLink.Rules -> nav.openFinancePage(RulesRoute)
-        MoneyLink.Categories -> nav.openFinancePage(CategoriesRoute)
-        MoneyLink.Tags -> nav.openFinancePage(TagsRoute)
-        MoneyLink.Accounts -> nav.openFinancePage(AccountsRoute)
-        MoneyLink.Import -> {
-            importRequested = true
-            nav.openFinancePage(TransactionsRoute())
-        }
-    }
+    if (link == MoneyLink.Import) importRequested = true
+    nav.openFinancePage(link.route)
 }
 
 /**
@@ -247,6 +250,8 @@ fun rememberFinanceRequests(
 fun NavGraphBuilder.financeGraph(
     nav: NavHostController,
     api: FinanceApi,
+    /** The "Needs attention" items of the Money home and the dashboard. */
+    alerts: AlertsApi,
     account: AccountInfo,
     onSignOut: suspend () -> Unit,
     contentPadding: PaddingValues,
@@ -263,7 +268,7 @@ fun NavGraphBuilder.financeGraph(
     }
     composable<MoneyHomeRoute> {
         MoneyHomeScreen(
-            model = viewModel { DashboardViewModel(api) },
+            model = viewModel { DashboardViewModel(api, alerts) },
             contentPadding = padding,
             onBack = back,
             open = { route -> nav.navigate(route) },
@@ -271,7 +276,7 @@ fun NavGraphBuilder.financeGraph(
         )
     }
     composable<DashboardRoute> {
-        val model = viewModel { DashboardViewModel(api) }
+        val model = viewModel { DashboardViewModel(api, alerts) }
         val hidden = amountsHidden?.collectAsState()?.value ?: false
         DashboardScreen(
             amountsHidden = hidden,
@@ -292,6 +297,14 @@ fun NavGraphBuilder.financeGraph(
             openNetWorth = { nav.navigate(NetWorthRoute) },
             openAccounts = { nav.navigate(AccountsRoute) },
             openImport = openImport,
+            openPage = { route ->
+                when (route) {
+                    DashboardRoute -> {}
+                    // One transaction, or a new list: Back returns to the dashboard.
+                    is TransactionsRoute -> nav.navigate(route) { popUpTo<DashboardRoute>() }
+                    else -> nav.navigate(route)
+                }
+            },
         )
     }
     composable<SubscriptionsRoute> {

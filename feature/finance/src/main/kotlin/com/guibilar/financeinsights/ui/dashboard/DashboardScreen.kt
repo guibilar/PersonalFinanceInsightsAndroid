@@ -41,7 +41,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
-import com.guibilar.financeinsights.core.logic.AttentionKind
 import com.guibilar.financeinsights.core.logic.investments
 import com.guibilar.financeinsights.core.model.BreakdownInterval
 import com.guibilar.financeinsights.core.model.Budget
@@ -58,7 +57,6 @@ import com.guibilar.financeinsights.ui.common.TWO_COLUMNS_WIDTH
 import com.guibilar.financeinsights.ui.common.WIDE_CONTENT_WIDTH
 import com.guibilar.financeinsights.ui.common.SectionCard
 import com.guibilar.financeinsights.ui.common.Skeleton
-import com.guibilar.financeinsights.ui.money.attention
 import com.guibilar.financeinsights.ui.transactions.TransactionRow
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -91,6 +89,8 @@ fun DashboardScreen(
     openAccounts: () -> Unit = {},
     /** The transactions, with the import open. */
     openImport: () -> Unit = {},
+    /** A finance page by its route: where a "Needs attention" item leads (the one link map, `todayDestination`). */
+    openPage: (Any) -> Unit = {},
     /** Privacy mode, and its quick switch (none without the app's settings, as in previews). */
     amountsHidden: Boolean = false,
     toggleAmounts: (() -> Unit)? = null,
@@ -135,17 +135,10 @@ fun DashboardScreen(
                         modifier = Modifier.fillMaxSize(),
                     ) {
                         item(span = StaggeredGridItemSpan.FullLine) { HeadlineTiles(state, openNetWorth, openBudgets) }
-                        val attention = state.attention()
-                        if (attention.isNotEmpty()) {
+                        // The server's Money alerts, the same items as on Today and the Money home.
+                        if (state.alerts.showsCard) {
                             item(span = StaggeredGridItemSpan.FullLine) {
-                                NeedsAttention(attention) { kind ->
-                                    when (kind) {
-                                        AttentionKind.Budget -> openBudgets()
-                                        AttentionKind.Statement -> openImport()
-                                        AttentionKind.Price -> openSubscriptions()
-                                        AttentionKind.Unsorted -> openRules()
-                                    }
-                                }
+                                NeedsAttention(state.alerts, model::retryAlerts, openPage, openImport)
                             }
                         }
                         item {

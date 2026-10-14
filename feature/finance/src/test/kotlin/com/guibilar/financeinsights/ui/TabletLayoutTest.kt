@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.width
 import com.github.takahirom.roborazzi.captureScreenRoboImage
+import com.guibilar.financeinsights.FakeAlertsApi
 import com.guibilar.financeinsights.FakeFinanceApi
 import com.guibilar.financeinsights.ui.budgets.BudgetsScreen
 import com.guibilar.financeinsights.ui.budgets.BudgetsViewModel
@@ -33,6 +34,7 @@ import java.time.LocalDate
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w1280dp-h800dp-land-mdpi")
 class TabletLayoutTest {
+    private val alerts = FakeAlertsApi()
     @get:Rule val compose = createComposeRule()
     private val api = FakeFinanceApi()
     private val account = AccountInfo("dev", "https://finance.example.ts.net")
@@ -53,7 +55,7 @@ class TabletLayoutTest {
 
     @Test
     fun `the dashboard's cards sit in two columns, the tiles in one row`() {
-        val model = DashboardViewModel(api) { today }
+        val model = DashboardViewModel(api, alerts) { today }
         show { DashboardScreen(model, account, {}, PaddingValues(), {}) }
         val forecast = bounds("Where the month is heading")
         val byCategory = bounds("By category")
@@ -91,7 +93,7 @@ class TabletLayoutTest {
 
     @Test
     fun `the Money home is a centred column`() {
-        val model = DashboardViewModel(api) { today }
+        val model = DashboardViewModel(api, alerts) { today }
         show { MoneyHomeScreen(model, PaddingValues(), onBack = {}, open = {}, openImport = {}) }
         val entry = bounds("Subscriptions")
         assertTrue("not at the window's edge", entry.left > 200.dp)
