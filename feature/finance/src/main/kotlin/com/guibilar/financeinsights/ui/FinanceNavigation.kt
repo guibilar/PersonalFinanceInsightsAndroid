@@ -175,6 +175,7 @@ class FinanceRequests internal constructor(
     private val statementState: State<List<PickedFile>?>,
     private val addState: MutableState<Boolean>,
     private val importState: MutableState<Boolean>,
+    private val importAccountState: MutableState<String?>,
 ) {
     val statement: List<PickedFile>? get() = statementState.value
     var addRequested: Boolean
@@ -188,14 +189,27 @@ class FinanceRequests internal constructor(
             importState.value = value
         }
 
+    /** With [importRequested]: the account to pick in the import (T63); null picks as before. */
+    var importAccount: String?
+        get() = importAccountState.value
+        internal set(value) {
+            importAccountState.value = value
+        }
+
     internal fun statementTaken() {
         sharedStatement.value = null
     }
 }
 
-/** Opens what a Money tile or attention item leads to, from outside the Money pages (Today). */
-fun FinanceRequests.open(nav: NavHostController, link: MoneyLink) {
-    if (link == MoneyLink.Import) importRequested = true
+/**
+ * Opens what a Money tile or attention item leads to, from outside the Money pages (Today). For [MoneyLink.Import],
+ * [importAccount] is the account to pick in the import ("Statement to import", T63).
+ */
+fun FinanceRequests.open(nav: NavHostController, link: MoneyLink, importAccount: String? = null) {
+    if (link == MoneyLink.Import) {
+        this.importAccount = importAccount
+        importRequested = true
+    }
     nav.openFinancePage(link.route)
 }
 
@@ -222,6 +236,7 @@ fun rememberFinanceRequests(
     val addRequested = rememberSaveable { mutableStateOf(false) }
     // The import button and the import reminder: the transactions open with the import sheet.
     val importRequested = rememberSaveable { mutableStateOf(false) }
+    val importAccount = rememberSaveable { mutableStateOf<String?>(null) }
     LaunchedEffect(action) {
         when (action) {
             QuickAction.AddTransaction -> {
@@ -234,6 +249,7 @@ fun rememberFinanceRequests(
             QuickAction.Review -> nav.openFinancePage(ReviewRoute())
             // The import reminder: the transactions, with the import open.
             QuickAction.Import -> {
+                importAccount.value = null
                 importRequested.value = true
                 if (entry?.destination?.hasRoute<TransactionsRoute>() != true) nav.openFinancePage(TransactionsRoute())
             }
@@ -241,8 +257,8 @@ fun rememberFinanceRequests(
         }
         quickAction.value = null
     }
-    return remember(sharedStatement, statement, addRequested, importRequested) {
-        FinanceRequests(sharedStatement, statement, addRequested, importRequested)
+    return remember(sharedStatement, statement, addRequested, importRequested, importAccount) {
+        FinanceRequests(sharedStatement, statement, addRequested, importRequested, importAccount)
     }
 }
 
@@ -262,10 +278,13 @@ fun NavGraphBuilder.financeGraph(
 ) {
     val padding = contentPadding
     val back: () -> Unit = { nav.popBackStack() }
-    val openImport: () -> Unit = {
+    // The import, with an account picked when a "Needs attention" item names one (T63).
+    val openAccountImport: (String?) -> Unit = { account ->
+        requests.importAccount = account
         requests.importRequested = true
         nav.navigate(TransactionsRoute()) { popUpTo<MoneyHomeRoute>() }
     }
+    val openImport: () -> Unit = { openAccountImport(null) }
     composable<MoneyHomeRoute> {
         MoneyHomeScreen(
             model = viewModel { DashboardViewModel(api, alerts) },
@@ -273,6 +292,7 @@ fun NavGraphBuilder.financeGraph(
             onBack = back,
             open = { route -> nav.navigate(route) },
             openImport = openImport,
+            openAccountImport = { openAccountImport(it) },
         )
     }
     composable<DashboardRoute> {
@@ -297,6 +317,7 @@ fun NavGraphBuilder.financeGraph(
             openNetWorth = { nav.navigate(NetWorthRoute) },
             openAccounts = { nav.navigate(AccountsRoute) },
             openImport = openImport,
+            openAccountImport = { openAccountImport(it) },
             openPage = { route ->
                 when (route) {
                     DashboardRoute -> {}
@@ -363,7 +384,11 @@ fun NavGraphBuilder.financeGraph(
             addRequested = requests.addRequested,
             onAddTaken = { requests.addRequested = false },
             importRequested = requests.importRequested,
-            onImportTaken = { requests.importRequested = false },
+            importAccount = requests.importAccount,
+            onImportTaken = {
+                requests.importRequested = false
+                requests.importAccount = null
+            },
             documents = documents,
         )
     }

@@ -14,13 +14,14 @@ import com.guibilar.financeinsights.ui.dashboard.NeedsAttention
 /**
  * The Money module at a glance: the dashboard's four headline tiles and its "Needs attention" list (the server's
  * Money alerts, the same items as on Today). The Money home shows it; each tile and item opens its page: [open] takes
- * the route of a finance page, [openImport] opens the transactions with the import, and [retry] checks the alerts again.
+ * the route of a finance page, [openImport] opens the transactions with the import (with an account, when an item
+ * names one), and [retry] checks the alerts again.
  */
 @Composable
 fun MoneyGlance(
     state: DashboardState,
     open: (Any) -> Unit,
-    openImport: () -> Unit,
+    openImport: (account: String?) -> Unit,
     retry: () -> Unit,
     modifier: Modifier = Modifier,
 ) {

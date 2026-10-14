@@ -66,6 +66,8 @@ fun MoneyHomeScreen(
     onBack: (() -> Unit)?,
     open: (Any) -> Unit,
     openImport: () -> Unit,
+    /** The import with an account picked, for a "Needs attention" item that names one (T63). */
+    openAccountImport: (account: String?) -> Unit = { openImport() },
 ) {
     val state by model.state.collectAsState()
     // Back from a finance page or the background: the figures reload.
@@ -83,7 +85,7 @@ fun MoneyHomeScreen(
             // On a tablet, a centred column rather than rows stretched across the screen.
             ReadableColumn {
                 Column(Modifier.verticalScroll(rememberScrollState())) {
-                    MoneyGlance(state, open = open, openImport = openImport, retry = model::retryAlerts, modifier = Modifier.padding(16.dp))
+                    MoneyGlance(state, open = open, openImport = openAccountImport, retry = model::retryAlerts, modifier = Modifier.padding(16.dp))
                     Group("Overview")
                     Entry(Icons.Outlined.Dashboard, "Dashboard", "The month at a glance, with charts") { open(DashboardRoute) }
                     Entry(Icons.AutoMirrored.Outlined.ShowChart, "Net worth", "What the accounts hold, less what the cards owe") { open(NetWorthRoute) }

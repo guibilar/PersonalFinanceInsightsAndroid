@@ -89,6 +89,8 @@ fun DashboardScreen(
     openAccounts: () -> Unit = {},
     /** The transactions, with the import open. */
     openImport: () -> Unit = {},
+    /** The import with an account picked, for a "Needs attention" item that names one (T63). */
+    openAccountImport: (account: String?) -> Unit = { openImport() },
     /** A finance page by its route: where a "Needs attention" item leads (the one link map, `todayDestination`). */
     openPage: (Any) -> Unit = {},
     /** Privacy mode, and its quick switch (none without the app's settings, as in previews). */
@@ -138,7 +140,7 @@ fun DashboardScreen(
                         // The server's Money alerts, the same items as on Today and the Money home.
                         if (state.alerts.showsCard) {
                             item(span = StaggeredGridItemSpan.FullLine) {
-                                NeedsAttention(state.alerts, model::retryAlerts, openPage, openImport)
+                                NeedsAttention(state.alerts, model::retryAlerts, openPage, openAccountImport)
                             }
                         }
                         item {

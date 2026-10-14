@@ -162,6 +162,7 @@ fun FinanceRoot(
             saved.SaveableStateProvider(SIGNED_IN_KEY) {
                 MainScreen(
                     client = current.client,
+                    canWrite = current.canWrite,
                     account = AccountInfo(current.username, session.server.orEmpty()),
                     onSignOut = { session.signOut() },
                     sharedStatement = sharedStatement,
@@ -218,6 +219,8 @@ fun MainScreen(
     preferences: AppPreferences? = null,
     lock: AppLock? = null,
     financePreferences: FinancePreferences? = null,
+    /** False for a read-only user (T60): Capture and the Documents pages hide or disable their write actions. */
+    canWrite: Boolean = true,
 ) {
     // Each module makes its API from the signed-in client (the client keeps it, so it is the same object every time).
     val api: FinanceApi = client.api()
@@ -228,7 +231,7 @@ fun MainScreen(
     // Shared statements and quick actions (shortcut, widget, notifications, Capture) open their finance pages.
     val requests = rememberFinanceRequests(nav, sharedStatement, quickAction)
     // A transaction's documents in Money: the app joins the two feature modules here (D14).
-    val financeDocuments = remember(nav, client) { AppFinanceDocuments(nav, client) }
+    val financeDocuments = remember(nav, client, canWrite) { AppFinanceDocuments(nav, client, canWrite) }
     // A rail at the side on a wide screen (a tablet, an unfolded foldable, landscape); the bar below otherwise.
     val rail = windowWidth() >= MEDIUM_WIDTH
     fun select(item: TopLevel, selected: Boolean) {
@@ -281,7 +284,7 @@ fun MainScreen(
                         contentPadding = padding,
                         open = { destination ->
                             when (destination) {
-                                is TodayDestination.Money -> requests.open(nav, destination.link)
+                                is TodayDestination.Money -> requests.open(nav, destination.link, destination.importAccount)
                                 is TodayDestination.Transaction -> nav.openTransaction(destination.id)
                                 TodayDestination.Documents -> nav.openDocuments()
                                 is TodayDestination.Document -> nav.openDocument(destination.id)
@@ -302,6 +305,7 @@ fun MainScreen(
                 composable<CaptureRoute> {
                     CaptureScreen(
                         padding,
+                        canWrite = canWrite,
                         onExpense = { quickAction.value = QuickAction.AddTransaction },
                         onScan = { nav.addDocument(DocumentSource.Scan) },
                         onPhoto = { nav.addDocument(DocumentSource.Photos) },
@@ -338,6 +342,7 @@ fun MainScreen(
                     client = client,
                     contentPadding = padding,
                     openTransaction = { id -> nav.openTransaction(id) },
+                    canWrite = canWrite,
                 )
                 composable<AppSettingsRoute> {
                     if (preferences != null && financePreferences != null) {

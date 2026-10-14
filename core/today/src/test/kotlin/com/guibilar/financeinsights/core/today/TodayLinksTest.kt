@@ -88,4 +88,18 @@ class TodayLinksTest {
         // Only the Transactions page takes an id.
         assertEquals(Money(MoneyLink.Budgets), todayDestination("/money/budgets?id=b1"))
     }
+
+    // "Statement to import" for one account (T63): "/money/transactions?importAccount=<id>#import".
+
+    @Test
+    fun `a statement to import opens the import with its account`() {
+        val id = "0199a1a1-0000-7000-8000-000000000003"
+        assertEquals(Money(MoneyLink.Import, id), todayDestination("/money/transactions?importAccount=$id#import"))
+        assertEquals(Money(MoneyLink.Import, "a b"), todayDestination("/money/transactions?sort=date&importAccount=a%20b#import"))
+        // "No recent import" has no account.
+        assertEquals(Money(MoneyLink.Import), todayDestination("/money/transactions#import"))
+        assertEquals(Money(MoneyLink.Import), todayDestination("/money/transactions?importAccount=#import"))
+        // Without the fragment, the transactions open as before.
+        assertEquals(Money(MoneyLink.Transactions), todayDestination("/money/transactions?importAccount=$id"))
+    }
 }

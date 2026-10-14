@@ -193,7 +193,10 @@ How they connect:
   stays under "Coming soon". After an import or a new transaction (`DataChanges.changed()`), the next Today load asks
   the server for new cards (`refresh=true`), and not its 30-second cache. `todayDestination(...)` gives a
   `TodayDestination`: a Money page, one transaction (`/money/transactions?id=<id>`), the Documents list
-  (`/documents`), or one document (`/documents/<id>`).
+  (`/documents`), or one document (`/documents/<id>`). "Statement to import" for one account
+  (`/money/transactions?importAccount=<id>#import`, T63) opens the import sheet with that account picked
+  (`TodayDestination.Money.importAccount`, then `FinanceRequests.importAccount`). An account that is not in the list
+  picks nothing, as before.
 - **One transaction:** `openTransaction(id)` in `:feature:finance` is the one way to open a transaction from another
   page. Other modules get it through the app (Documents takes an `openTransaction` function), never by a dependency
   on `:feature:finance`. The look-up (`findTransaction(id)` in `:core:finance`: the live transactions, then the deleted
@@ -210,6 +213,10 @@ How they connect:
   pages (open a document, the upload for one transaction) come from the app through the `FinanceDocuments`
   interface (`AppFinanceDocuments` in `:app`), which `financeGraph(documents = …)` takes. Without it, the section
   does not show. `addDocumentTo(transactionId)` in `:feature:documents` opens the upload that links the new document.
+- **A read-only user (T60):** `GET /api/Auth/me` and the sign-in give a `scope` (`full` or `read-only`;
+  `CurrentUser.canWrite`). A missing scope (an older server) counts as `full`. `AuthState.SignedIn.canWrite` goes to
+  `MainScreen(canWrite = …)`, which passes it to Capture (the buttons are disabled), `documentsGraph(canWrite = …)`,
+  and `AppFinanceDocuments.canWrite` (the "Documents" section of a transaction). In tests, `FakeAuthApi.scope` sets it.
 - The widget and the notifications need the session and the app's settings. They get them through the `FinanceHost`
   interface, which the application class implements.
 - The plain Kotlin modules are tested on the JVM. The Android modules' tests include screenshot tests (Robolectric and

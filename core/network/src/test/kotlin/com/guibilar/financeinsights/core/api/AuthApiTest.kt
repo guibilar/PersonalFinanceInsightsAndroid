@@ -1,11 +1,13 @@
 package com.guibilar.financeinsights.core.api
 
+import com.guibilar.financeinsights.core.model.CurrentUser
 import com.guibilar.financeinsights.core.model.LoginInput
 import kotlinx.coroutines.test.runTest
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -57,6 +59,18 @@ class AuthApiTest {
         // 14 days of inactivity, like "Remember me" on the web.
         assertTrue(login.body!!.utf8().contains("\"rememberMe\":true"))
         assertEquals("finance_session=abc", server.takeRequest().headers["Cookie"])
+    }
+
+    @Test
+    fun `reads the scope of the user, and takes a missing one as full`() = runTest {
+        server.enqueue(MockResponse.Builder().body("""{"username":"read-only token","scope":"read-only"}""").build())
+        server.enqueue(MockResponse.Builder().body("""{"username":"dev","scope":"full"}""").build())
+        server.enqueue(MockResponse.Builder().body("""{"username":"dev"}""").build())
+
+        assertFalse(client().auth.me().canWrite)
+        assertTrue(client().auth.me().canWrite)
+        // An older server sends no scope (T60).
+        assertEquals(CurrentUser("dev", "full"), client().auth.me())
     }
 
     @Test
