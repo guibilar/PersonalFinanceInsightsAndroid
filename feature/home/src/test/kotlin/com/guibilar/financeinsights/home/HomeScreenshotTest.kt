@@ -146,7 +146,7 @@ class HomeScreenshotTest {
         home()
         compose.onNodeWithText("1 warranty ends in the next 30 days").performClick()
         compose.waitForIdle()
-        assertShows("Warranties that end in the next 30 days", "Dishwasher", "Ends in 17 days")
+        assertShows("Warranties that end in the next 30 days", "Dishwasher", "Warranty ends in 17 days")
         compose.onNodeWithText("Show all").performClick()
         compose.waitForIdle()
         assertShows("Maintenance")
@@ -165,7 +165,7 @@ class HomeScreenshotTest {
         val opened = mutableListOf<String>()
         val model = RoomViewModel(api, HomeSamples.kitchen.id)
         show { RoomScreen(model, PaddingValues(), HomeSamples.TODAY, openItem = { opened += it }, addItem = { opened += "add" }, onBack = {}) }
-        assertShows("Kitchen", "2 items · $1,399.99 value", "Dishwasher", "Bosch SHX78 · Appliance", "Ends in 17 days", "Espresso machine", "$500.00")
+        assertShows("Kitchen", "2 items · $1,399.99 value", "Dishwasher", "Bosch SHX78 · Appliance", "Warranty ends in 17 days", "Espresso machine", "$500.00")
         shoot("room")
 
         compose.onNodeWithText("Espresso machine").performClick()
