@@ -3,8 +3,8 @@ package com.guibilar.financeinsights.core.today
 import java.net.URLDecoder
 
 // The one place that turns the link of a Today card or an alert into a page of this app. The server sends web routes
-// (the same links as the web app, for example "/money/budgets", "/money/rules#unsorted", "/money/transactions?id=<id>"
-// or "/documents/<id>"), so both clients use one contract. Today (in :app) and the Money pages (in :feature:finance)
+// (the same links as the web app, for example "/money/budgets", "/money/rules#unsorted", "/money/transactions?id=<id>",
+// "/documents/<id>" or "/tasks?due=overdue"), so both clients use one contract. Today (in :app) and the Money pages (in :feature:finance)
 // both use this map, so it is here and not in one of them.
 
 /** A finance page that a link leads to. Each Money page turns it into its route. */
@@ -26,6 +26,12 @@ sealed interface TodayDestination {
 
     /** One document. */
     data class Document(val id: String) : TodayDestination
+
+    /** The Tasks screen. [overdueOnly] shows only the overdue tasks ("/tasks?due=overdue", T84). */
+    data class Tasks(val overdueOnly: Boolean = false) : TodayDestination
+
+    /** One task ("/tasks/<id>"): the Tasks screen with the task open. */
+    data class Task(val id: String) : TodayDestination
 }
 
 /** The finance pages by their web path (under "/money"), as the web app names them (`money.routes.ts`). */
@@ -63,6 +69,8 @@ fun todayDestination(link: String?): TodayDestination? {
         path == "/money" || path.startsWith("/money/") -> moneyDestination(path.removePrefix("/money").removePrefix("/"), fragment, query)
         path == "/documents" -> TodayDestination.Documents
         path.startsWith("/documents/") -> documentPage(path.removePrefix("/documents/"))
+        path == "/tasks" -> TodayDestination.Tasks(overdueOnly = queryValue(query, "due") == "overdue")
+        path.startsWith("/tasks/") -> taskPage(path.removePrefix("/tasks/"))
         else -> fallback
     }
 }
@@ -94,3 +102,7 @@ private fun moneyPage(page: String, fragment: String): MoneyLink {
 /** "/documents/<id>" opens the document; a deeper path (a page of a newer web app) opens the list. */
 private fun documentPage(rest: String): TodayDestination =
     if (rest.isNotBlank() && '/' !in rest) TodayDestination.Document(rest) else TodayDestination.Documents
+
+/** "/tasks/<id>" opens the task; a deeper path (a page of a newer web app) opens the Tasks screen. */
+private fun taskPage(rest: String): TodayDestination =
+    if (rest.isNotBlank() && '/' !in rest) TodayDestination.Task(rest) else TodayDestination.Tasks()

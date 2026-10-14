@@ -102,4 +102,27 @@ class TodayLinksTest {
         // Without the fragment, the transactions open as before.
         assertEquals(Money(MoneyLink.Transactions), todayDestination("/money/transactions?importAccount=$id"))
     }
+
+    // Tasks (T19 sends "/tasks" on its tile, "/tasks/<id>" for an overdue task, "/tasks?due=overdue" for many).
+
+    @Test
+    fun `the Tasks tile opens the Tasks screen`() {
+        assertEquals(TodayDestination.Tasks(), todayDestination("/tasks"))
+        assertEquals(TodayDestination.Tasks(), todayDestination("/tasks/"))
+        assertEquals(TodayDestination.Tasks(), todayDestination("/tasks?due=today"))
+        assertEquals(TodayDestination.Tasks(), todayDestination("/tasks/t1/history"))
+    }
+
+    @Test
+    fun `many overdue tasks open the overdue tasks only`() {
+        assertEquals(TodayDestination.Tasks(overdueOnly = true), todayDestination("/tasks?due=overdue"))
+        assertEquals(TodayDestination.Tasks(overdueOnly = true), todayDestination("/tasks/?tag=home&due=overdue#top"))
+    }
+
+    @Test
+    fun `an overdue task opens the task`() {
+        assertEquals(TodayDestination.Task("0199c1a2-0000-7000-8000-000000000001"), todayDestination("/tasks/0199c1a2-0000-7000-8000-000000000001"))
+        assertEquals(TodayDestination.Task("t1"), todayDestination("/tasks/t1/?x=1"))
+        assertEquals(Money(MoneyLink.Home), todayDestination("/tasksx"))
+    }
 }

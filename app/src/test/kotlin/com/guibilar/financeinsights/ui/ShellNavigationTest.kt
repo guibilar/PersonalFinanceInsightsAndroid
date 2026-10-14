@@ -18,6 +18,7 @@ import com.guibilar.financeinsights.FakeAlertsApi
 import com.guibilar.financeinsights.DocumentsSamples
 import com.guibilar.financeinsights.FakeDocumentsApi
 import com.guibilar.financeinsights.FakeFinanceApi
+import com.guibilar.financeinsights.FakeTasksApi
 import com.guibilar.financeinsights.FakeTodayApi
 import com.guibilar.financeinsights.TodaySamples
 import com.guibilar.financeinsights.core.today.TodayCard
@@ -47,9 +48,10 @@ class ShellNavigationTest {
     private val account = AccountInfo("dev", "https://finance.example.ts.net")
     private val quickAction = MutableStateFlow<QuickAction?>(null)
     private val todayApi = FakeTodayApi()
+    private val tasksApi = FakeTasksApi()
 
     private fun show(canWrite: Boolean = true) {
-        val client = fakeApiClient(FakeFinanceApi(), todayApi, FakeDocumentsApi(), FakeAlertsApi())
+        val client = fakeApiClient(FakeFinanceApi(), todayApi, FakeDocumentsApi(), FakeAlertsApi(), tasksApi)
         compose.setContent {
             FinanceTheme(dynamicColor = false) { Surface { MainScreen(client, account, {}, quickAction = quickAction, canWrite = canWrite) } }
         }
@@ -153,7 +155,7 @@ class ShellNavigationTest {
         show()
         tab("Capture").performClick()
         compose.waitForIdle()
-        listOf("Photo", "Scan").forEach { compose.onNodeWithText(it).assertIsEnabled() }
+        listOf("Task", "Photo", "Scan").forEach { compose.onNodeWithText(it).assertIsEnabled() }
         compose.onNodeWithText("Voice").assertIsNotEnabled()
         compose.onNodeWithText("Expense").performClick()
         compose.waitForIdle()
@@ -165,7 +167,7 @@ class ShellNavigationTest {
         show(canWrite = false)
         tab("Capture").performClick()
         compose.waitForIdle()
-        listOf("Photo", "Scan", "Voice", "Expense").forEach { compose.onNodeWithText(it).assertIsNotEnabled() }
+        listOf("Task", "Photo", "Scan", "Voice", "Expense").forEach { compose.onNodeWithText(it).assertIsNotEnabled() }
         assertShows("Capture", "This account can only read. It cannot add anything.")
     }
 
@@ -299,5 +301,71 @@ class ShellNavigationTest {
         assertShows("the new document", "After the upload, the document is linked to the transaction that you came from.")
         back()
         assertShows("the transactions", "Transactions")
+    }
+
+    // Tasks (T84).
+
+    @Test
+    fun `Modules opens Tasks, and Back returns to Modules`() {
+        show()
+        tab("Modules").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Tasks").performClick()
+        compose.waitForIdle()
+        assertShows("Tasks", "Today · 3")
+        assertShows("Tasks", "Call the landlord about the lease")
+        tab("Modules").assertIsSelected()
+        back()
+        assertShows("Modules", modules)
+    }
+
+    @Test
+    fun `Capture's Task opens the quick add, and Back returns to Capture`() {
+        show()
+        tab("Capture").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Task").performClick()
+        compose.waitForIdle()
+        assertShows("the quick add", "Add a task")
+        assertShows("the quick add", "Due today")
+        back()
+        assertShows("Capture", "Expense")
+    }
+
+    @Test
+    fun `a Today overdue task opens the task over the Tasks screen`() {
+        val item = TodayCard(
+            id = "tasks.overdue.t1",
+            module = "Tasks",
+            type = TodayCardType.Attention,
+            kind = "overdue",
+            title = "Task overdue",
+            text = "{task} is {days} days late",
+            values = mapOf("task" to TodayValue.plain("Call the landlord about the lease"), "days" to TodayValue.count(2)),
+            severity = TodaySeverity.Warning,
+            link = "/tasks/t1",
+        )
+        todayApi.answer = TodaySamples.complete.copy(cards = TodaySamples.complete.cards + item)
+        show()
+        compose.onNodeWithText("Call the landlord about the lease is 2 days late").performClick()
+        compose.waitForIdle()
+        assertShows("the task sheet", "Mark done")
+        assertTrue("the task was read", tasksApi.sent.any { it == "task" to "t1" })
+        tab("Modules").assertIsSelected()
+    }
+
+    @Test
+    fun `a document's task opens over the document`() {
+        show()
+        tab("Modules").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Documents").performClick()
+        compose.waitForIdle()
+        compose.onAllNodesWithText("Car insurance policy").onFirst().performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Compare car insurance quotes").performScrollTo().performClick()
+        compose.waitForIdle()
+        assertShows("the task sheet", "Mark done")
+        assertTrue("the task was read", tasksApi.sent.any { it == "task" to "t3" })
     }
 }

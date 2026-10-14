@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.guibilar.financeinsights.FakeAlertsApi
 import com.guibilar.financeinsights.FakeDocumentsApi
+import com.guibilar.financeinsights.FakeTasksApi
 import com.guibilar.financeinsights.FakeFinanceApi
 import com.guibilar.financeinsights.FakeTodayApi
 import com.guibilar.financeinsights.fakeApiClient
@@ -48,14 +49,14 @@ class TabletShellTest {
 
     @Test
     fun `the rail holds the five top-level pages`() {
-        show { MainScreen(fakeApiClient(FakeFinanceApi(), FakeTodayApi(), FakeDocumentsApi(), FakeAlertsApi()), account, {}) }
+        show { MainScreen(fakeApiClient(FakeFinanceApi(), FakeTodayApi(), FakeDocumentsApi(), FakeAlertsApi(), FakeTasksApi()), account, {}) }
         listOf("Today", "Timeline", "Capture", "Modules", "Search").forEach { compose.onNode(hasText(it) and isSelectable()).assertExists() }
         shoot("tablet-today")
     }
 
     @Test
     fun `a transaction opens over a centred list`() {
-        show { MainScreen(fakeApiClient(FakeFinanceApi(), FakeTodayApi(), FakeDocumentsApi(), FakeAlertsApi()), account, {}) }
+        show { MainScreen(fakeApiClient(FakeFinanceApi(), FakeTodayApi(), FakeDocumentsApi(), FakeAlertsApi(), FakeTasksApi()), account, {}) }
         compose.onNode(hasText("Modules") and isSelectable()).performClick()
         compose.waitForIdle()
         compose.onNodeWithText("Money").performClick()

@@ -9,6 +9,7 @@ import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.guibilar.financeinsights.documents.DocumentsRoute
+import com.guibilar.financeinsights.tasks.TasksRoute
 import com.guibilar.financeinsights.ui.MoneyHomeRoute
 
 /** Whether a module can be opened yet. */
@@ -80,8 +81,8 @@ val MODULES = listOf(
         name = "Tasks",
         description = "To-dos and regular maintenance",
         icon = Icons.Outlined.CheckBox,
-        route = null,
-        status = ModuleStatus.ComingSoon,
+        route = TasksRoute(),
+        status = ModuleStatus.Active,
         todayPreview = "Tasks that are due today",
     ),
 )

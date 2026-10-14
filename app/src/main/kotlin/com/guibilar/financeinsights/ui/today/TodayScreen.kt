@@ -25,6 +25,7 @@ import androidx.compose.material.icons.automirrored.outlined.TrendingUp
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.Autorenew
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.CheckBox
 import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.ErrorOutline
@@ -273,6 +274,8 @@ private fun tileIcon(kind: String): ImageVector? = when (kind) {
     "left-over" -> Icons.Outlined.Savings
     "net-worth" -> Icons.AutoMirrored.Outlined.ShowChart
     "budgets" -> Icons.Outlined.AccountBalanceWallet
+    // Tasks (T19): the tasks due today.
+    "due-today" -> Icons.Outlined.CheckBox
     else -> null
 }
 
@@ -284,6 +287,8 @@ private fun attentionIcon(kind: String): ImageVector = when (kind) {
     "unsorted" -> Icons.Outlined.Sell
     // Documents (T11): a document that expires soon, or that expired.
     "expiring", "expired" -> Icons.Outlined.Description
+    // Tasks (T19): one overdue task, or many.
+    "overdue", "overdue-many" -> Icons.Outlined.CheckBox
     else -> Icons.Outlined.ErrorOutline
 }
 

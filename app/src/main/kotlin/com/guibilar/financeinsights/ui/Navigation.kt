@@ -57,6 +57,7 @@ import com.guibilar.financeinsights.data.AppPreferences
 import com.guibilar.financeinsights.data.AuthState
 import com.guibilar.financeinsights.data.FinancePreferences
 import com.guibilar.financeinsights.data.Session
+import com.guibilar.financeinsights.documents.DocumentRoute
 import com.guibilar.financeinsights.documents.DocumentsRoute
 import com.guibilar.financeinsights.documents.addDocument
 import com.guibilar.financeinsights.documents.documentsGraph
@@ -66,6 +67,12 @@ import com.guibilar.financeinsights.documents.openDocuments
 import com.guibilar.financeinsights.documents.ui.DocumentSource
 import com.guibilar.financeinsights.notifications.AlertNotificationSettings
 import com.guibilar.financeinsights.security.AppLock
+import com.guibilar.financeinsights.tasks.TasksRoute
+import com.guibilar.financeinsights.tasks.addTask
+import com.guibilar.financeinsights.tasks.isTasksPage
+import com.guibilar.financeinsights.tasks.openTask
+import com.guibilar.financeinsights.tasks.openTasks
+import com.guibilar.financeinsights.tasks.tasksGraph
 import com.guibilar.financeinsights.security.authenticate
 import com.guibilar.financeinsights.security.canAuthenticate
 import com.guibilar.financeinsights.ui.common.MEDIUM_WIDTH
@@ -195,14 +202,14 @@ private data class TopLevel(
     val action: Boolean = false,
 )
 
-// The Money and Documents pages, the app's settings and the account open from Modules, so they show under it.
+// The Money, Documents and Tasks pages, the app's settings and the account open from Modules, so they show under it.
 private val topLevel = listOf(
     TopLevel("Today", Icons.Outlined.WbSunny, TodayRoute, { it.hasRoute<TodayRoute>() }),
     TopLevel("Timeline", Icons.Outlined.Timeline, TimelineRoute, { it.hasRoute<TimelineRoute>() }),
     TopLevel("Capture", Icons.Outlined.Add, CaptureRoute, { it.hasRoute<CaptureRoute>() }, action = true),
     TopLevel("Modules", Icons.Outlined.GridView, ModulesRoute, {
-        it.hasRoute<ModulesRoute>() || it.isFinancePage() || it.isDocumentsPage() || it.hasRoute<AppSettingsRoute>() ||
-            it.hasRoute<AccountSettingsRoute>()
+        it.hasRoute<ModulesRoute>() || it.isFinancePage() || it.isDocumentsPage() || it.isTasksPage() ||
+            it.hasRoute<AppSettingsRoute>() || it.hasRoute<AccountSettingsRoute>()
     }),
     TopLevel("Search", Icons.Outlined.Search, SearchRoute, { it.hasRoute<SearchRoute>() }),
 )
@@ -226,7 +233,7 @@ fun MainScreen(
     preferences: AppPreferences? = null,
     lock: AppLock? = null,
     financePreferences: FinancePreferences? = null,
-    /** False for a read-only user (T60): Capture and the Documents pages hide or disable their write actions. */
+    /** False for a read-only user (T60): Capture, the Documents and the Tasks pages hide or disable their write actions. */
     canWrite: Boolean = true,
     alertLink: MutableStateFlow<String?> = MutableStateFlow(null),
     alertSettings: AlertNotificationSettings? = null,
@@ -246,6 +253,8 @@ fun MainScreen(
             is TodayDestination.Transaction -> nav.openTransaction(destination.id)
             TodayDestination.Documents -> nav.openDocuments()
             is TodayDestination.Document -> nav.openDocument(destination.id)
+            is TodayDestination.Tasks -> nav.openTasks(destination.overdueOnly)
+            is TodayDestination.Task -> nav.openTask(destination.id)
         }
     }
     // A tapped alert notification (T68): its page, or Today for an alert with no link (and for the summary).
@@ -258,6 +267,8 @@ fun MainScreen(
     }
     // A transaction's documents in Money: the app joins the two feature modules here (D14).
     val financeDocuments = remember(nav, client, canWrite) { AppFinanceDocuments(nav, client, canWrite) }
+    // A document's tasks: the same, for the Documents and Tasks modules (T84).
+    val documentTasks = remember(nav, client, canWrite) { AppDocumentTasks(nav, client, canWrite) }
     // A rail at the side on a wide screen (a tablet, an unfolded foldable, landscape); the bar below otherwise.
     val rail = windowWidth() >= MEDIUM_WIDTH
     fun select(item: TopLevel, selected: Boolean) {
@@ -313,6 +324,7 @@ fun MainScreen(
                             when (module.route) {
                                 MoneyHomeRoute -> nav.openMoneyHome()
                                 DocumentsRoute -> nav.openDocuments()
+                                is TasksRoute -> nav.openTasks()
                                 else -> module.route?.let { nav.navigate(it) }
                             }
                         },
@@ -328,6 +340,7 @@ fun MainScreen(
                         onExpense = { quickAction.value = QuickAction.AddTransaction },
                         onScan = { nav.addDocument(DocumentSource.Scan) },
                         onPhoto = { nav.addDocument(DocumentSource.Photos) },
+                        onTask = { nav.addTask() },
                     )
                 }
                 composable<ModulesRoute> {
@@ -360,6 +373,16 @@ fun MainScreen(
                     nav = nav,
                     client = client,
                     contentPadding = padding,
+                    openTransaction = { id -> nav.openTransaction(id) },
+                    canWrite = canWrite,
+                    tasks = documentTasks,
+                )
+                tasksGraph(
+                    nav = nav,
+                    client = client,
+                    contentPadding = padding,
+                    // A linked document opens over the tasks, so Back returns to the task.
+                    openDocument = { id -> nav.navigate(DocumentRoute(id)) },
                     openTransaction = { id -> nav.openTransaction(id) },
                     canWrite = canWrite,
                 )

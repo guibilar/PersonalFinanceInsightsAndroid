@@ -12,13 +12,16 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.guibilar.financeinsights.DocumentsSamples
 import com.guibilar.financeinsights.FakeDocumentsApi
 import com.guibilar.financeinsights.FakeFinanceApi
+import com.guibilar.financeinsights.FakeTasksApi
 import com.guibilar.financeinsights.core.documents.DocumentKind
 import com.guibilar.financeinsights.core.documents.UploadFile
+import com.guibilar.financeinsights.core.tasks.TasksApi
 import com.guibilar.financeinsights.documents.ui.DetailsDraft
 import com.guibilar.financeinsights.documents.ui.DocumentScreen
 import com.guibilar.financeinsights.documents.ui.DocumentViewModel
@@ -67,9 +70,25 @@ class DocumentsScreenshotTest {
         show(dark) { DocumentsListScreen(model, PaddingValues(), open = { opened += it.id }, add = { added += it }, canWrite = canWrite, today = today) }
     }
 
-    private fun detail(id: String, canWrite: Boolean = true, dark: Boolean = false, opened: MutableList<String> = mutableListOf()) {
+    private fun detail(
+        id: String,
+        canWrite: Boolean = true,
+        dark: Boolean = false,
+        opened: MutableList<String> = mutableListOf(),
+        tasks: DocumentTasks? = null,
+    ) {
         val model = DocumentViewModel(api, finance, id)
-        show(dark) { DocumentScreen(model, PaddingValues(), onBack = {}, openTransaction = { opened += it }, canWrite = canWrite, today = today) }
+        show(dark) { DocumentScreen(model, PaddingValues(), onBack = {}, openTransaction = { opened += it }, canWrite = canWrite, today = today, tasks = tasks) }
+    }
+
+    /** The Tasks module as the app joins it (T84), on a fake API; [opened] records the tasks opened. */
+    private fun tasksHost(tasksApi: FakeTasksApi, opened: MutableList<String>, write: Boolean = true) = object : DocumentTasks {
+        override val api: TasksApi = tasksApi
+        override val canWrite: Boolean = write
+
+        override fun openTask(id: String) {
+            opened += id
+        }
     }
 
     @Test
@@ -198,5 +217,39 @@ class DocumentsScreenshotTest {
         show { UploadScreen(model, PaddingValues(), onClose = {}, uploaded = {}) }
         assertShows("No files yet. Scan the document, or pick photos or PDFs.", "Scan", "Photos", "Files")
         shoot("document-upload-empty")
+    }
+
+    @Test
+    fun `a document shows its tasks, and Add task makes the renew task`() {
+        val tasksApi = FakeTasksApi()
+        val opened = mutableListOf<String>()
+        detail("d1", tasks = tasksHost(tasksApi, opened))
+        compose.onNodeWithText("Compare car insurance quotes").performScrollTo()
+        assertShows("Tasks", "Compare car insurance quotes", "Today", "Add task", "Adds “Renew Car insurance policy”, due 14 days before the expiry.")
+        shoot("document-tasks")
+
+        compose.onNodeWithText("Compare car insurance quotes").performClick()
+        compose.onNodeWithText("Add task").performScrollTo().performClick()
+        compose.waitForIdle()
+        val renew = tasksApi.tasks.last()
+        assertEquals("Renew Car insurance policy", renew.title)
+        assertEquals("2026-10-11", renew.dueOn)
+        assertEquals(listOf("d1"), renew.links.map { it.targetId })
+        assertEquals(listOf("t3", renew.id), opened)
+    }
+
+    @Test
+    fun `a document without an expiry date has no Add task, and a read-only user has none`() {
+        val tasksApi = FakeTasksApi()
+        detail("d3", tasks = tasksHost(tasksApi, mutableListOf()))
+        compose.onNodeWithText("No tasks for this document.").performScrollTo()
+        compose.onAllNodesWithText("Add task").assertCountEquals(0)
+    }
+
+    @Test
+    fun `a read-only user sees the tasks of a document, without Add task`() {
+        detail("d1", canWrite = false, tasks = tasksHost(FakeTasksApi(), mutableListOf()))
+        compose.onNodeWithText("Compare car insurance quotes").performScrollTo()
+        compose.onAllNodesWithText("Add task").assertCountEquals(0)
     }
 }

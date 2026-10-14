@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CheckBox
 import androidx.compose.material.icons.outlined.DocumentScanner
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Payments
@@ -38,9 +39,9 @@ import com.guibilar.financeinsights.ui.common.FitText
 import com.guibilar.financeinsights.ui.common.ReadableColumn
 
 /**
- * Quick capture: four buttons, as in the design. "Photo" and "Scan" add a document (the photo picker, or the
- * document scanner); "Expense" opens the "Add transaction" form. Voice comes with the Inbox module. For a read-only
- * user ([canWrite] false, T60), every button is disabled and the note says why.
+ * Quick capture: the buttons of the design. "Task" opens the quick add of Tasks; "Photo" and "Scan" add a document
+ * (the photo picker, or the document scanner); "Expense" opens the "Add transaction" form. Voice comes with the Inbox
+ * module. For a read-only user ([canWrite] false, T60), every button is disabled and the note says why.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,6 +51,7 @@ fun CaptureScreen(
     onScan: () -> Unit = {},
     onPhoto: () -> Unit = {},
     canWrite: Boolean = true,
+    onTask: () -> Unit = {},
 ) {
     Column(Modifier.fillMaxSize().padding(bottom = contentPadding.calculateBottomPadding())) {
         TopAppBar(title = { FitText("Capture", fontWeight = FontWeight.SemiBold, minFontSize = 14.sp) })
@@ -57,14 +59,17 @@ fun CaptureScreen(
             Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text("Add something in a few taps.", style = MaterialTheme.typography.bodyMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    CaptureButton(Icons.Outlined.CheckBox, "Task", enabled = canWrite, Modifier.weight(1f), onTask)
+                    CaptureButton(Icons.Outlined.Payments, "Expense", enabled = canWrite, Modifier.weight(1f), onExpense)
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     CaptureButton(Icons.Outlined.PhotoCamera, "Photo", enabled = canWrite, Modifier.weight(1f), onPhoto)
                     CaptureButton(Icons.Outlined.DocumentScanner, "Scan", enabled = canWrite, Modifier.weight(1f), onScan)
                     CaptureButton(Icons.Outlined.Mic, "Voice", enabled = false, Modifier.weight(1f)) {}
-                    CaptureButton(Icons.Outlined.Payments, "Expense", enabled = canWrite, Modifier.weight(1f), onExpense)
                 }
                 Text(
                     if (canWrite) {
-                        "Photo and Scan add a document. Voice is coming soon."
+                        "Task adds a to-do. Photo and Scan add a document. Voice is coming soon."
                     } else {
                         "This account can only read. It cannot add anything."
                     },
