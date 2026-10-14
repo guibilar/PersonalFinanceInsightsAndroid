@@ -4,7 +4,7 @@ import java.net.URLDecoder
 
 // The one place that turns the link of a Today card or an alert into a page of this app. The server sends web routes
 // (the same links as the web app, for example "/money/budgets", "/money/rules#unsorted", "/money/transactions?id=<id>",
-// "/documents/<id>" or "/tasks?due=overdue"), so both clients use one contract. Today (in :app) and the Money pages (in :feature:finance)
+// "/documents/<id>", "/tasks?due=overdue" or "/home/items/<id>"), so both clients use one contract. Today (in :app) and the Money pages (in :feature:finance)
 // both use this map, so it is here and not in one of them.
 
 /** A finance page that a link leads to. Each Money page turns it into its route. */
@@ -32,6 +32,15 @@ sealed interface TodayDestination {
 
     /** One task ("/tasks/<id>"): the Tasks screen with the task open. */
     data class Task(val id: String) : TodayDestination
+
+    /** The Home screen ("/home", T88). */
+    data object Home : TodayDestination
+
+    /** One room ("/home/rooms/<id>"). */
+    data class Room(val id: String) : TodayDestination
+
+    /** One item ("/home/items/<id>"), for example a warranty that ends soon. */
+    data class Item(val id: String) : TodayDestination
 }
 
 /** The finance pages by their web path (under "/money"), as the web app names them (`money.routes.ts`). */
@@ -71,6 +80,7 @@ fun todayDestination(link: String?): TodayDestination? {
         path.startsWith("/documents/") -> documentPage(path.removePrefix("/documents/"))
         path == "/tasks" -> TodayDestination.Tasks(overdueOnly = queryValue(query, "due") == "overdue")
         path.startsWith("/tasks/") -> taskPage(path.removePrefix("/tasks/"))
+        path == "/home" || path.startsWith("/home/") -> homePage(path.removePrefix("/home").removePrefix("/"))
         else -> fallback
     }
 }
@@ -106,3 +116,17 @@ private fun documentPage(rest: String): TodayDestination =
 /** "/tasks/<id>" opens the task; a deeper path (a page of a newer web app) opens the Tasks screen. */
 private fun taskPage(rest: String): TodayDestination =
     if (rest.isNotBlank() && '/' !in rest) TodayDestination.Task(rest) else TodayDestination.Tasks()
+
+/**
+ * "/home/rooms/<id>" opens the room and "/home/items/<id>" the item. "/home", "/home/items/new", and a path of a newer
+ * web app open the Home screen.
+ */
+private fun homePage(rest: String): TodayDestination {
+    val parts = rest.split('/')
+    if (parts.size != 2 || parts[1].isBlank()) return TodayDestination.Home
+    return when (parts[0]) {
+        "rooms" -> TodayDestination.Room(parts[1])
+        "items" -> if (parts[1] == "new") TodayDestination.Home else TodayDestination.Item(parts[1])
+        else -> TodayDestination.Home
+    }
+}

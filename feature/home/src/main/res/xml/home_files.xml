@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The files that the Home provider can give to another app: new camera photos and the export, in the cache only. -->
+<paths>
+    <cache-path name="home" path="home/" />
+</paths>

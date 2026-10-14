@@ -80,6 +80,11 @@ class FeaturesScreenshotTest {
         assertEquals(false, alertSettings.tasks.value)
         compose.onNodeWithText("Tasks").performClick()
         assertEquals(true, alertSettings.tasks.value)
+        // And Home (T88).
+        compose.onNodeWithText("Warranties that end soon.").performScrollTo().performClick()
+        assertEquals(false, alertSettings.home.value)
+        compose.onNodeWithText("Warranties that end soon.").performClick()
+        assertEquals(true, alertSettings.home.value)
         shoot("settings-notifications")
     }
 

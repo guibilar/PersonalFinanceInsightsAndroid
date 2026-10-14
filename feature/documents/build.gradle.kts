@@ -66,6 +66,8 @@ dependencies {
     api(project(":core:finance"))
     // The "Tasks" section of a document (T84): the Tasks API only, never :feature:tasks (D14).
     api(project(":core:tasks"))
+    // The "Items" section of a document (T88): the Home API only, never :feature:home (D14).
+    api(project(":core:home"))
     api(project(":core:ui"))
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.core.ktx)
@@ -81,6 +83,7 @@ dependencies {
     testImplementation(testFixtures(project(":core:finance")))
     testImplementation(testFixtures(project(":core:documents")))
     testImplementation(testFixtures(project(":core:tasks")))
+    testImplementation(testFixtures(project(":core:home")))
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)

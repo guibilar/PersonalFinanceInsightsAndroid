@@ -69,6 +69,9 @@ data class DocumentLink(
 object DocumentLinkKinds {
     /** A finance transaction. The target id is the transaction id. */
     const val MONEY_TRANSACTION = "Money.Transaction"
+
+    /** An item of the Home module (T22): the receipt, the manual, or a photo of it. The target id is the item id. */
+    const val HOME_ITEM = "Home.Item"
 }
 
 /** A document in a list: everything except the OCR text. */
@@ -150,5 +153,7 @@ data class DocumentDetails(
 data class NewDocumentLink(val kind: String, val targetId: String) {
     companion object {
         fun transaction(id: String) = NewDocumentLink(DocumentLinkKinds.MONEY_TRANSACTION, id)
+
+        fun item(id: String) = NewDocumentLink(DocumentLinkKinds.HOME_ITEM, id)
     }
 }

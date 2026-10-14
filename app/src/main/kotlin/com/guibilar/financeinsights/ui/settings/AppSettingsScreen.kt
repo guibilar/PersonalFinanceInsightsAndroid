@@ -74,6 +74,7 @@ fun AppSettingsScreen(
     val moneyAlerts = alertSettings?.money?.collectAsState()?.value == true
     val documentAlerts = alertSettings?.documents?.collectAsState()?.value == true
     val taskAlerts = alertSettings?.tasks?.collectAsState()?.value == true
+    val homeAlerts = alertSettings?.home?.collectAsState()?.value == true
     val hideWidget by financePreferences.hideWidgetAmounts.collectAsState()
     val hideAmounts by preferences.hideAmounts.collectAsState()
     var alertsNote by remember { mutableStateOf<String?>(null) }
@@ -194,8 +195,8 @@ fun AppSettingsScreen(
                 SwitchRow(
                     "Needs attention",
                     "A notification when something new needs attention: a budget over its limit, a price change, " +
-                        "statements to import, a document that expires, an overdue task. The phone asks the server every " +
-                        "hour, over Tailscale.",
+                        "statements to import, a document that expires, an overdue task, a warranty that ends. The phone asks " +
+                        "the server every hour, over Tailscale.",
                     alertsOn,
                 ) { switch("alerts", it) }
                 SwitchRow("Money", "Budgets, subscriptions, statements and transactions.", moneyAlerts, enabled = alertsOn, indent = true) {
@@ -209,6 +210,10 @@ fun AppSettingsScreen(
                 SwitchRow("Tasks", "Tasks that are overdue.", taskAlerts, enabled = alertsOn, indent = true) {
                     alertSettings.setTasks(it)
                     if (!it) AlertNotifications.removeModule(context, AlertNotificationSettings.TASKS)
+                }
+                SwitchRow("Home", "Warranties that end soon.", homeAlerts, enabled = alertsOn, indent = true) {
+                    alertSettings.setHome(it)
+                    if (!it) AlertNotifications.removeModule(context, AlertNotificationSettings.HOME)
                 }
             }
             SwitchRow(

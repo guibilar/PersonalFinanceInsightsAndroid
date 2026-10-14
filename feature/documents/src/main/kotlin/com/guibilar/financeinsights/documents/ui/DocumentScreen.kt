@@ -84,6 +84,7 @@ import com.guibilar.financeinsights.core.api.ApiError
 import com.guibilar.financeinsights.core.documents.Document
 import com.guibilar.financeinsights.core.documents.DocumentDetails
 import com.guibilar.financeinsights.core.documents.DocumentFile
+import com.guibilar.financeinsights.core.documents.DocumentLinkKinds
 import com.guibilar.financeinsights.core.documents.DocumentLink
 import com.guibilar.financeinsights.core.documents.OcrStatus
 import com.guibilar.financeinsights.core.documents.daysUntil
@@ -91,6 +92,7 @@ import com.guibilar.financeinsights.core.documents.formatSize
 import com.guibilar.financeinsights.core.logic.Money
 import com.guibilar.financeinsights.core.logic.formatDay
 import com.guibilar.financeinsights.core.model.Transaction
+import com.guibilar.financeinsights.documents.DocumentItems
 import com.guibilar.financeinsights.documents.DocumentTasks
 import com.guibilar.financeinsights.ui.common.ErrorState
 import com.guibilar.financeinsights.ui.common.FitText
@@ -114,7 +116,7 @@ private const val OCR_PREVIEW_LINES = 6
 /**
  * One document (design canvas, "Documents"): its details, its files, its text, and its links. [canWrite] false (a
  * read-only user) hides edit, delete, link, and the OCR retry. [openTransaction] opens a linked transaction. [tasks]
- * shows the "Tasks" section (T84); none hides it.
+ * shows the "Tasks" section (T84), and [items] the "Items" section (T88); none hides it.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -126,6 +128,7 @@ fun DocumentScreen(
     canWrite: Boolean = true,
     today: LocalDate = LocalDate.now(),
     tasks: DocumentTasks? = null,
+    items: DocumentItems? = null,
 ) {
     val state by model.state.collectAsState()
     val snackbar = remember { SnackbarHostState() }
@@ -202,6 +205,16 @@ fun DocumentScreen(
                                 add = { model.findCandidates() },
                             )
                             if (tasks != null) DocumentTasksSection(loaded.value, tasks, today, canWrite)
+                            if (items != null) {
+                                DocumentItemsSection(
+                                    document = loaded.value,
+                                    items = items,
+                                    canWrite = canWrite,
+                                    busy = state.busy,
+                                    link = { model.linkItem(it.id, it.name) },
+                                    unlink = { unlinking = it.id },
+                                )
+                            }
                             Spacer(Modifier.height(24.dp))
                         }
                     }
@@ -234,10 +247,11 @@ fun DocumentScreen(
             unlinking = null
         } else {
             val transaction = (state.transactions[link.targetId] as? LinkedTransaction.Found)?.transaction
+            val other = if (link.kind == DocumentLinkKinds.HOME_ITEM) "the item" else transaction?.description ?: "the transaction"
             AlertDialog(
                 onDismissRequest = { unlinking = null },
                 title = { Text("Remove the link?") },
-                text = { Text("The document and ${transaction?.description ?: "the transaction"} both stay. Only the link goes.") },
+                text = { Text("The document and $other both stay. Only the link goes.") },
                 confirmButton = {
                     TextButton(onClick = {
                         unlinking = null

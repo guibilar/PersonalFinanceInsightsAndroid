@@ -25,6 +25,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Chair
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
@@ -69,6 +70,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.guibilar.financeinsights.core.documents.DocumentSummary
+import com.guibilar.financeinsights.core.home.ItemSummary
+import com.guibilar.financeinsights.core.home.itemSubtitle
 import com.guibilar.financeinsights.core.logic.Money
 import com.guibilar.financeinsights.core.logic.formatDay
 import com.guibilar.financeinsights.core.model.Transaction
@@ -92,7 +95,8 @@ import java.time.LocalDate
 /**
  * One task in a sheet over the Tasks screen: its details (title, notes, due date, tags, repeat), done or undo, its
  * links (a tap opens the document or the transaction), the last completions, and delete. [canWrite] false (a read-only
- * user) shows the details as text, with no write actions.
+ * user) shows the details as text, with no write actions. [openItem] opens an item of the home (T88); with it, the
+ * links show the task's items and "Link to an item".
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -103,6 +107,7 @@ fun TaskSheet(
     openDocument: (String) -> Unit,
     openTransaction: (String) -> Unit,
     onDismiss: () -> Unit,
+    openItem: ((String) -> Unit)? = null,
 ) {
     val state by model.state.collectAsState()
     val snackbar = remember { SnackbarHostState() }
@@ -137,6 +142,7 @@ fun TaskSheet(
                         openTransaction = openTransaction,
                         unlink = { unlinking = it.id },
                         pick = model::openPicker,
+                        openItem = openItem,
                     )
                     HorizontalDivider()
                     CompletionsBlock(item)
@@ -219,6 +225,25 @@ fun TaskSheet(
             ) {
                 model.closePicker()
                 model.linkTransaction(transaction)
+            }
+        }
+        LinkPicker.Item -> PickerSheet(
+            title = "Link to an item",
+            searchHint = "Search the home inventory",
+            candidates = state.itemCandidates,
+            empty = { search -> if (search.isBlank()) "No items yet. Add them in Home." else "No item matches “${search.trim()}”." },
+            search = model::search,
+            onDismiss = model::closePicker,
+        ) { item: ItemSummary ->
+            val linked = state.items?.valueOrNull.orEmpty().any { it.id == item.id }
+            CandidateRow(
+                item.name,
+                listOf(itemSubtitle(item, withRoom = true), if (linked) "Linked" else "").filter { it.isNotEmpty() }.joinToString(" · "),
+                null,
+                enabled = !linked,
+            ) {
+                model.closePicker()
+                model.linkItem(item)
             }
         }
         null -> {}
@@ -430,12 +455,18 @@ private fun LinksBlock(
     openTransaction: (String) -> Unit,
     unlink: (TaskLink) -> Unit,
     pick: (LinkPicker) -> Unit,
+    openItem: ((String) -> Unit)? = null,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text("Links", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
         val known = links.filter { it.kind == TaskLinkKinds.DOCUMENT || it.kind == TaskLinkKinds.TRANSACTION }
-        if (known.isEmpty()) {
-            Text("Not linked to a document or a transaction.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        val items = state.items?.takeIf { openItem != null }
+        if (known.isEmpty() && items?.valueOrNull.isNullOrEmpty()) {
+            Text(
+                if (items == null) "Not linked to a document or a transaction." else "Not linked to a document, a transaction or an item.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
         known.forEach { link ->
             val document = link.kind == TaskLinkKinds.DOCUMENT
@@ -455,6 +486,9 @@ private fun LinksBlock(
                 }
             }
         }
+        if (items != null && openItem != null) {
+            ItemLines(items, links, canWrite, state.busy, openItem, unlink)
+        }
         if (canWrite) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = { pick(LinkPicker.Document) }, enabled = !state.busy) {
@@ -466,6 +500,55 @@ private fun LinksBlock(
                     Icon(Icons.Outlined.Link, null, Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
                     Text("Link to a transaction")
+                }
+                if (items != null) {
+                    OutlinedButton(onClick = { pick(LinkPicker.Item) }, enabled = !state.busy) {
+                        Icon(Icons.Outlined.Link, null, Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Link to an item")
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * The items of the home that the task belongs to; a tap opens one. Only a link that the task holds can go from here;
+ * one that the item holds goes on the item's page.
+ */
+@Composable
+private fun ItemLines(
+    items: LoadState<List<ItemSummary>>,
+    links: List<TaskLink>,
+    canWrite: Boolean,
+    busy: Boolean,
+    openItem: (String) -> Unit,
+    unlink: (TaskLink) -> Unit,
+) {
+    when (items) {
+        LoadState.Loading -> Skeleton(lines = 2, lineHeight = 12.dp)
+        is LoadState.Failed -> Text(items.message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+        is LoadState.Loaded -> items.value.forEach { item ->
+            val own = links.firstOrNull { it.kind == TaskLinkKinds.HOME_ITEM && it.targetId == item.id }
+            Row(
+                Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable { openItem(item.id) }.padding(vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Outlined.Chair, null, tint = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.width(16.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(item.name, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        listOf("Home", itemSubtitle(item, withRoom = true)).joinToString(" · "),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                if (canWrite && own != null) {
+                    IconButton(onClick = { unlink(own) }, enabled = !busy) { Icon(Icons.Outlined.LinkOff, "Remove the link") }
                 }
             }
         }

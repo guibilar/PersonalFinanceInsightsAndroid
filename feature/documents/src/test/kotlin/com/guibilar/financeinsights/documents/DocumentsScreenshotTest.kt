@@ -18,9 +18,14 @@ import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.guibilar.financeinsights.DocumentsSamples
 import com.guibilar.financeinsights.FakeDocumentsApi
 import com.guibilar.financeinsights.FakeFinanceApi
+import com.guibilar.financeinsights.FakeHomeApi
 import com.guibilar.financeinsights.FakeTasksApi
+import com.guibilar.financeinsights.HomeSamples
 import com.guibilar.financeinsights.core.documents.DocumentKind
+import com.guibilar.financeinsights.core.documents.DocumentLinkKinds
+import com.guibilar.financeinsights.core.documents.NewDocumentLink
 import com.guibilar.financeinsights.core.documents.UploadFile
+import com.guibilar.financeinsights.core.home.HomeApi
 import com.guibilar.financeinsights.core.tasks.TasksApi
 import com.guibilar.financeinsights.documents.ui.DetailsDraft
 import com.guibilar.financeinsights.documents.ui.DocumentScreen
@@ -31,6 +36,7 @@ import com.guibilar.financeinsights.documents.ui.UploadScreen
 import com.guibilar.financeinsights.documents.ui.UploadViewModel
 import com.guibilar.financeinsights.ui.theme.FinanceTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -76,9 +82,22 @@ class DocumentsScreenshotTest {
         dark: Boolean = false,
         opened: MutableList<String> = mutableListOf(),
         tasks: DocumentTasks? = null,
+        items: DocumentItems? = null,
     ) {
         val model = DocumentViewModel(api, finance, id)
-        show(dark) { DocumentScreen(model, PaddingValues(), onBack = {}, openTransaction = { opened += it }, canWrite = canWrite, today = today, tasks = tasks) }
+        show(dark) {
+            DocumentScreen(model, PaddingValues(), onBack = {}, openTransaction = { opened += it }, canWrite = canWrite, today = today, tasks = tasks, items = items)
+        }
+    }
+
+    /** The Home module as the app joins it (T88), on a fake API; [opened] records the items opened. */
+    private fun itemsHost(homeApi: FakeHomeApi, opened: MutableList<String>, write: Boolean = true) = object : DocumentItems {
+        override val api: HomeApi = homeApi
+        override val canWrite: Boolean = write
+
+        override fun openItem(id: String) {
+            opened += id
+        }
     }
 
     /** The Tasks module as the app joins it (T84), on a fake API; [opened] records the tasks opened. */
@@ -251,5 +270,32 @@ class DocumentsScreenshotTest {
         detail("d1", canWrite = false, tasks = tasksHost(FakeTasksApi(), mutableListOf()))
         compose.onNodeWithText("Compare car insurance quotes").performScrollTo()
         compose.onAllNodesWithText("Add task").assertCountEquals(0)
+    }
+
+    @Test
+    fun `a document shows its items, and Link to item links one`() {
+        val opened = mutableListOf<String>()
+        detail("d2", items = itemsHost(FakeHomeApi(), opened))
+        compose.onNodeWithText("Link to item").performScrollTo()
+        assertShows("Items", "Dishwasher", "Kitchen · Bosch SHX78 · Appliance", "$899.99", "Link to item")
+        shoot("document-items")
+
+        compose.onNodeWithText("Dishwasher").performClick()
+        assertEquals(listOf(HomeSamples.dishwasher.id), opened)
+
+        compose.onNodeWithText("Link to item").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Sofa").performClick()
+        compose.waitForIdle()
+        assertTrue(api.sent.contains("addLink" to NewDocumentLink.item(HomeSamples.sofa.id)))
+        assertTrue(api.documents.first { it.id == "d2" }.links.any { it.kind == DocumentLinkKinds.HOME_ITEM && it.targetId == HomeSamples.sofa.id })
+    }
+
+    @Test
+    fun `a read-only user sees the items of a document, without Link to item`() {
+        detail("d2", canWrite = false, items = itemsHost(FakeHomeApi(), mutableListOf()))
+        compose.onNodeWithText("Not linked to an item of the home.").assertDoesNotExist()
+        assertShows("Dishwasher")
+        compose.onAllNodesWithText("Link to item").assertCountEquals(0)
     }
 }

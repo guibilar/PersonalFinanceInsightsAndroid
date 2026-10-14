@@ -69,6 +69,7 @@ import androidx.compose.runtime.withFrameNanos
 import kotlinx.coroutines.delay
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.guibilar.financeinsights.FinanceDocuments
+import com.guibilar.financeinsights.FinanceHome
 import com.guibilar.financeinsights.core.model.Transaction
 import com.guibilar.financeinsights.core.model.TransactionSortField
 import com.guibilar.financeinsights.ui.AccountInfo
@@ -109,6 +110,8 @@ fun TransactionsScreen(
     onImportTaken: () -> Unit = {},
     /** The Documents pages, for a transaction's "Documents" section; none in most tests. */
     documents: FinanceDocuments? = null,
+    /** The Home module, for "Add to inventory" on a transaction (T88); none in most tests. */
+    home: FinanceHome? = null,
 ) {
     val state by model.state.collectAsState()
     // Back from the background on a new day: today moves on.
@@ -396,6 +399,7 @@ fun TransactionsScreen(
                 onDismiss = { opened = null },
                 tags = state.tags,
                 documents = documents,
+                home = home,
             )
         }
     }
