@@ -8,6 +8,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.guibilar.financeinsights.AlertSamples
+import com.guibilar.financeinsights.FakeAlertsApi
 import com.guibilar.financeinsights.FakeFinanceApi
 import com.guibilar.financeinsights.core.model.BreakdownInterval
 import com.guibilar.financeinsights.ui.dashboard.DashboardScreen
@@ -31,6 +33,7 @@ import java.time.LocalDate
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w400dp-h2600dp-xxhdpi")
 class ScreenshotTest {
+    private val alerts = FakeAlertsApi()
     @get:Rule val compose = createComposeRule()
 
     private val api = FakeFinanceApi()
@@ -51,7 +54,7 @@ class ScreenshotTest {
     fun dashboardDark() = dashboard(dark = true)
 
     private fun dashboard(dark: Boolean) {
-        val model = DashboardViewModel(api) { today }
+        val model = DashboardViewModel(api, alerts) { today }
         show(dark) { DashboardScreen(model, account, {}, PaddingValues(), {}) }
         shoot(if (dark) "dashboard-dark" else "dashboard")
         compose.onNodeWithText("Table").performClick()
@@ -62,9 +65,29 @@ class ScreenshotTest {
     @Test
     fun dashboardWithAFailedReport() {
         api.failing += "yearReport"
-        val model = DashboardViewModel(api) { today }
+        val model = DashboardViewModel(api, alerts) { today }
         show { DashboardScreen(model, account, {}, PaddingValues(), {}) }
         shoot("dashboard-failed")
+    }
+
+    @Test
+    fun dashboardWithAllKindsOfAlerts() = dashboardWithAlerts("dashboard-alerts") { answer = AlertSamples.many }
+
+    @Test
+    fun dashboardWithNoAlerts() = dashboardWithAlerts("dashboard-no-alerts") { answer = AlertSamples.noMoney }
+
+    @Test
+    fun dashboardWhenTheAlertsFailed() = dashboardWithAlerts("dashboard-alerts-failed") { failing = true }
+
+    @Test
+    fun dashboardWhenSomeChecksFailed() = dashboardWithAlerts("dashboard-alerts-partial") { answer = AlertSamples.partial }
+
+    /** The dashboard with the Money alerts that [setUp] gives (the server's "Needs attention" items). */
+    private fun dashboardWithAlerts(name: String, setUp: FakeAlertsApi.() -> Unit) {
+        alerts.setUp()
+        val model = DashboardViewModel(api, alerts) { today }
+        show { DashboardScreen(model, account, {}, PaddingValues(), {}) }
+        shoot(name)
     }
 
     @Test

@@ -8,6 +8,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.github.takahirom.roborazzi.captureScreenRoboImage
+import com.guibilar.financeinsights.FakeAlertsApi
 import com.guibilar.financeinsights.FakeFinanceApi
 import com.guibilar.financeinsights.ui.budgets.BudgetsScreen
 import com.guibilar.financeinsights.ui.budgets.BudgetsViewModel
@@ -35,6 +36,7 @@ import java.time.LocalDate
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w360dp-h1400dp-xhdpi")
 class LargeTextScreenshotTest {
+    private val alerts = FakeAlertsApi()
     @get:Rule val compose = createComposeRule()
     private val api = FakeFinanceApi()
     private val account = AccountInfo("dev", "https://finance.example.ts.net")
@@ -84,7 +86,7 @@ class LargeTextScreenshotTest {
     }
 
     @Test fun money() {
-        val model = DashboardViewModel(api) { LocalDate.of(2026, 10, 3) }
+        val model = DashboardViewModel(api, alerts) { LocalDate.of(2026, 10, 3) }
         show { MoneyHomeScreen(model, PaddingValues(), onBack = {}, open = {}, openImport = {}) }
         shoot("money")
     }

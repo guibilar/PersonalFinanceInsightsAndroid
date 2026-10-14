@@ -58,6 +58,8 @@ kotlin {
 dependencies {
     api(project(":core:documents"))
     api(project(":core:finance"))
+    // The "Needs attention" items (GET /api/alerts, T67) and the one link map.
+    api(project(":core:today"))
     api(project(":core:ui"))
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.core.ktx)
@@ -72,6 +74,7 @@ dependencies {
 
     testImplementation(testFixtures(project(":core:finance")))
     testImplementation(testFixtures(project(":core:documents")))
+    testImplementation(testFixtures(project(":core:today")))
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)

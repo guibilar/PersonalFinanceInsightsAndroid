@@ -1,5 +1,6 @@
 package com.guibilar.financeinsights.ui
 
+import com.guibilar.financeinsights.FakeAlertsApi
 import com.guibilar.financeinsights.FakeFinanceApi
 import com.guibilar.financeinsights.core.logic.ReviewPeriod
 import com.guibilar.financeinsights.core.model.CategoryRuleInput
@@ -35,6 +36,7 @@ import java.time.LocalDate
 /** Recurring payments, the forecast, sorting what is in Other, changes to many transactions, and reviews. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class InsightsTest {
+    private val alerts = FakeAlertsApi()
     private val dispatcher = StandardTestDispatcher()
     private val api = FakeFinanceApi()
     private val today = LocalDate.of(2026, 10, 4)
@@ -94,24 +96,13 @@ class InsightsTest {
     }
 
     @Test
-    fun `the dashboard has where the month is heading, and how many are left in Other`() = runTest(dispatcher) {
-        val model = DashboardViewModel(api) { today }
+    fun `the dashboard has where the month is heading`() = runTest(dispatcher) {
+        val model = DashboardViewModel(api, alerts) { today }
         advanceUntilIdle()
 
         val forecast = (model.state.value.forecast as LoadState.Loaded).value
         assertEquals(2065.19, forecast.projected, 0.0)
         assertEquals(listOf("SPOTIFY", "ENMAX"), forecast.upcoming.map { it.name })
-        assertEquals(4, model.state.value.unsorted)
-    }
-
-    @Test
-    fun `when Other can't be checked, the dashboard just doesn't mention it`() = runTest(dispatcher) {
-        api.failing += "uncategorised"
-        val model = DashboardViewModel(api) { today }
-        advanceUntilIdle()
-
-        assertEquals(0, model.state.value.unsorted)
-        assertTrue(model.state.value.forecast is LoadState.Loaded)
     }
 
     @Test

@@ -13,8 +13,9 @@ import com.github.takahirom.roborazzi.captureRoboImage
 import com.guibilar.financeinsights.FakeTodayApi
 import com.guibilar.financeinsights.TodaySamples
 import com.guibilar.financeinsights.core.logic.Money
+import com.guibilar.financeinsights.core.today.MoneyLink
+import com.guibilar.financeinsights.core.today.TodayDestination
 import com.guibilar.financeinsights.core.today.TodayDto
-import com.guibilar.financeinsights.ui.MoneyLink
 import com.guibilar.financeinsights.ui.modules.HestiaModule
 import com.guibilar.financeinsights.ui.modules.MODULES
 import com.guibilar.financeinsights.ui.theme.FinanceTheme

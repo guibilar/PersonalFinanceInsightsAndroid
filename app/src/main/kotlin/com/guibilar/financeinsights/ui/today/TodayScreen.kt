@@ -57,11 +57,13 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.guibilar.financeinsights.core.today.TodayCard
 import com.guibilar.financeinsights.core.today.TodayCardType
+import com.guibilar.financeinsights.core.today.TodayDestination
 import com.guibilar.financeinsights.core.today.TodayDto
 import com.guibilar.financeinsights.core.today.TodayModuleStatus
 import com.guibilar.financeinsights.core.today.TodaySeverity
 import com.guibilar.financeinsights.core.today.TodayTrend
 import com.guibilar.financeinsights.core.today.filledText
+import com.guibilar.financeinsights.core.today.todayDestination
 import com.guibilar.financeinsights.core.today.valueText
 import com.guibilar.financeinsights.ui.common.ErrorState
 import com.guibilar.financeinsights.ui.common.ReadableColumn

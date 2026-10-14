@@ -5,37 +5,28 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.guibilar.financeinsights.core.logic.AttentionItem
-import com.guibilar.financeinsights.core.logic.AttentionKind
-import com.guibilar.financeinsights.core.logic.attentionItems
-import com.guibilar.financeinsights.ui.MoneyLink
+import com.guibilar.financeinsights.ui.NetWorthRoute
+import com.guibilar.financeinsights.ui.BudgetsRoute
 import com.guibilar.financeinsights.ui.dashboard.DashboardState
 import com.guibilar.financeinsights.ui.dashboard.HeadlineTiles
 import com.guibilar.financeinsights.ui.dashboard.NeedsAttention
 
 /**
- * The Money module at a glance: the dashboard's four headline tiles and, with [attention], its "Needs attention"
- * list. The Money home shows it; each tile and item opens its page through [open]. Today shows the same figures from
- * the server's Today API (`:core:today`).
+ * The Money module at a glance: the dashboard's four headline tiles and its "Needs attention" list (the server's
+ * Money alerts, the same items as on Today). The Money home shows it; each tile and item opens its page: [open] takes
+ * the route of a finance page, [openImport] opens the transactions with the import (with an account, when an item
+ * names one), and [retry] checks the alerts again.
  */
 @Composable
-fun MoneyGlance(state: DashboardState, open: (MoneyLink) -> Unit, modifier: Modifier = Modifier, attention: Boolean = true) {
+fun MoneyGlance(
+    state: DashboardState,
+    open: (Any) -> Unit,
+    openImport: (account: String?) -> Unit,
+    retry: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        HeadlineTiles(state, openNetWorth = { open(MoneyLink.NetWorth) }, openBudgets = { open(MoneyLink.Budgets) })
-        val items = if (attention) state.attention() else emptyList()
-        if (items.isNotEmpty()) NeedsAttention(items) { kind -> open(kind.link) }
+        HeadlineTiles(state, openNetWorth = { open(NetWorthRoute) }, openBudgets = { open(BudgetsRoute) })
+        NeedsAttention(state.alerts, retry, open, openImport)
     }
 }
-
-/** What needs attention, the same rules as the dashboard; empty until all its parts are in. */
-fun DashboardState.attention(): List<AttentionItem> =
-    if (attentionLoaded) attentionItems(unsorted, budgets.valueOrNull?.items.orEmpty(), recurring, accounts, today) else emptyList()
-
-/** Where an attention item is dealt with. */
-val AttentionKind.link: MoneyLink
-    get() = when (this) {
-        AttentionKind.Budget -> MoneyLink.Budgets
-        AttentionKind.Statement -> MoneyLink.Import
-        AttentionKind.Price -> MoneyLink.Subscriptions
-        AttentionKind.Unsorted -> MoneyLink.Rules
-    }

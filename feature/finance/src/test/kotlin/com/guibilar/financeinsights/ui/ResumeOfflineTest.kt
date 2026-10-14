@@ -1,5 +1,6 @@
 package com.guibilar.financeinsights.ui
 
+import com.guibilar.financeinsights.FakeAlertsApi
 import com.guibilar.financeinsights.FakeFinanceApi
 import com.guibilar.financeinsights.ui.budgets.BudgetsViewModel
 import com.guibilar.financeinsights.ui.common.LoadState
@@ -21,6 +22,7 @@ import java.time.LocalDate
 /** Coming back to a screen while offline keeps what it showed, instead of turning it into errors. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ResumeOfflineTest {
+    private val alerts = FakeAlertsApi()
     private val dispatcher = StandardTestDispatcher()
     private val api = FakeFinanceApi()
 
@@ -32,11 +34,12 @@ class ResumeOfflineTest {
 
     @Test
     fun `the dashboard keeps its figures when the reload on return fails`() = runTest(dispatcher) {
-        val model = DashboardViewModel(api) { LocalDate.of(2026, 10, 3) }
+        val model = DashboardViewModel(api, alerts) { LocalDate.of(2026, 10, 3) }
         advanceUntilIdle()
         model.resumed()
 
         api.failing += listOf("yearReport", "monthReport", "cashFlow", "budgets", "transactions")
+        alerts.failing = true
         model.resumed()
         advanceUntilIdle()
 
@@ -46,6 +49,7 @@ class ResumeOfflineTest {
         assertTrue(state.cashFlow is LoadState.Loaded)
         assertTrue(state.budgets is LoadState.Loaded)
         assertTrue(state.recent is LoadState.Loaded)
+        assertTrue(state.alerts is LoadState.Loaded)
     }
 
     @Test

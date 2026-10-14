@@ -14,6 +14,7 @@ import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import com.guibilar.financeinsights.FakeAlertsApi
 import com.guibilar.financeinsights.DocumentsSamples
 import com.guibilar.financeinsights.FakeDocumentsApi
 import com.guibilar.financeinsights.FakeFinanceApi
@@ -48,7 +49,7 @@ class ShellNavigationTest {
     private val todayApi = FakeTodayApi()
 
     private fun show(canWrite: Boolean = true) {
-        val client = fakeApiClient(FakeFinanceApi(), todayApi, FakeDocumentsApi())
+        val client = fakeApiClient(FakeFinanceApi(), todayApi, FakeDocumentsApi(), FakeAlertsApi())
         compose.setContent {
             FinanceTheme(dynamicColor = false) { Surface { MainScreen(client, account, {}, quickAction = quickAction, canWrite = canWrite) } }
         }

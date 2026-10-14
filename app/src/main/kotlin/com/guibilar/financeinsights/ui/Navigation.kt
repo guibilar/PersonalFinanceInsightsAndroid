@@ -49,7 +49,9 @@ import com.guibilar.financeinsights.BuildConfig
 import com.guibilar.financeinsights.QuickAction
 import com.guibilar.financeinsights.core.api.ApiClient
 import com.guibilar.financeinsights.core.api.FinanceApi
+import com.guibilar.financeinsights.core.today.AlertsApi
 import com.guibilar.financeinsights.core.today.TodayApi
+import com.guibilar.financeinsights.core.today.TodayDestination
 import com.guibilar.financeinsights.data.AppPreferences
 import com.guibilar.financeinsights.data.AuthState
 import com.guibilar.financeinsights.data.FinancePreferences
@@ -76,7 +78,6 @@ import com.guibilar.financeinsights.ui.shell.PlaceholderScreen
 import com.guibilar.financeinsights.ui.signin.LockScreen
 import com.guibilar.financeinsights.ui.signin.SignInScreen
 import com.guibilar.financeinsights.ui.signin.UnreachableScreen
-import com.guibilar.financeinsights.ui.today.TodayDestination
 import com.guibilar.financeinsights.ui.today.TodayScreen
 import com.guibilar.financeinsights.ui.today.TodayViewModel
 import com.guibilar.financeinsights.ui.transactions.PickedFile
@@ -224,6 +225,7 @@ fun MainScreen(
     // Each module makes its API from the signed-in client (the client keeps it, so it is the same object every time).
     val api: FinanceApi = client.api()
     val todayApi: TodayApi = client.api()
+    val alertsApi: AlertsApi = client.api()
     val nav = rememberNavController()
     val entry by nav.currentBackStackEntryAsState()
     // Shared statements and quick actions (shortcut, widget, notifications, Capture) open their finance pages.
@@ -326,6 +328,7 @@ fun MainScreen(
                 financeGraph(
                     nav = nav,
                     api = api,
+                    alerts = alertsApi,
                     account = account,
                     onSignOut = onSignOut,
                     contentPadding = padding,

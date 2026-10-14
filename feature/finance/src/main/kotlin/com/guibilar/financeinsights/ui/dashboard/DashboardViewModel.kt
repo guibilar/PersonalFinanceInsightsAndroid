@@ -6,7 +6,6 @@ import com.guibilar.financeinsights.core.api.FinanceApi
 import com.guibilar.financeinsights.core.model.Account
 import com.guibilar.financeinsights.core.model.Budget
 import com.guibilar.financeinsights.core.model.NetWorthReport
-import com.guibilar.financeinsights.core.model.RecurringReport
 import com.guibilar.financeinsights.core.model.BudgetFilter
 import com.guibilar.financeinsights.core.model.CashFlowReport
 import com.guibilar.financeinsights.core.model.CategorizedReport
@@ -16,6 +15,11 @@ import com.guibilar.financeinsights.core.api.apiCall
 import com.guibilar.financeinsights.core.model.Status
 import com.guibilar.financeinsights.core.model.Transaction
 import com.guibilar.financeinsights.core.model.TransactionFilter
+import com.guibilar.financeinsights.core.logic.DataChanges
+import com.guibilar.financeinsights.core.today.AlertDto
+import com.guibilar.financeinsights.core.today.AlertFreshness
+import com.guibilar.financeinsights.core.today.AlertsApi
+import com.guibilar.financeinsights.core.today.TodayModuleStatus
 import com.guibilar.financeinsights.ui.common.LoadState
 import com.guibilar.financeinsights.ui.common.load
 import kotlinx.coroutines.Job
@@ -36,20 +40,30 @@ data class DashboardState(
     val recent: LoadState<Page<Transaction>> = LoadState.Loading,
     val forecast: LoadState<SpendingForecast> = LoadState.Loading,
     val netWorth: LoadState<NetWorthReport> = LoadState.Loading,
-    /** For what needs attention and the investments; empty while unknown (or when that failed). */
+    /** For the investments; empty while unknown (or when that failed). */
     val accounts: List<Account> = emptyList(),
-    /** For subscriptions whose price changed; null while unknown (or when that failed). */
-    val recurring: RecurringReport? = null,
-    /** Transactions left in Other that a rule could sort; 0 while unknown (or when that failed). */
-    val unsorted: Int = 0,
-    /** Whether accounts, subscriptions and Other are all in, so what needs attention shows at once. */
-    val attentionLoaded: Boolean = false,
+    /** What needs attention in Money, from the Alerts module (`GET /api/alerts`). */
+    val alerts: LoadState<MoneyAlerts> = LoadState.Loading,
     /** Pulled to refresh: the figures stay on screen while they reload. */
     val refreshing: Boolean = false,
 )
 
-/** The dashboard's reports, each loading (and failing) on its own, as on the web. */
-class DashboardViewModel(private val api: FinanceApi, private val today: () -> LocalDate = LocalDate::now) : ViewModel() {
+/**
+ * The Money "Needs attention" items: the server's alerts of the Money module, most severe first, then newest. The
+ * server owns the rules (Hestia T15), so the Money pages and Today show the same items. [partial]: some finance data did
+ * not load in the server's last check, so the list can be out of date.
+ */
+data class MoneyAlerts(val items: List<AlertDto>, val partial: Boolean = false)
+
+/**
+ * The dashboard's reports, each loading (and failing) on its own, as on the web, and what needs attention from
+ * [alerts]. The Money home uses it too, for its tiles and the count on its Dashboard row.
+ */
+class DashboardViewModel(
+    private val api: FinanceApi,
+    private val alerts: AlertsApi,
+    private val today: () -> LocalDate = LocalDate::now,
+) : ViewModel() {
     private val _state = MutableStateFlow(DashboardState(today()))
     val state: StateFlow<DashboardState> = _state.asStateFlow()
 
@@ -75,7 +89,7 @@ class DashboardViewModel(private val api: FinanceApi, private val today: () -> L
     fun refresh() {
         // After midnight into a new month the reports come back for it: "today" moves on with them.
         _state.update { it.copy(refreshing = true, today = today()) }
-        load()
+        load(freshAlerts = true)
     }
 
     fun retryYear() = retry({ copy(year = it) }) { load("Could not load monthly spending.") { api.yearReport() } }
@@ -88,9 +102,10 @@ class DashboardViewModel(private val api: FinanceApi, private val today: () -> L
     /**
      * Loads the reports, each showing as soon as it arrives (it used to wait for the slowest). [quiet] (coming
      * back to the screen) keeps a report that was showing when its reload fails, offline say, instead of turning it
-     * into an error card.
+     * into an error card. With [freshAlerts] (pulled to refresh, or the data changed in the app since the last fresh
+     * check), the server checks its alert rules first; else it answers with the alerts of its last check.
      */
-    private fun load(quiet: Boolean = false) {
+    private fun load(quiet: Boolean = false, freshAlerts: Boolean = AlertFreshness.stale) {
         fun <T> next(old: LoadState<T>, new: LoadState<T>) = if (quiet && new is LoadState.Failed && old is LoadState.Loaded) old else new
         // A load still under way (tabs switched quickly, or pulled to refresh) gives way: its answers are older, and
         // finishing first it would stop the refresh spinner before the new figures are in.
@@ -104,19 +119,31 @@ class DashboardViewModel(private val api: FinanceApi, private val today: () -> L
                 launch { loadRecent().let { r -> _state.update { it.copy(recent = next(it.recent, r)) } } },
                 launch { loadForecast().let { r -> _state.update { it.copy(forecast = next(it.forecast, r)) } } },
                 launch { load("Could not load net worth.") { api.netWorth() }.let { r -> _state.update { it.copy(netWorth = next(it.netWorth, r)) } } },
-                launch {
-                    // What needs attention: each part adds nothing when it fails, and the list waits for all of them.
-                    val parts = listOf(
-                        launch { apiCall { api.uncategorised() }.getOrNull()?.let { r -> _state.update { it.copy(unsorted = r.transactionCount) } } },
-                        launch { apiCall { api.accounts() }.getOrNull()?.let { r -> _state.update { it.copy(accounts = r) } } },
-                        launch { apiCall { api.recurring() }.getOrNull()?.let { r -> _state.update { it.copy(recurring = r) } } },
-                    )
-                    parts.joinAll()
-                    _state.update { it.copy(attentionLoaded = true) }
-                },
+                launch { apiCall { api.accounts() }.getOrNull()?.let { r -> _state.update { it.copy(accounts = r) } } },
+                launch { loadAlerts(freshAlerts).let { r -> _state.update { it.copy(alerts = next(it.alerts, r)) } } },
             )
             reports.joinAll()
             _state.update { it.copy(refreshing = false) }
+        }
+    }
+
+    /** "Try again" on the "Needs attention" card: a fresh check. */
+    fun retryAlerts() = retry({ copy(alerts = it) }) { loadAlerts(refresh = true) }
+
+    /**
+     * The Money alerts. With [refresh], the server checks its rules first. A module that the server could not check at
+     * all ([TodayModuleStatus.Failed]) is a failure, with a retry, like a request that failed.
+     */
+    private suspend fun loadAlerts(refresh: Boolean): LoadState<MoneyAlerts> {
+        val version = DataChanges.version
+        val answer = load(ALERTS_FAILED) { alerts.alerts(refresh = if (refresh) true else null) }
+        val list = answer.valueOrNull ?: return (answer as? LoadState.Failed) ?: LoadState.Failed(ALERTS_FAILED)
+        if (refresh) AlertFreshness.checked(version)
+        val money = list.of(MONEY)
+        return when (money.status) {
+            TodayModuleStatus.Failed -> LoadState.Failed(ALERTS_FAILED)
+            TodayModuleStatus.Partial -> LoadState.Loaded(MoneyAlerts(money.items, partial = true))
+            TodayModuleStatus.Complete -> LoadState.Loaded(MoneyAlerts(money.items))
         }
     }
 
@@ -141,5 +168,9 @@ class DashboardViewModel(private val api: FinanceApi, private val today: () -> L
 
     companion object {
         const val RECENT = 5
+
+        /** The module name of the Money alerts on the server. */
+        const val MONEY = "Money"
+        const val ALERTS_FAILED = "Could not check what needs attention."
     }
 }
