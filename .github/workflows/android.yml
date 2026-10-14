@@ -58,14 +58,14 @@ jobs:
         run: |
           mkdir -p probe-shots
           pip install --quiet pillow
-          for f in feature/tasks/build/shots/*.png feature/documents/build/shots/document-tasks.png app/build/shots/capture.png app/build/shots/modules.png app/build/shots/settings-notifications.png app/build/shots/today.png; do
+          for f in app/build/shots/settings.png app/build/shots/tablet-today.png app/build/shots/today-dark.png app/build/shots/today-failed.png app/build/shots/today-hidden.png app/build/shots/today-modules.png app/build/shots/today-offline.png app/build/shots/today-partial.png; do
             [ -f "$f" ] || continue
             python3 -c "import sys; from PIL import Image; i=Image.open(sys.argv[1]).convert('RGB'); i=i.resize((i.width*2//5, i.height*2//5)); i.save(sys.argv[2], quality=60)" "$f" "probe-shots/$(basename "$f" .png).jpg"
           done
           git config user.name "probe"
           git config user.email "probe@example.com"
           git add probe-shots
-          git commit -m "Probe images" || true
+          git commit -m "Probe images 2" || true
           git push origin HEAD:hestia/T84-probe || true
 
       # The list of screenshot hashes of main is in the Actions cache. A pull request compares its images with it.
