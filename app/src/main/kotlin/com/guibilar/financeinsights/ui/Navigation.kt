@@ -32,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -79,6 +80,7 @@ import com.guibilar.financeinsights.people.openPeople
 import com.guibilar.financeinsights.people.openPerson
 import com.guibilar.financeinsights.people.peopleGraph
 import com.guibilar.financeinsights.notifications.AlertNotificationSettings
+import com.guibilar.financeinsights.notifications.AlertNotifications
 import com.guibilar.financeinsights.security.AppLock
 import com.guibilar.financeinsights.tasks.TasksRoute
 import com.guibilar.financeinsights.tasks.addTask
@@ -256,6 +258,7 @@ fun MainScreen(
     val todayApi: TodayApi = client.api()
     val alertsApi: AlertsApi = client.api()
     val nav = rememberNavController()
+    val context = LocalContext.current
     val entry by nav.currentBackStackEntryAsState()
     // Shared statements and quick actions (shortcut, widget, notifications, Capture) open their finance pages.
     val requests = rememberFinanceRequests(nav, sharedStatement, quickAction)
@@ -346,6 +349,7 @@ fun MainScreen(
                         modules = MODULES,
                         contentPadding = padding,
                         open = { openDestination(it) },
+                        onRefresh = { alertSettings?.let { AlertNotifications.pollSoon(context, it) } },
                         openModule = { module ->
                             when (module.route) {
                                 MoneyHomeRoute -> nav.openMoneyHome()

@@ -13,6 +13,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.core.content.edit
 import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
@@ -116,6 +117,33 @@ object AlertNotifications {
         val store = SeenAlertStore.of(context)
         scope.launch { store.clear() }
     }
+
+    /** The least time between two polls that the app asks for itself (T81): on opening, and on a pull to refresh. */
+    const val SOON_MINUTES = 15L
+
+    private const val SOON_WORK = "alert-notifications-soon"
+    private const val PREFS = "alert-notifications-soon"
+    private const val KEY_LAST = "lastSoonPoll"
+
+    /**
+     * One poll soon (T81): when the app comes to the front, and after a pull to refresh on Today, so a new alert shows
+     * without waiting for the hourly poll. At most once every [SOON_MINUTES] minutes, and only while the notifications
+     * are on. It is a normal poll: the seen alerts (T68) stay the same, so nothing is notified twice.
+     */
+    fun pollSoon(context: Context, settings: AlertNotificationSettings, now: Long = System.currentTimeMillis()) {
+        if (!settings.enabled.value) return
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        if (!dueForSoonPoll(prefs.getLong(KEY_LAST, 0L), now)) return
+        prefs.edit { putLong(KEY_LAST, now) }
+        WorkManager.getInstance(context).enqueueUniqueWork(
+            SOON_WORK,
+            ExistingWorkPolicy.KEEP,
+            OneTimeWorkRequestBuilder<AlertPollWorker>().setConstraints(online).build(),
+        )
+    }
+
+    /** Whether a poll asked for at [now] may run, after the last one at [last] (both in milliseconds). */
+    fun dueForSoonPoll(last: Long, now: Long): Boolean = now - last >= TimeUnit.MINUTES.toMillis(SOON_MINUTES) || now < last
 
     /** On start: keeps the poll queued while the notifications are on. */
     fun keepScheduled(context: Context, settings: AlertNotificationSettings) {

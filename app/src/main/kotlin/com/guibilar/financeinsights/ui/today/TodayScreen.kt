@@ -34,6 +34,9 @@ import androidx.compose.material.icons.outlined.Sell
 import androidx.compose.material.icons.outlined.Cake
 import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.Handshake
+import androidx.compose.material.icons.outlined.FindInPage
+import androidx.compose.material.icons.outlined.CloudOff
+import androidx.compose.material.icons.outlined.HourglassEmpty
 import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material.icons.outlined.UploadFile
 import androidx.compose.material3.Card
@@ -111,6 +114,17 @@ fun TodayDto.sections(registry: List<HestiaModule>): List<TodaySection> {
     }
 }
 
+/** The server module of its own alerts (T80): no tiles, and last on Today. */
+const val SYSTEM_MODULE = "System"
+
+/**
+ * The sections that Today shows (T81): a module with tiles or a load problem. A module with only "Needs attention" items
+ * has no section (its items are in the one list). System goes last.
+ */
+fun List<TodaySection>.shown(): List<TodaySection> =
+    filter { it.tiles.isNotEmpty() || it.status != TodayModuleStatus.Complete }
+        .sortedBy { it.name == SYSTEM_MODULE }
+
 /** All "Needs attention" items, most pressing first (the server's order). */
 val TodayDto.attention: List<TodayCard> get() = cards.filter { it.type == TodayCardType.Attention }
 
@@ -130,6 +144,8 @@ fun TodayScreen(
     contentPadding: PaddingValues,
     open: (TodayDestination) -> Unit,
     openModule: (HestiaModule) -> Unit,
+    /** After a pull to refresh: the phone asks for new alerts too (T81). */
+    onRefresh: () -> Unit = {},
 ) {
     val state by model.state.collectAsState()
     // Back from another tab or the background: the cards reload (new ones when the data changed in the app).
@@ -147,7 +163,14 @@ fun TodayScreen(
                 }
             },
         )
-        PullToRefreshBox(isRefreshing = state.refreshing, onRefresh = model::refresh, modifier = Modifier.fillMaxSize()) {
+        PullToRefreshBox(
+            isRefreshing = state.refreshing,
+            onRefresh = {
+                model.refresh()
+                onRefresh()
+            },
+            modifier = Modifier.fillMaxSize(),
+        ) {
             ReadableColumn {
                 Column(
                     Modifier.verticalScroll(rememberScrollState()).padding(16.dp),
@@ -158,7 +181,7 @@ fun TodayScreen(
                     when {
                         today != null -> {
                             state.error?.let { Note(it) }
-                            sections.forEach { section -> Section(section, open, openModule, model::retry) }
+                            sections.shown().forEach { section -> Section(section, open, openModule, model::retry) }
                             val items = today.attention
                             if (items.isNotEmpty()) NeedsAttention(items, open)
                         }
@@ -299,6 +322,10 @@ private fun attentionIcon(kind: String): ImageVector = when (kind) {
     "reach-out" -> Icons.Outlined.Group
     "birthday" -> Icons.Outlined.Cake
     "loan-overdue" -> Icons.Outlined.Handshake
+    // System (T80): a stuck event outbox, the event broker down, document files missing.
+    "outbox-stuck" -> Icons.Outlined.HourglassEmpty
+    "broker-down" -> Icons.Outlined.CloudOff
+    "files-missing" -> Icons.Outlined.FindInPage
     else -> Icons.Outlined.ErrorOutline
 }
 
