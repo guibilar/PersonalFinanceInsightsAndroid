@@ -303,7 +303,7 @@ fun MainScreen(
     val financeTasks = remember(nav, client, canWrite) { AppFinanceTasks(nav, client, canWrite) }
     val homeHost = remember(nav) { AppHomeHost(nav) }
     // The People module (T92): its links open the pages of the other modules.
-    val peopleHost = remember(nav) { AppPeopleHost(nav) }
+    val peopleHost = remember(nav, client) { AppPeopleHost(nav, client) }
     // A rail at the side on a wide screen (a tablet, an unfolded foldable, landscape); the bar below otherwise.
     val rail = windowWidth() >= MEDIUM_WIDTH
     fun select(item: TopLevel, selected: Boolean) {
