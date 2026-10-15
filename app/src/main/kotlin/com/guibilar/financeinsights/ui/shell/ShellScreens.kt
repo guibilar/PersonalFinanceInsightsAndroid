@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,6 +17,7 @@ import androidx.compose.material.icons.outlined.Chair
 import androidx.compose.material.icons.outlined.CheckBox
 import androidx.compose.material.icons.outlined.DocumentScanner
 import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material3.Card
@@ -41,7 +43,7 @@ import com.guibilar.financeinsights.ui.common.ReadableColumn
 
 /**
  * Quick capture: the buttons of the design. "Task" opens the quick add of Tasks; "Item" adds a thing to the home
- * inventory (T88); "Photo" and "Scan" add a document
+ * inventory (T88); "Person" adds a person (T92); "Photo" and "Scan" add a document
  * (the photo picker, or the document scanner); "Expense" opens the "Add transaction" form. Voice comes with the Inbox
  * module. For a read-only user ([canWrite] false, T60), every button is disabled and the note says why.
  */
@@ -55,6 +57,7 @@ fun CaptureScreen(
     canWrite: Boolean = true,
     onTask: () -> Unit = {},
     onItem: () -> Unit = {},
+    onPerson: () -> Unit = {},
 ) {
     Column(Modifier.fillMaxSize().padding(bottom = contentPadding.calculateBottomPadding())) {
         TopAppBar(title = { FitText("Capture", fontWeight = FontWeight.SemiBold, minFontSize = 14.sp) })
@@ -71,9 +74,14 @@ fun CaptureScreen(
                     CaptureButton(Icons.Outlined.DocumentScanner, "Scan", enabled = canWrite, Modifier.weight(1f), onScan)
                     CaptureButton(Icons.Outlined.Mic, "Voice", enabled = false, Modifier.weight(1f)) {}
                 }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    CaptureButton(Icons.Outlined.PersonAdd, "Person", enabled = canWrite, Modifier.weight(1f), onPerson)
+                    Spacer(Modifier.weight(1f))
+                    Spacer(Modifier.weight(1f))
+                }
                 Text(
                     if (canWrite) {
-                        "Task adds a to-do. Item adds a thing to the home inventory. Photo and Scan add a document. Voice is coming soon."
+                        "Task adds a to-do. Item adds a thing to the home inventory. Photo and Scan add a document. Person adds someone to remember. Voice is coming soon."
                     } else {
                         "This account can only read. It cannot add anything."
                     },

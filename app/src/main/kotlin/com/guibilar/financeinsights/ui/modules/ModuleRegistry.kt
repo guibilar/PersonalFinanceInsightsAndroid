@@ -10,6 +10,7 @@ import androidx.compose.material.icons.outlined.Home
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.guibilar.financeinsights.documents.DocumentsRoute
 import com.guibilar.financeinsights.home.HomeRoute
+import com.guibilar.financeinsights.people.PeopleRoute
 import com.guibilar.financeinsights.tasks.TasksRoute
 import com.guibilar.financeinsights.ui.MoneyHomeRoute
 
@@ -64,8 +65,8 @@ val MODULES = listOf(
         name = "People",
         description = "Birthdays, gifts and lent items",
         icon = Icons.Outlined.Group,
-        route = null,
-        status = ModuleStatus.ComingSoon,
+        route = PeopleRoute,
+        status = ModuleStatus.Active,
         todayPreview = "Birthdays, and people to get in touch with",
     ),
     HestiaModule(

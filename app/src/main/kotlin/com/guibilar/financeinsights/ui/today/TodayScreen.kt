@@ -31,6 +31,9 @@ import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material.icons.outlined.Sell
+import androidx.compose.material.icons.outlined.Cake
+import androidx.compose.material.icons.outlined.Group
+import androidx.compose.material.icons.outlined.Handshake
 import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material.icons.outlined.UploadFile
 import androidx.compose.material3.Card
@@ -292,6 +295,10 @@ private fun attentionIcon(kind: String): ImageVector = when (kind) {
     "overdue", "overdue-many" -> Icons.Outlined.CheckBox
     // Home (T22): a warranty that ends soon.
     "warranty-ending" -> Icons.Outlined.VerifiedUser
+    // People (T20): a person to reach out to, a birthday soon, a lent thing not back.
+    "reach-out" -> Icons.Outlined.Group
+    "birthday" -> Icons.Outlined.Cake
+    "loan-overdue" -> Icons.Outlined.Handshake
     else -> Icons.Outlined.ErrorOutline
 }
 

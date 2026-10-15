@@ -135,6 +135,14 @@ class TodayLinksTest {
     }
 
     @Test
+    fun `a People alert opens the person, and other People paths the People screen`() {
+        assertEquals(TodayDestination.Person("p1"), todayDestination("/people/p1"))
+        assertEquals(TodayDestination.People, todayDestination("/people"))
+        assertEquals(TodayDestination.People, todayDestination("/people/new"))
+        assertEquals(TodayDestination.People, todayDestination("/people/p1/gifts"))
+    }
+
+    @Test
     fun `the Home links open the Home screen or a room`() {
         assertEquals(TodayDestination.Home, todayDestination("/home"))
         assertEquals(TodayDestination.Home, todayDestination("/home/"))

@@ -29,12 +29,13 @@ jobs:
       - name: Test, lint and build
         env:
           CHECKS: >-
-            :core:common:test :core:network:test :core:finance:test :core:today:test :core:documents:test :core:tasks:test :core:home:test
+            :core:common:test :core:network:test :core:finance:test :core:today:test :core:documents:test :core:tasks:test :core:home:test :core:people:test
             :core:ui:lintDebug
             :feature:finance:testDebugUnitTest :feature:finance:lintDebug
             :feature:documents:testDebugUnitTest :feature:documents:lintDebug
             :feature:tasks:testDebugUnitTest :feature:tasks:lintDebug
             :feature:home:testDebugUnitTest :feature:home:lintDebug
+            :feature:people:testDebugUnitTest :feature:people:lintDebug
             :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
         # --continue runs the tests of all modules after a failure, so the annotations below list all failed tests.
         shell: bash
