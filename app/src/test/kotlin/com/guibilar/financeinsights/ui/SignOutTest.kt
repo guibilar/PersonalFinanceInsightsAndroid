@@ -27,7 +27,7 @@ class SignOutTest {
         var signedOut = 0
         val model = AccountSettingsViewModel(FakeAuthApi())
         compose.setContent {
-            FinanceTheme(dynamicColor = false) {
+            FinanceTheme(ripples = false, dynamicColor = false) {
                 Surface { AccountSettingsScreen(model, AccountInfo("dev", "https://finance.example.ts.net"), { signedOut++ }, PaddingValues()) {} }
             }
         }

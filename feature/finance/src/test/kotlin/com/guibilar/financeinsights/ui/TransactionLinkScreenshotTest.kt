@@ -39,7 +39,7 @@ class TransactionLinkScreenshotTest {
     private fun show(id: String, dark: Boolean = false): TransactionsViewModel {
         val model = TransactionsViewModel(api, TransactionsRoute(transactionId = id)) { today }
         compose.setContent {
-            FinanceTheme(darkTheme = dark, dynamicColor = false) { Surface { TransactionsScreen(model, account, {}, PaddingValues()) } }
+            FinanceTheme(ripples = false, darkTheme = dark, dynamicColor = false) { Surface { TransactionsScreen(model, account, {}, PaddingValues()) } }
         }
         return model
     }

@@ -40,7 +40,7 @@ class ReadOnlyMoneyTest {
 
     private fun show(content: @Composable () -> Unit) {
         compose.setContent {
-            FinanceTheme(dynamicColor = false) {
+            FinanceTheme(ripples = false, dynamicColor = false) {
                 CompositionLocalProvider(LocalFinanceCanWrite provides false) { Surface { content() } }
             }
         }

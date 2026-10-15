@@ -37,7 +37,7 @@ class GesturesTest {
 
     private fun transactions() {
         val model = TransactionsViewModel(api, TransactionsRoute()) { LocalDate.of(2026, 10, 3) }
-        compose.setContent { FinanceTheme(dynamicColor = false) { Surface { TransactionsScreen(model, AccountInfo("dev", "s"), {}, PaddingValues()) } } }
+        compose.setContent { FinanceTheme(ripples = false, dynamicColor = false) { Surface { TransactionsScreen(model, AccountInfo("dev", "s"), {}, PaddingValues()) } } }
         compose.waitForIdle()
     }
 
@@ -72,7 +72,7 @@ class GesturesTest {
     @Test
     fun `dragging a rule by its handle moves it`() {
         val model = RulesViewModel(api)
-        compose.setContent { FinanceTheme(dynamicColor = false) { Surface { RulesScreen(model, PaddingValues()) {} } } }
+        compose.setContent { FinanceTheme(ripples = false, dynamicColor = false) { Surface { RulesScreen(model, PaddingValues()) {} } } }
         compose.waitForIdle()
         // METRO, first, dragged down past two rules.
         // The handle itself, not the row its label merges into.

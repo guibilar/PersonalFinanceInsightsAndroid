@@ -54,7 +54,7 @@ class PrivacyModeTest {
         Money.hidden = { hidden.value }
         val model = DashboardViewModel(FakeFinanceApi(), alerts) { LocalDate.of(2026, 10, 4) }
         compose.setContent {
-            FinanceTheme(darkTheme = false, dynamicColor = false) {
+            FinanceTheme(ripples = false, darkTheme = false, dynamicColor = false) {
                 Surface {
                     DashboardScreen(
                         model, AccountInfo("dev", "s"), {}, PaddingValues(), {},

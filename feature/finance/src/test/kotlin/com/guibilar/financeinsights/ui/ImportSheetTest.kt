@@ -39,7 +39,7 @@ class ImportSheetTest {
         val big = PickedFile("huge.csv", ByteArray(5 * 1024 * 1024 + 1))
         model.openImport(listOf(big))
         compose.setContent {
-            FinanceTheme(dynamicColor = false) {
+            FinanceTheme(ripples = false, dynamicColor = false) {
                 Surface {
                     val state by model.state.collectAsState()
                     ImportSheet(state.accounts, model, {}, state.accountsLoaded)
@@ -58,7 +58,7 @@ class ImportSheetTest {
         api.importAnswers += ImportResult(read = 1, added = 1, skipped = 0, balance = null, balanceDate = null)
         model.openImport(listOf(PickedFile("June.csv", ByteArray(10))), accountId = SAVINGS)
         compose.setContent {
-            FinanceTheme(dynamicColor = false) {
+            FinanceTheme(ripples = false, dynamicColor = false) {
                 Surface {
                     val state by model.state.collectAsState()
                     ImportSheet(state.accounts, model, {}, state.accountsLoaded)
@@ -90,7 +90,7 @@ class ImportSheetTest {
     private fun showSheet(model: TransactionsViewModel, files: List<PickedFile>, onDismiss: () -> Unit = {}) {
         model.openImport(files)
         compose.setContent {
-            FinanceTheme(dynamicColor = false) {
+            FinanceTheme(ripples = false, dynamicColor = false) {
                 Surface {
                     val state by model.state.collectAsState()
                     ImportSheet(state.accounts.filter { it.id == state.accounts.first().id }, model, onDismiss, state.accountsLoaded)

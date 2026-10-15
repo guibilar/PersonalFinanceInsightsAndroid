@@ -35,7 +35,7 @@ class TabletShellTest {
     private val account = AccountInfo("dev", "https://finance.example.ts.net")
 
     private fun show(content: @Composable () -> Unit) {
-        compose.setContent { FinanceTheme(dynamicColor = false) { Surface { content() } } }
+        compose.setContent { FinanceTheme(ripples = false, dynamicColor = false) { Surface { content() } } }
         compose.waitForIdle()
     }
 

@@ -58,7 +58,7 @@ class TasksScreenshotTest {
     private val today = { TasksSamples.TODAY }
 
     private fun show(dark: Boolean = false, content: @Composable () -> Unit) {
-        compose.setContent { FinanceTheme(darkTheme = dark, dynamicColor = false) { Surface { content() } } }
+        compose.setContent { FinanceTheme(ripples = false, darkTheme = dark, dynamicColor = false) { Surface { content() } } }
         compose.waitForIdle()
     }
 

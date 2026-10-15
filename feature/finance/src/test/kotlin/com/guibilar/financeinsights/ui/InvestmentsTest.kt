@@ -54,7 +54,7 @@ class InvestmentsTest {
     )
 
     private fun show(content: @Composable () -> Unit) {
-        compose.setContent { FinanceTheme(darkTheme = false, dynamicColor = false) { Surface { content() } } }
+        compose.setContent { FinanceTheme(ripples = false, darkTheme = false, dynamicColor = false) { Surface { content() } } }
         compose.waitForIdle()
     }
 
