@@ -83,7 +83,7 @@ fun NeedsAttentionCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
         modifier = modifier.fillMaxWidth(),
     ) {
-        Column(Modifier.padding(vertical = 8.dp)) {
+        Column(Modifier.padding(vertical = 12.dp)) {
             Text(
                 "Needs attention",
                 style = MaterialTheme.typography.titleSmall,
