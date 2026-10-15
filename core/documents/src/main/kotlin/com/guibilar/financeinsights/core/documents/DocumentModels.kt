@@ -77,6 +77,15 @@ object DocumentLinkKinds {
     const val PEOPLE_PERSON = "People.Person"
 }
 
+/** The things to count documents for (`POST /api/documents/by-link/counts`, T72). */
+@Serializable
+data class DocumentLinkCounts(val kind: String, val targetIds: List<String>) {
+    companion object {
+        /** The most ids of one request (the server's limit). */
+        const val MAX_TARGETS = 200
+    }
+}
+
 /** A document in a list: everything except the OCR text. */
 @Serializable
 data class DocumentSummary(

@@ -1,7 +1,12 @@
 package com.guibilar.financeinsights.ui.transactions
 
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.semantics.semantics
 import com.guibilar.financeinsights.FinanceTasks
+import com.guibilar.financeinsights.core.api.apiCall
+import com.guibilar.financeinsights.core.documents.DocumentLinkCounts
+import com.guibilar.financeinsights.core.documents.DocumentLinkKinds
+import com.guibilar.financeinsights.core.logic.DataChanges
 import com.guibilar.financeinsights.ui.READ_ONLY_NOTE
 import com.guibilar.financeinsights.ui.LocalFinanceCanWrite
 import androidx.compose.ui.semantics.contentDescription
@@ -119,6 +124,19 @@ fun TransactionsScreen(
     tasks: FinanceTasks? = null,
 ) {
     val state by model.state.collectAsState()
+    // How many documents each shown transaction has (T72), for the icon on its row; none in the deleted list and none
+    // when Hestia does not answer. Again after each data change.
+    val shownIds = state.list.items.map { it.id }
+    val documentCounts by produceState(emptyMap<String, Int>(), shownIds, state.showDeleted, documents, DataChanges.version) {
+        val api = documents?.api
+        value = if (api == null || state.showDeleted || shownIds.isEmpty()) {
+            emptyMap()
+        } else {
+            shownIds.chunked(DocumentLinkCounts.MAX_TARGETS).fold(emptyMap()) { counts, ids ->
+                counts + (apiCall { api.countByLink(DocumentLinkCounts(DocumentLinkKinds.MONEY_TRANSACTION, ids)) }.getOrNull() ?: emptyMap())
+            }
+        }
+    }
     // Back from the background on a new day: today moves on.
     LifecycleResumeEffect(model) {
         model.resumed()
@@ -348,6 +366,7 @@ fun TransactionsScreen(
                                                         // Long-pressed, it starts a change to several at once (not in the deleted list).
                                                         onLongClick = if (!canWrite || state.showDeleted || stale) null else ({ model.toggleSelected(transaction.id) }),
                                                         selected = if (selecting) transaction.id in state.selected else null,
+                                                        documents = documentCounts[transaction.id.lowercase()] ?: 0,
                                                     )
                                                 }
                                             }

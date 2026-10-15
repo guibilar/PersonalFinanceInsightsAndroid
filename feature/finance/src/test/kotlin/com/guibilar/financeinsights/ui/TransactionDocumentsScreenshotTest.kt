@@ -210,6 +210,22 @@ class TransactionDocumentsScreenshotTest {
     }
 
     @Test
+    fun aTransactionWithDocumentsHasAnIconInTheList() {
+        val model = TransactionsViewModel(finance, TransactionsRoute(transactionId = metro)) { today }
+        compose.setContent {
+            FinanceTheme(ripples = false, dynamicColor = false) {
+                Surface { TransactionsScreen(model, account, {}, PaddingValues(), documents = FakeDocuments()) }
+            }
+        }
+        compose.waitForIdle()
+
+        // T72: the counts of the shown transactions, in one read-only POST; the Metro row has its receipt.
+        compose.onNode(hasContentDescription("METRO 221", substring = true) and hasContentDescription("1 document", substring = true))
+            .assertExists()
+        assertTrue(documentsApi.sent.any { it.first == "countByLink" })
+    }
+
+    @Test
     fun noSectionWithoutTheDocumentsModule() {
         val model = TransactionsViewModel(finance, TransactionsRoute(transactionId = metro)) { today }
         compose.setContent { FinanceTheme(ripples = false, dynamicColor = false) { Surface { TransactionsScreen(model, account, {}, PaddingValues()) } } }

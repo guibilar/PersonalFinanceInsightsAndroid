@@ -2,6 +2,7 @@ package com.guibilar.financeinsights.ui.transactions
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.material3.Icon
@@ -64,6 +65,8 @@ fun TransactionRow(
     onLongClick: (() -> Unit)? = null,
     /** Ticked for a change to many: a tick instead of the category's letter. */
     selected: Boolean? = null,
+    /** How many documents link to it (T72): an icon after the description when there are some. */
+    documents: Int = 0,
 ) {
     val colors = LocalChartColors.current
     val category = parseHexColor(transaction.category.color)
@@ -92,6 +95,7 @@ fun TransactionRow(
                     transaction.accountName, flowNote, transaction.budget?.let { "Budget ${it.name}" },
                     transaction.tags.takeIf { it.isNotEmpty() }?.let { tags -> "Tagged " + tags.joinToString(", ") { it.name } },
                     transaction.note?.let { "Note: $it" },
+                    documents.takeIf { it > 0 }?.let { if (it == 1) "1 document" else "$it documents" },
                 ).joinToString(", ")
                 if (selected != null) this.selected = selected
                 if (onClick != null) onClick(label = if (selected != null) "Select" else "Open") { onClick(); true }
@@ -118,7 +122,19 @@ fun TransactionRow(
         }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(transaction.description, maxLines = if (large) 2 else 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyLarge)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    transaction.description,
+                    maxLines = if (large) 2 else 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                if (documents > 0) {
+                    Spacer(Modifier.width(4.dp))
+                    Icon(Icons.Outlined.Description, null, Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
             Text(
                 listOf(transaction.category.name, transaction.accountName).filter { it.isNotBlank() }.joinToString(" · "),
                 maxLines = 1,
