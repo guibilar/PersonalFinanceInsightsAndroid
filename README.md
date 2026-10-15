@@ -13,12 +13,12 @@ The bar at the bottom has five items: **Today**, **Timeline**, **Capture** (the 
 - **Today** shows the cards that the server gives for today (`GET /api/today` on Hestia.Api): each module's tiles
   (Money first, with its four headline tiles), then one "Needs attention" list. A tile or an item opens its page. Pull down to get new cards. If a module could not load all its figures,
   Today says so; if a module failed, it has its own "Try again".
-- **Modules** lists the modules. Money opens its home, Documents its list, Tasks, Home, People and Journal their
+- **Modules** lists the modules. Money opens its home, Documents its list, Tasks, Home, People, Inbox and Journal their
   screens. Under them are the app's settings and your account.
 - **Money** (its home) has the four tiles, the Money items of "Needs attention" (the same as on Today), and a row for each finance page: Dashboard, Net worth and Review; Transactions,
   Budgets and Subscriptions; and Accounts, Categories, Tags and Rules. Back from a finance page returns to the Money
   home, and then to where you opened it from.
-- **Capture** has eight buttons. "Task" opens the quick add of Tasks; "Item" opens a new item of Home; "Person" opens a
+- **Capture** has nine buttons. "Note" opens the Inbox (T18) for a quick note. "Task" opens the quick add of Tasks; "Item" opens a new item of Home; "Person" opens a
   new person; "Journal" opens today's journal entry; "Expense" opens
   the "Add transaction" form;
   "Scan" opens the document scanner and "Photo" the photo picker, for a new document; Voice is coming soon.
@@ -105,6 +105,13 @@ them, a reach-out reminder, birthdays, gift ideas, and things lent or borrowed.
   optional), email, phone, the reminder, and notes. It checks them as the server does.
 - Today: a People alert (`/people/<id>`) opens the person; `/people` opens the People screen.
 - A read-only user sees everything, but no add, edit, delete, log, gift, loan, or unlink.
+
+**Inbox** (on Hestia.Api, `/api/inbox`, T18) keeps quick notes to sort later:
+
+- A quick note goes to the Inbox, or at once to a task (the first line is the title) or to today's journal entry.
+- Each note to sort has "To task", "To journal" (the app adds the thing, then marks the note sorted), "Done", "Edit" and
+  "Delete". "Sorted" shows the sorted notes, with "Undo". Today: the Inbox tile (`/inbox`) opens it.
+- A read-only user can read only.
 
 **Journal** (on Hestia.Api, `/api/journal`, T21) keeps one entry per day:
 
@@ -311,6 +318,7 @@ The app is split into Gradle modules, so that more modules (documents, tasks, an
 | `:feature:home` | Android library | The Home module: the Home screen (maintenance, inventory, rooms, search, the export), a room, an item (details, warranty, photos, links, maintenance), the new item with a photo, and its navigation graph (`homeGraph`). It depends on the core modules only: documents come from `:core:documents`, transactions from `:core:finance`, maintenance tasks from `:core:tasks`. Its own file provider (`HomeFileProvider`, cache folder `home/`) serves the camera and the share sheet. |
 | `:core:journal` | Plain Kotlin | The Journal API (`JournalApi`, `/api/journal`) and its models, and the rules of the Journal screen: the day labels, the streak, and "On this day". Its test fixtures hold the fake `JournalApi` (entries in memory) and sample entries. |
 | `:feature:journal` | Android library | The Journal module: the Journal screen and its navigation graph (`journalGraph`). It depends on `:core:journal` and `:core:ui` only. |
+| `:feature:inbox` | Android library | The Inbox screen (T18), with its own API (`InboxApi`), and `NoteSender`, which puts a note into Tasks (`:core:tasks`) or the Journal (`:core:journal`). |
 | `:feature:search` | Android library | The Search screen (T17), with its own API and models (`SearchApi`). It depends on `:core:network` and `:core:ui` only; the app opens a hit's page through `todayDestination`. |
 | `:feature:timeline` | Android library | The Timeline screen (T16), with its own API and models (`TimelineApi`). It depends on `:core:network` and `:core:ui` only; the app opens an entry's page through `todayDestination`. |
 | `:feature:people` | Android library | The People module: the People screen, a person (actions, gift ideas, loans, history, links), the person form, and its navigation graph (`peopleGraph`). It depends on `:core:people` and `:core:ui` only; linked pages open through `PeopleHost`. |

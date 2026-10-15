@@ -85,6 +85,7 @@ dependencies {
     implementation(project(":feature:journal"))
     implementation(project(":feature:timeline"))
     implementation(project(":feature:search"))
+    implementation(project(":feature:inbox"))
     implementation(project(":core:today"))
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.core.ktx)
