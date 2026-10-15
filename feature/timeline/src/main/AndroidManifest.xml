@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- The theme is the app's: the module's own tests then render the screens in the same window as the app. -->
+    <application android:theme="@style/Theme.Finance" />
+</manifest>

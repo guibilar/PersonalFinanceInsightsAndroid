@@ -37,6 +37,7 @@ jobs:
             :feature:home:testDebugUnitTest :feature:home:lintDebug
             :feature:people:testDebugUnitTest :feature:people:lintDebug
             :feature:journal:testDebugUnitTest :feature:journal:lintDebug
+            :feature:timeline:testDebugUnitTest :feature:timeline:lintDebug
             :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
         # --continue runs the tests of all modules after a failure, so the annotations below list all failed tests.
         # The output is also kept in a file for the compile error annotations (T28).
