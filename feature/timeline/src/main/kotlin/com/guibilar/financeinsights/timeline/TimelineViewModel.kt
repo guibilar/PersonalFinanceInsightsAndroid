@@ -95,10 +95,12 @@ class TimelineViewModel(private val api: TimelineApi) : ViewModel() {
         }
     }
 
-    /** The 14 days before the last page. */
+    /** The next page before the last one (it ends on the latest earlier day with an entry). */
     fun showEarlier() {
         val state = _state.value
-        val before = state.pages.lastOrNull()?.earlier ?: return
+        val last = state.pages.lastOrNull() ?: return
+        if (!last.hasEarlier) return
+        val before = last.earlier
         if (state.loading) return
         _state.update { it.copy(loading = true, moreFailed = false) }
         job = viewModelScope.launch {
