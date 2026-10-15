@@ -135,8 +135,9 @@ class TransactionsViewModel(
 
     /**
      * Shows one transaction: the list changes to its day and account (no other filter, the live list), and its row
-     * is highlighted when it is loaded. A deleted or unknown one, or a failed look-up, leaves the list as it is (or
-     * loads the normal list, on a first show) with a [LinkNotice].
+     * is highlighted when it is loaded. A deleted one shows the same way in the deleted list, with [LinkNotice.Deleted]
+     * (T65). An unknown one, or a failed look-up, leaves the list as it is (or loads the normal list, on a first show)
+     * with a [LinkNotice].
      */
     fun showTransaction(id: String) {
         linkJob?.cancel()
@@ -150,7 +151,13 @@ class TransactionsViewModel(
                     reloadList(clear = true)
                     breakdown.reload()
                 }
-                is TransactionLookup.Deleted -> notFound(LinkNotice.Deleted)
+                is TransactionLookup.Deleted -> {
+                    pendingLink = found.transaction.id
+                    _state.update {
+                        it.copy(criteria = linkCriteria(found.transaction), search = "", showDeleted = true, linkNotice = LinkNotice.Deleted)
+                    }
+                    reloadList(clear = true)
+                }
                 TransactionLookup.Missing -> notFound(LinkNotice.Missing)
                 TransactionLookup.Failed -> notFound(LinkNotice.Failed)
             }

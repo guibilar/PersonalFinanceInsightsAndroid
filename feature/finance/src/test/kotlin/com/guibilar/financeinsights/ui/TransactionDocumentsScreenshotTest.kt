@@ -28,6 +28,7 @@ import com.guibilar.financeinsights.ui.transactions.TransactionDocumentsContent
 import com.guibilar.financeinsights.ui.transactions.TransactionsScreen
 import com.guibilar.financeinsights.ui.transactions.TransactionsViewModel
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -179,6 +180,19 @@ class TransactionDocumentsScreenshotTest {
         assertEquals(listOf("d3"), documents.opened)
         compose.onNodeWithText("Add document").performScrollTo().performClick()
         assertEquals(listOf(metro), documents.added)
+    }
+
+    @Test
+    fun unlinkADocument() {
+        openMetro(FakeDocuments())
+        compose.onNodeWithContentDescription("Remove the link of Metro receipt").performScrollTo().performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Remove").performClick()
+        compose.waitForIdle()
+
+        // T65: the link goes; the document stays.
+        assertTrue(documentsApi.sent.any { it.first == "removeLink" })
+        compose.onNodeWithText("No documents yet. Add the receipt, for example.").performScrollTo().assertExists()
     }
 
     @Test

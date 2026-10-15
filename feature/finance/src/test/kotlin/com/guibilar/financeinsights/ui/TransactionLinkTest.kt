@@ -90,21 +90,18 @@ class TransactionLinkTest {
     }
 
     @Test
-    fun `a deleted transaction shows the normal list, with a way to the deleted ones`() = runTest(dispatcher) {
+    fun `a deleted transaction shows on its day in the deleted list, highlighted (T65)`() = runTest(dispatcher) {
         api.deletedIds += metro
         val model = model(metro)
         advanceUntilIdle()
 
         val state = model.state.value
         assertEquals(LinkNotice.Deleted, state.linkNotice)
-        assertEquals("The linked transaction is deleted.", state.linkNotice?.text)
-        assertTrue(state.criteria.isEmpty)
-        assertNull(state.highlighted)
-        assertEquals(25, state.list.items.size)
-
-        model.toggleDeleted()
-        assertTrue(model.state.value.showDeleted)
-        assertNull(model.state.value.linkNotice)
+        assertTrue(state.showDeleted)
+        assertEquals(metro, state.highlighted)
+        assertTrue(state.list.items.any { it.id == metro })
+        assertEquals(state.criteria.startDate, state.criteria.endDate)
+        assertTrue(listFilters().last().hidden == true)
     }
 
     @Test
