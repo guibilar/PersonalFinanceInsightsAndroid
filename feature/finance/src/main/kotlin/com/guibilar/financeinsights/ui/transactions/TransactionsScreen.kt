@@ -412,11 +412,16 @@ fun TransactionsScreen(
     }
 
     if (filtersOpen) FiltersSheet(state, onDismiss = { filtersOpen = false }, model = model)
+    // Here, not in the sheet: the sheet's content can be made again, and must not load the documents again each time.
+    val openedDocuments = rememberTransactionDocuments(
+        opened?.takeUnless { it.hidden || state.showDeleted }?.id,
+        documents,
+    )
     opened?.let { transaction ->
         if (transaction.hidden || state.showDeleted) {
             DeletedTransactionSheet(transaction, model, onDismiss = { opened = null }, canWrite = canWrite)
         } else if (!canWrite) {
-            TransactionDetailsSheet(transaction, onDismiss = { opened = null }, documents = documents)
+            TransactionDetailsSheet(transaction, onDismiss = { opened = null }, documents = documents, documentsModel = openedDocuments)
         } else {
             EditTransactionSheet(
                 transaction = transaction,
@@ -428,6 +433,7 @@ fun TransactionsScreen(
                 documents = documents,
                 home = home,
                 tasks = tasks,
+                documentsModel = openedDocuments,
             )
         }
     }

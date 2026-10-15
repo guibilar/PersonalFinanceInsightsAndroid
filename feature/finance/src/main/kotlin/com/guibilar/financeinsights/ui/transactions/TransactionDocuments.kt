@@ -162,14 +162,27 @@ fun documentSubtitle(document: DocumentSummary): String {
 }
 
 /**
- * The "Documents" section of a transaction's sheet: the linked documents (a tap opens one), "Add document" (the
- * Documents upload, which links the new one) and "Link a document". [FinanceDocuments.canWrite] false hides the two
- * actions; so does a write that the server refused with 403.
+ * The documents of the transaction whose sheet is open, for the screen that opens the sheet: made and loaded once for
+ * each opened transaction. The sheet only shows it. Before, the section made and loaded its own model, so each time
+ * the sheet's content was made again (a phone sent 870 requests in 22 seconds), it loaded the list again.
  */
 @Composable
-fun TransactionDocumentsSection(transactionId: String, documents: FinanceDocuments, modifier: Modifier = Modifier) {
-    val model = remember(transactionId, documents.api) { TransactionDocumentsModel(documents.api, transactionId) }
-    LaunchedEffect(model) { model.load() }
+fun rememberTransactionDocuments(transactionId: String?, documents: FinanceDocuments?): TransactionDocumentsModel? {
+    val model = remember(transactionId, documents) {
+        if (transactionId == null || documents == null) null else TransactionDocumentsModel(documents.api, transactionId)
+    }
+    LaunchedEffect(model) { model?.load() }
+    return model
+}
+
+/**
+ * The "Documents" section of a transaction's sheet: the linked documents (a tap opens one), "Add document" (the
+ * Documents upload, which links the new one) and "Link a document". [FinanceDocuments.canWrite] false hides the two
+ * actions; so does a write that the server refused with 403. [model] comes from [rememberTransactionDocuments].
+ */
+@Composable
+fun TransactionDocumentsSection(model: TransactionDocumentsModel, documents: FinanceDocuments, modifier: Modifier = Modifier) {
+    val transactionId = model.transactionId
     val scope = rememberCoroutineScope()
     var linking by rememberSaveable(transactionId) { mutableStateOf(false) }
     var unlinking by remember(transactionId) { mutableStateOf<DocumentSummary?>(null) }

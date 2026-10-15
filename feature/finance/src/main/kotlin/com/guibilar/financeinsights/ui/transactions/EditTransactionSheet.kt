@@ -95,12 +95,14 @@ fun EditTransactionSheet(
     documents: FinanceDocuments? = null,
     home: FinanceHome? = null,
     tasks: FinanceTasks? = null,
+    /** The documents of [transaction], from [rememberTransactionDocuments]; the section shows with [documents]. */
+    documentsModel: TransactionDocumentsModel? = null,
 ) {
     val scope = rememberCoroutineScope()
     val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     fun close() = scope.launch { sheet.hide() }.invokeOnCompletion { onDismiss() }
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheet) {
-        EditTransaction(transaction, categories, budgets, model, onClose = ::close, Modifier.navigationBarsPadding().imePadding(), tags, documents, home, tasks)
+        EditTransaction(transaction, categories, budgets, model, onClose = ::close, Modifier.navigationBarsPadding().imePadding(), tags, documents, home, tasks, documentsModel)
     }
 }
 
@@ -120,6 +122,7 @@ private fun EditTransaction(
     documents: FinanceDocuments? = null,
     home: FinanceHome? = null,
     tasks: FinanceTasks? = null,
+    documentsModel: TransactionDocumentsModel? = null,
 ) {
     val colors = LocalChartColors.current
     val scope = rememberCoroutineScope()
@@ -279,9 +282,9 @@ private fun EditTransaction(
 
         HorizontalDivider()
         BudgetLink(transaction, budgets, model, onDone = ::close)
-        if (documents != null) {
+        if (documents != null && documentsModel != null) {
             HorizontalDivider()
-            TransactionDocumentsSection(transaction.id, documents)
+            TransactionDocumentsSection(documentsModel, documents)
         }
         if (home != null && home.canWrite) {
             HorizontalDivider()
@@ -444,7 +447,12 @@ fun DeletedTransactionSheet(transaction: Transaction, model: TransactionsViewMod
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun TransactionDetailsSheet(transaction: Transaction, onDismiss: () -> Unit, documents: FinanceDocuments? = null) {
+fun TransactionDetailsSheet(
+    transaction: Transaction,
+    onDismiss: () -> Unit,
+    documents: FinanceDocuments? = null,
+    documentsModel: TransactionDocumentsModel? = null,
+) {
     val colors = LocalChartColors.current
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(
@@ -476,9 +484,9 @@ fun TransactionDetailsSheet(transaction: Transaction, onDismiss: () -> Unit, doc
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            if (documents != null) {
+            if (documents != null && documentsModel != null) {
                 HorizontalDivider()
-                TransactionDocumentsSection(transaction.id, documents)
+                TransactionDocumentsSection(documentsModel, documents)
             }
             Spacer(Modifier.height(16.dp))
         }
