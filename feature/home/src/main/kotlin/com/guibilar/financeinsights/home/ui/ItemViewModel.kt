@@ -17,12 +17,14 @@ import com.guibilar.financeinsights.core.home.Item
 import com.guibilar.financeinsights.core.home.ItemDraft
 import com.guibilar.financeinsights.core.home.ItemLink
 import com.guibilar.financeinsights.core.home.ItemLinkKinds
+import com.guibilar.financeinsights.core.home.ItemTask
 import com.guibilar.financeinsights.core.home.MAX_ITEM_NAME
 import com.guibilar.financeinsights.core.home.NewItemLink
 import com.guibilar.financeinsights.core.home.Room
 import com.guibilar.financeinsights.core.logic.DataChanges
 import com.guibilar.financeinsights.core.logic.TransactionLookup
 import com.guibilar.financeinsights.core.logic.findTransaction
+import com.guibilar.financeinsights.core.logic.formatDay
 import com.guibilar.financeinsights.core.model.SortDirection
 import com.guibilar.financeinsights.core.model.Transaction
 import com.guibilar.financeinsights.core.model.TransactionFilter
@@ -129,6 +131,9 @@ class ItemViewModel(
     /** Where the pictures are decoded: off the main thread in the app. */
     private val decoding: CoroutineDispatcher = Dispatchers.Default,
 ) : ViewModel() {
+    /** The categories in use (T89), for the suggestions of the form; none when they do not load. */
+    suspend fun categories(): List<String> = apiCall { api.categories() }.getOrNull()?.map { it.name }.orEmpty()
+
     private val _state = MutableStateFlow(ItemState())
     val state: StateFlow<ItemState> = _state.asStateFlow()
 
@@ -343,6 +348,18 @@ class ItemViewModel(
                     _state.update { it.copy(transactionCandidates = loaded) }
                 }
             }
+        }
+    }
+
+    /** Done, or undo the last done, of a maintenance task (T89); the item then loads again with the next date. */
+    fun toggleDone(task: ItemTask) = write(if (task.isDone) "Could not undo." else "Could not mark the task done.") {
+        val changed = if (task.isDone) tasks.undo(task.id) else tasks.done(task.id)
+        DataChanges.changed()
+        reloadNow()
+        if (task.isDone) {
+            "“${changed.title}” is open again"
+        } else {
+            changed.dueOn?.let { "Done. Next: ${formatDay(it)}" } ?: "Done"
         }
     }
 

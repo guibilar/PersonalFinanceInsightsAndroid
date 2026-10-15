@@ -1,6 +1,7 @@
 package com.guibilar.financeinsights
 
 import com.guibilar.financeinsights.core.api.ApiError
+import com.guibilar.financeinsights.core.home.CategoryCount
 import com.guibilar.financeinsights.core.home.HomeApi
 import com.guibilar.financeinsights.core.home.HomeSummary
 import com.guibilar.financeinsights.core.home.Item
@@ -10,6 +11,7 @@ import com.guibilar.financeinsights.core.home.ItemLink
 import com.guibilar.financeinsights.core.home.ItemLinkKinds
 import com.guibilar.financeinsights.core.home.ItemPage
 import com.guibilar.financeinsights.core.home.ItemSummary
+import com.guibilar.financeinsights.core.home.Maintenance
 import com.guibilar.financeinsights.core.home.NO_ROOM
 import com.guibilar.financeinsights.core.home.NewItem
 import com.guibilar.financeinsights.core.home.NewItemLink
@@ -82,6 +84,21 @@ class FakeHomeApi(
     private fun withCounts(room: Room): Room {
         val inRoom = items.filter { it.roomId == room.id }
         return room.copy(itemCount = inRoom.size, totalValue = inRoom.sumOf { it.value })
+    }
+
+    /** The open tasks of the items' maintenance, as the server joins them: by due date (no date last), then by title. */
+    override suspend fun maintenance(): List<Maintenance> = call("maintenance", null) {
+        items.flatMap { item ->
+            item.maintenance.filter { it.status == "Open" }.map { task ->
+                Maintenance(task.id, task.title, task.dueOn, task.repeatEvery, task.repeatUnit, task.lastDoneAt, item.id, item.name, item.roomName)
+            }
+        }.sortedWith(compareBy<Maintenance> { it.dueOn == null }.thenBy { it.dueOn }.thenBy { it.title })
+    }
+
+    override suspend fun categories(): List<CategoryCount> = call("categories", null) {
+        items.mapNotNull { it.category }.groupBy { it.lowercase() }
+            .map { (_, names) -> CategoryCount(names.first(), names.size) }
+            .sortedBy { it.name.lowercase() }
     }
 
     override suspend fun summary(): HomeSummary = call("summary", null) {

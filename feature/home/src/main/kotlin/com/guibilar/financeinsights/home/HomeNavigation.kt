@@ -107,7 +107,7 @@ fun NavGraphBuilder.homeGraph(
 ) {
     composable<HomeRoute> {
         HomeScreen(
-            model = viewModel { HomeViewModel(client.api(), client.api(), today) },
+            model = viewModel { HomeViewModel(client.api(), today) },
             contentPadding = contentPadding,
             openRoom = { id -> nav.navigate(RoomRoute(id)) },
             openItem = { id -> nav.navigate(ItemRoute(id)) },

@@ -110,6 +110,28 @@ data class ItemDocument(
     val expiresOn: String? = null,
 )
 
+/**
+ * One maintenance task of one item (`GET /api/home/maintenance`, T89): an open task linked to the item from either
+ * side. A task linked to two items comes twice.
+ */
+@Serializable
+data class Maintenance(
+    val taskId: String,
+    val title: String = "",
+    val dueOn: String? = null,
+    val repeatEvery: Int? = null,
+    /** "Days", "Weeks", "Months" or "Years", for a repeated task. */
+    val repeatUnit: String? = null,
+    val lastDoneAt: String? = null,
+    val itemId: String,
+    val itemName: String = "",
+    val roomName: String? = null,
+)
+
+/** A category in use and how many items have it (`GET /api/home/categories`, T89). */
+@Serializable
+data class CategoryCount(val name: String, val count: Int = 0)
+
 /** A task of an item (maintenance): linked from the item, or linked to the item from the task. */
 @Serializable
 data class ItemTask(

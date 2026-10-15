@@ -37,6 +37,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -71,6 +72,8 @@ fun NewItemScreen(
     start: PhotoSource? = null,
 ) {
     val state by model.state.collectAsState()
+    // The categories in use (T89), for the suggestions of the form.
+    val categories by produceState(emptyList<String>(), model) { value = model.categories() }
     var draft by rememberSaveable(stateSaver = ItemDraftSaver) { mutableStateOf(model.initial) }
     val pickers = rememberPhotoPickers(host, onPreparing = model::preparing, onPicked = model::photo)
     // The camera or the picker opens once, not again after a rotation.
@@ -130,7 +133,7 @@ fun NewItemScreen(
                         }
                     }
                 }
-                ItemForm(draft, state.rooms, onChange = { draft = it })
+                ItemForm(draft, state.rooms, onChange = { draft = it }, categories = categories)
                 state.error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
                     Button(onClick = { model.save(draft) }, enabled = draft.canSave && !state.saving && !state.preparing) {

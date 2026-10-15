@@ -5,20 +5,27 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.onLast
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.guibilar.financeinsights.FakeFinanceApi
 import com.guibilar.financeinsights.FakeHomeApi
 import com.guibilar.financeinsights.HomeSamples
+import com.guibilar.financeinsights.core.home.ItemDetails
 import com.guibilar.financeinsights.core.home.ItemDraft
+import com.guibilar.financeinsights.core.home.RoomDetails
+import com.guibilar.financeinsights.core.home.RoomOrder
 import com.guibilar.financeinsights.home.ui.HomeScreen
 import com.guibilar.financeinsights.home.ui.HomeViewModel
 import com.guibilar.financeinsights.home.ui.ItemScreen
@@ -64,7 +71,7 @@ class HomeScreenshotTest {
     private fun assertShows(vararg texts: String) = texts.forEach { compose.onAllNodesWithText(it).onFirst().assertExists() }
 
     private fun home(canWrite: Boolean = true, dark: Boolean = false, opened: MutableList<String> = mutableListOf()) {
-        val model = HomeViewModel(api, tasks, today)
+        val model = HomeViewModel(api, today)
         show(dark) {
             HomeScreen(
                 model,
@@ -88,8 +95,8 @@ class HomeScreenshotTest {
         val opened = mutableListOf<String>()
         home(opened = opened)
         assertShows(
-            "Search all items", "Maintenance", "Smoke detector batteries", "Every 12 months", "6 days",
-            "Clean the dishwasher filter", "Every month", "22 days", "Inventory · 7 items", "$6,019.96 value",
+            "Search all items", "Maintenance", "Smoke detector batteries", "Smoke detectors · Every 12 months", "6 days",
+            "Clean the dishwasher filter", "Dishwasher · Every month", "22 days", "Inventory · 7 items", "$6,019.96 value",
             "1 warranty ends in the next 30 days", "Kitchen", "2 items · $1,399.99", "No room", "Add room", "Share list for insurance",
         )
         shoot("home")
@@ -98,6 +105,61 @@ class HomeScreenshotTest {
         compose.onNodeWithText("Smoke detector batteries").performClick()
         compose.onNodeWithText("No room").performScrollTo().performClick()
         assertEquals(listOf("room r1", "task ${HomeSamples.BATTERY_TASK}", "room none"), opened)
+    }
+
+    @Test
+    fun `Add room opens a sheet that adds the room`() {
+        home()
+        compose.onNodeWithText("Add room").performScrollTo().performClick()
+        compose.waitForIdle()
+        assertShows("Add a room", "Name")
+        // The sheet's field: the last one (the search of the page is first).
+        compose.onAllNodes(hasSetTextAction()).onLast().performTextInput("Garage")
+        compose.onNodeWithText("Add").performClick()
+        compose.waitForIdle()
+        assertTrue(api.sent.contains("createRoom" to RoomDetails("Garage")))
+    }
+
+    private fun room(id: String = HomeSamples.kitchen.id) {
+        val model = RoomViewModel(api, id)
+        show { RoomScreen(model, PaddingValues(), HomeSamples.TODAY, openItem = {}, addItem = {}, onBack = {}) }
+    }
+
+    @Test
+    fun `a room renames in a sheet, and moves down in the list`() {
+        room()
+        compose.onNodeWithContentDescription("More").performClick()
+        compose.onNodeWithText("Rename").performClick()
+        compose.waitForIdle()
+        assertShows("Rename the room")
+        compose.onNode(hasSetTextAction()).performTextClearance()
+        compose.onNode(hasSetTextAction()).performTextInput("Galley")
+        compose.onNodeWithText("Save").performClick()
+        compose.waitForIdle()
+        assertTrue(api.sent.contains("updateRoom" to RoomDetails("Galley")))
+
+        compose.onNodeWithContentDescription("More").performClick()
+        compose.onNodeWithText("Move down").performClick()
+        compose.waitForIdle()
+        val order = api.sent.last { it.first == "orderRooms" }.second as RoomOrder
+        assertEquals(HomeSamples.kitchen.id, order.roomIds[1])
+    }
+
+    @Test
+    fun `Move items moves the checked items to the chosen room`() {
+        room()
+        compose.onNodeWithText("Move items").performScrollTo().performClick()
+        compose.waitForIdle()
+        assertShows("Move items", "To", "Office", "No room", "Dishwasher", "Espresso machine")
+        shoot("room-move-items")
+        // Leave the espresso machine here.
+        compose.onAllNodesWithText("Espresso machine").onLast().performClick()
+        compose.onNodeWithText("Office").performClick()
+        compose.onNodeWithText("Move 1 item").performClick()
+        compose.waitForIdle()
+        val moved = api.sent.filter { it.first == "update" }.map { (it.second as ItemDetails).roomId }
+        assertEquals(listOf(HomeSamples.office.id), moved)
+        assertEquals(HomeSamples.office.id, api.items.first { it.id == HomeSamples.dishwasher.id }.roomId)
     }
 
     @Test
@@ -200,6 +262,14 @@ class HomeScreenshotTest {
 
         compose.onNodeWithText("METRO 221").performClick()
         assertEquals(listOf("transaction ${HomeSamples.METRO_TRANSACTION}"), host.opened)
+    }
+
+    @Test
+    fun `a maintenance task is marked done from the item`() {
+        item()
+        compose.onNodeWithContentDescription("Mark done: Clean the dishwasher filter").performScrollTo().performClick()
+        compose.waitForIdle()
+        assertTrue(tasks.sent.contains("done" to HomeSamples.FILTER_TASK))
     }
 
     @Test

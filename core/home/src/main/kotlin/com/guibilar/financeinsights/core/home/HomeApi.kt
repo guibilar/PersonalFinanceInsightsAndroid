@@ -34,6 +34,14 @@ interface HomeApi {
     @GET("home/summary")
     suspend fun summary(): HomeSummary
 
+    /** All maintenance (T89): the open tasks linked to an item from either side, by due date. */
+    @GET("home/maintenance")
+    suspend fun maintenance(): List<Maintenance>
+
+    /** The categories in use (T89), by name, with their counts. */
+    @GET("home/categories")
+    suspend fun categories(): List<CategoryCount>
+
     /** All rooms, in list order. */
     @GET("home/rooms")
     suspend fun rooms(): List<Room>

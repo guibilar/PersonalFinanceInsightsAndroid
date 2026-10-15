@@ -24,7 +24,7 @@ import com.guibilar.financeinsights.home.ui.NewItemViewModel
 import com.guibilar.financeinsights.home.ui.Photo
 import com.guibilar.financeinsights.home.ui.PhotoKind
 import com.guibilar.financeinsights.home.ui.RoomViewModel
-import com.guibilar.financeinsights.home.ui.maintenanceOf
+import com.guibilar.financeinsights.home.ui.categorySuggestions
 import com.guibilar.financeinsights.ui.common.LoadState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -68,26 +68,30 @@ class HomeViewModelsTest {
 
     @Test
     fun `the screen loads the summary and the maintenance jobs, with the server's today`() = runTest(dispatcher) {
-        val model = HomeViewModel(api, tasks, phoneDay)
+        val model = HomeViewModel(api, phoneDay)
         advanceUntilIdle()
 
         val state = model.state.value
         assertEquals(HomeSamples.TODAY, state.today)
         assertEquals(7, state.summary.valueOrNull?.itemCount)
-        // Only the repeated tasks that link to an item, the next due first.
-        assertEquals(listOf(HomeSamples.BATTERY_TASK, HomeSamples.FILTER_TASK), state.maintenance.valueOrNull?.map { it.id })
+        // All maintenance from the server (T89), the next due first.
+        assertEquals(listOf(HomeSamples.BATTERY_TASK, HomeSamples.FILTER_TASK), state.maintenance.valueOrNull?.map { it.taskId })
+    }
+
+
+    @Test
+    fun `the category suggestions fit the typed text, without the typed one`() {
+        val categories = listOf("Appliance", "Electronics", "Furniture", "Tools")
+        assertEquals(categories, categorySuggestions(categories, ""))
+        assertEquals(listOf("Appliance"), categorySuggestions(categories, "app"))
+        assertEquals(emptyList<String>(), categorySuggestions(categories, " appliance "))
+        assertEquals(listOf("Appliance", "Electronics", "Furniture"), categorySuggestions(categories, "n"))
     }
 
     @Test
-    fun `maintenance jobs are open repeated tasks with an item link`() {
-        val jobs = maintenanceOf(listOf(HomeTestData.filter.summary, HomeTestData.batteries.summary.copy(repeat = null), HomeTestData.filter.summary.copy(id = "x", links = emptyList())))
-        assertEquals(listOf(HomeSamples.FILTER_TASK), jobs.map { it.id })
-    }
-
-    @Test
-    fun `without the tasks, the inventory still shows`() = runTest(dispatcher) {
-        tasks.failing += "tasks"
-        val model = HomeViewModel(api, tasks, phoneDay)
+    fun `without the maintenance, the inventory still shows`() = runTest(dispatcher) {
+        api.failing += "maintenance"
+        val model = HomeViewModel(api, phoneDay)
         advanceUntilIdle()
 
         assertTrue(model.state.value.summary is LoadState.Loaded)
@@ -96,7 +100,7 @@ class HomeViewModelsTest {
 
     @Test
     fun `a search lists the matching items once typing pauses`() = runTest(dispatcher) {
-        val model = HomeViewModel(api, tasks, phoneDay)
+        val model = HomeViewModel(api, phoneDay)
         advanceUntilIdle()
 
         model.search("bos")
@@ -117,7 +121,7 @@ class HomeViewModelsTest {
 
     @Test
     fun `a new room, and a name that exists`() = runTest(dispatcher) {
-        val model = HomeViewModel(api, tasks, phoneDay)
+        val model = HomeViewModel(api, phoneDay)
         advanceUntilIdle()
 
         assertNull(model.addRoom(" Garage "))
@@ -133,7 +137,7 @@ class HomeViewModelsTest {
 
     @Test
     fun `the export gives the file, or says why not`() = runTest(dispatcher) {
-        val model = HomeViewModel(api, tasks, phoneDay)
+        val model = HomeViewModel(api, phoneDay)
         advanceUntilIdle()
 
         val csv = model.export()

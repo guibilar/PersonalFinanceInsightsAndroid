@@ -45,6 +45,9 @@ class NewItemViewModel(
     val initial: ItemDraft,
     private val transactionId: String? = null,
 ) : ViewModel() {
+    /** The categories in use (T89), for the suggestions of the form; none when they do not load. */
+    suspend fun categories(): List<String> = apiCall { api.categories() }.getOrNull()?.map { it.name }.orEmpty()
+
     private val _state = MutableStateFlow(NewItemState())
     val state: StateFlow<NewItemState> = _state.asStateFlow()
 
