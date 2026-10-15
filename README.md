@@ -26,7 +26,9 @@ The bar at the bottom has five items: **Today**, **Timeline**, **Capture** (the 
   and the month review (Money), documents added, tasks done, items added, contacts and loans, and journal entries. The
   chips filter by module; "Show earlier" adds the 14 days before; a module that could not load is named at the top. A
   tap opens the entry's page through the one link map. The times are in the phone's time zone.
-- **Search** is a placeholder for now.
+- **Search** (T17, `GET /api/search`) is one search across all modules: after a pause in the typing (2 characters or
+  more), the best hits of each module in sections (Transactions, Documents, Tasks, Items, People, Journal); "Show all"
+  asks one module for more. A tap opens the hit's page through the one link map.
 
 **Documents** (on Hestia.Api, `/api/documents`) keeps receipts, warranties, leases, tax slips, insurance policies and
 manuals:
@@ -309,6 +311,7 @@ The app is split into Gradle modules, so that more modules (documents, tasks, an
 | `:feature:home` | Android library | The Home module: the Home screen (maintenance, inventory, rooms, search, the export), a room, an item (details, warranty, photos, links, maintenance), the new item with a photo, and its navigation graph (`homeGraph`). It depends on the core modules only: documents come from `:core:documents`, transactions from `:core:finance`, maintenance tasks from `:core:tasks`. Its own file provider (`HomeFileProvider`, cache folder `home/`) serves the camera and the share sheet. |
 | `:core:journal` | Plain Kotlin | The Journal API (`JournalApi`, `/api/journal`) and its models, and the rules of the Journal screen: the day labels, the streak, and "On this day". Its test fixtures hold the fake `JournalApi` (entries in memory) and sample entries. |
 | `:feature:journal` | Android library | The Journal module: the Journal screen and its navigation graph (`journalGraph`). It depends on `:core:journal` and `:core:ui` only. |
+| `:feature:search` | Android library | The Search screen (T17), with its own API and models (`SearchApi`). It depends on `:core:network` and `:core:ui` only; the app opens a hit's page through `todayDestination`. |
 | `:feature:timeline` | Android library | The Timeline screen (T16), with its own API and models (`TimelineApi`). It depends on `:core:network` and `:core:ui` only; the app opens an entry's page through `todayDestination`. |
 | `:feature:people` | Android library | The People module: the People screen, a person (actions, gift ideas, loans, history, links), the person form, and its navigation graph (`peopleGraph`). It depends on `:core:people` and `:core:ui` only; linked pages open through `PeopleHost`. |
 | `:app` | Android app | `MainActivity`, the application class, the module registry, the navigation host with the bar (Today, Timeline, Capture, Modules, Search), sign-in, the lock, the account page, the app's settings, and the alert notifications (`notifications/`). |

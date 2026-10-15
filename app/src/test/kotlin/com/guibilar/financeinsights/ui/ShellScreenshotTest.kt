@@ -13,7 +13,6 @@ import com.github.takahirom.roborazzi.captureRoboImage
 import com.guibilar.financeinsights.ui.modules.MODULES
 import com.guibilar.financeinsights.ui.modules.ModulesScreen
 import com.guibilar.financeinsights.ui.shell.CaptureScreen
-import com.guibilar.financeinsights.ui.shell.PlaceholderScreen
 import com.guibilar.financeinsights.ui.theme.FinanceTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -57,11 +56,5 @@ class ShellScreenshotTest {
     fun capture() {
         show { CaptureScreen(PaddingValues(), onExpense = {}) }
         shoot("capture")
-    }
-
-    @Test
-    fun timeline() {
-        show { PlaceholderScreen("Timeline", Icons.Outlined.Timeline, "Everything that happened, day by day, from all modules.", PaddingValues()) }
-        shoot("timeline")
     }
 }

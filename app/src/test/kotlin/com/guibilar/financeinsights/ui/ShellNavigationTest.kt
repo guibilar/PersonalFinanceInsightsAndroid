@@ -29,6 +29,8 @@ import com.guibilar.financeinsights.core.today.TodaySeverity
 import com.guibilar.financeinsights.core.today.TodayValue
 import com.guibilar.financeinsights.fakeApiClient
 import com.guibilar.financeinsights.QuickAction
+import com.guibilar.financeinsights.search.SearchApi
+import com.guibilar.financeinsights.search.SearchResult
 import com.guibilar.financeinsights.timeline.TimelineApi
 import com.guibilar.financeinsights.timeline.TimelineDay
 import com.guibilar.financeinsights.timeline.TimelineEntry
@@ -75,8 +77,13 @@ class ShellNavigationTest {
         }
     }
 
+    /** Search (T17): nothing is searched in these tests. */
+    private val searchApi = object : SearchApi {
+        override suspend fun search(q: String, module: String?) = SearchResult(q)
+    }
+
     private fun show(canWrite: Boolean = true) {
-        val client = fakeApiClient(FakeFinanceApi(), todayApi, FakeDocumentsApi(), FakeAlertsApi(), tasksApi, homeApi, FakePeopleApi(), timelineApi)
+        val client = fakeApiClient(FakeFinanceApi(), todayApi, FakeDocumentsApi(), FakeAlertsApi(), tasksApi, homeApi, FakePeopleApi(), timelineApi, searchApi)
         compose.setContent {
             FinanceTheme(ripples = false, dynamicColor = false) { Surface { MainScreen(client, account, {}, quickAction = quickAction, canWrite = canWrite) } }
         }
@@ -275,7 +282,7 @@ class ShellNavigationTest {
     }
 
     @Test
-    fun `Timeline shows the entries, and Search is a placeholder`() {
+    fun `Timeline shows the entries, and Search asks for a text`() {
         show()
         tab("Timeline").performClick()
         compose.waitForIdle()
@@ -283,7 +290,7 @@ class ShellNavigationTest {
         assertTrue(timelineApi.asked == listOf<String?>(null))
         tab("Search").performClick()
         compose.waitForIdle()
-        assertShows("Search", "One search across all modules.")
+        assertShows("Search", "Type at least 2 characters. The search looks at transactions, documents (with their text), tasks, home items, people and the journal.")
         back()
         assertShows("Today", today)
     }
