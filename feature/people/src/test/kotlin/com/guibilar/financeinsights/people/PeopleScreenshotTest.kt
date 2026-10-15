@@ -17,6 +17,7 @@ import com.guibilar.financeinsights.FakePeopleApi
 import com.guibilar.financeinsights.PeopleSamples
 import com.guibilar.financeinsights.core.people.PersonLink
 import com.guibilar.financeinsights.core.people.PersonLinkKinds
+import com.guibilar.financeinsights.core.people.PersonLinkedFrom
 import com.guibilar.financeinsights.people.ui.PeopleScreen
 import com.guibilar.financeinsights.people.ui.PeopleViewModel
 import com.guibilar.financeinsights.people.ui.PersonFormScreen
@@ -119,6 +120,24 @@ class PeopleScreenshotTest {
         compose.onNodeWithText("Home item").performScrollTo().performClick()
         compose.onAllNodesWithContentDescription("Edit").onFirst().performClick()
         assertEquals(listOf("${PersonLinkKinds.HOME_ITEM} i9", "edit"), opened)
+    }
+
+    @Test
+    fun `a person lists the documents and tasks that link to them, without Unlink`() {
+        api.people[0] = PeopleSamples.marco.copy(
+            linkedFrom = listOf(
+                PersonLinkedFrom(PersonLinkKinds.DOCUMENT, "d1", "Birthday card scan"),
+                PersonLinkedFrom(PersonLinkKinds.TASK, "t-call", "Call Marco"),
+            ),
+        )
+        val opened = mutableListOf<String>()
+        person(opened = opened)
+        compose.onNodeWithText("Call Marco").performScrollTo()
+        assertShows("Birthday card scan", "Document links here", "Call Marco", "Task links here")
+        compose.onAllNodesWithText("Unlink").assertCountEquals(0)
+
+        compose.onNodeWithText("Call Marco").performClick()
+        assertEquals(listOf("${PersonLinkKinds.TASK} t-call"), opened)
     }
 
     @Test

@@ -19,13 +19,18 @@ import com.guibilar.financeinsights.DocumentsSamples
 import com.guibilar.financeinsights.FakeDocumentsApi
 import com.guibilar.financeinsights.FakeFinanceApi
 import com.guibilar.financeinsights.FakeHomeApi
+import com.guibilar.financeinsights.FakePeopleApi
 import com.guibilar.financeinsights.FakeTasksApi
 import com.guibilar.financeinsights.HomeSamples
+import com.guibilar.financeinsights.PeopleSamples
 import com.guibilar.financeinsights.core.documents.DocumentKind
 import com.guibilar.financeinsights.core.documents.DocumentLinkKinds
 import com.guibilar.financeinsights.core.documents.NewDocumentLink
 import com.guibilar.financeinsights.core.documents.UploadFile
 import com.guibilar.financeinsights.core.home.HomeApi
+import com.guibilar.financeinsights.core.people.PeopleApi
+import com.guibilar.financeinsights.core.people.PersonLink
+import com.guibilar.financeinsights.core.people.PersonLinkKinds
 import com.guibilar.financeinsights.core.tasks.TasksApi
 import com.guibilar.financeinsights.documents.ui.DetailsDraft
 import com.guibilar.financeinsights.documents.ui.DocumentScreen
@@ -83,12 +88,41 @@ class DocumentsScreenshotTest {
         opened: MutableList<String> = mutableListOf(),
         tasks: DocumentTasks? = null,
         items: DocumentItems? = null,
+        people: DocumentPeople? = null,
     ) {
         val model = DocumentViewModel(api, finance, id)
         show(dark) {
-            DocumentScreen(model, PaddingValues(), onBack = {}, openTransaction = { opened += it }, canWrite = canWrite, today = today, tasks = tasks, items = items)
+            DocumentScreen(
+                model,
+                PaddingValues(),
+                onBack = {},
+                openTransaction = { opened += it },
+                canWrite = canWrite,
+                today = today,
+                tasks = tasks,
+                items = items,
+                people = people,
+            )
         }
     }
+
+    /** The People module as the app joins it (T93), on a fake API; [opened] records the people opened. */
+    private fun peopleHost(peopleApi: FakePeopleApi, opened: MutableList<String>, write: Boolean = true) = object : DocumentPeople {
+        override val api: PeopleApi = peopleApi
+        override val canWrite: Boolean = write
+
+        override fun openPerson(id: String) {
+            opened += id
+        }
+    }
+
+    /** Marco links to the document [id] (from his side); Ana does not. */
+    private fun peopleWithMarcoOn(id: String) = FakePeopleApi(
+        listOf(
+            PeopleSamples.marco.copy(links = listOf(PersonLink("pl1", PersonLinkKinds.DOCUMENT, id))),
+            PeopleSamples.ana,
+        ),
+    )
 
     /** The Home module as the app joins it (T88), on a fake API; [opened] records the items opened. */
     private fun itemsHost(homeApi: FakeHomeApi, opened: MutableList<String>, write: Boolean = true) = object : DocumentItems {
@@ -297,5 +331,31 @@ class DocumentsScreenshotTest {
         compose.onNodeWithText("Not linked to an item of the home.").assertDoesNotExist()
         assertShows("Dishwasher")
         compose.onAllNodesWithText("Link to item").assertCountEquals(0)
+    }
+
+    @Test
+    fun `a document shows its people, and Link a person links one`() {
+        val opened = mutableListOf<String>()
+        detail("d2", people = peopleHost(peopleWithMarcoOn("d2"), opened))
+        compose.onNodeWithText("Link a person").performScrollTo()
+        assertShows("People", "Marco Silva", "Link a person")
+        shoot("document-people")
+
+        compose.onNodeWithText("Marco Silva").performClick()
+        assertEquals(listOf(PeopleSamples.marco.person.id), opened)
+
+        compose.onNodeWithText("Link a person").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Ana Lima").performClick()
+        compose.waitForIdle()
+        assertTrue(api.sent.contains("addLink" to NewDocumentLink.person(PeopleSamples.ana.person.id)))
+        assertTrue(api.documents.first { it.id == "d2" }.links.any { it.kind == DocumentLinkKinds.PEOPLE_PERSON && it.targetId == PeopleSamples.ana.person.id })
+    }
+
+    @Test
+    fun `a read-only user sees the people of a document, without Link a person`() {
+        detail("d2", canWrite = false, people = peopleHost(peopleWithMarcoOn("d2"), mutableListOf()))
+        compose.onNodeWithText("Marco Silva").performScrollTo()
+        compose.onAllNodesWithText("Link a person").assertCountEquals(0)
     }
 }

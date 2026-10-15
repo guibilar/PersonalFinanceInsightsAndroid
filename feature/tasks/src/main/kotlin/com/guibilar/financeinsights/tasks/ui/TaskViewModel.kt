@@ -18,6 +18,9 @@ import com.guibilar.financeinsights.core.model.SortDirection
 import com.guibilar.financeinsights.core.model.Transaction
 import com.guibilar.financeinsights.core.model.TransactionFilter
 import com.guibilar.financeinsights.core.model.TransactionSortField
+import com.guibilar.financeinsights.core.people.PeopleApi
+import com.guibilar.financeinsights.core.people.PersonLinkKinds
+import com.guibilar.financeinsights.core.people.PersonSummary
 import com.guibilar.financeinsights.core.tasks.NewTaskLink
 import com.guibilar.financeinsights.core.tasks.TaskDraft
 import com.guibilar.financeinsights.core.tasks.TaskItem
@@ -53,7 +56,7 @@ sealed interface Linked<out T> {
 }
 
 /** What a link picker lists. */
-enum class LinkPicker { Document, Transaction, Item }
+enum class LinkPicker { Document, Transaction, Item, Person }
 
 data class TaskState(
     val task: LoadState<TaskItem> = LoadState.Loading,
@@ -72,6 +75,9 @@ data class TaskState(
     /** The items of the home that the task belongs to (both sides of the link); null without the Home module. */
     val items: LoadState<List<ItemSummary>>? = null,
     val itemCandidates: LoadState<List<ItemSummary>> = LoadState.Loading,
+    /** The people that the task is about (both sides of the link, T93); null without the People module. */
+    val people: LoadState<List<PersonSummary>>? = null,
+    val personCandidates: LoadState<List<PersonSummary>> = LoadState.Loading,
 )
 
 /**
@@ -87,8 +93,12 @@ class TaskViewModel(
     private val onChanged: () -> Unit = {},
     /** The Home API, for the items of the task; null leaves them out. */
     private val home: HomeApi? = null,
+    /** The People API, for the people of the task (T93); null leaves them out. */
+    private val people: PeopleApi? = null,
 ) : ViewModel() {
-    private val _state = MutableStateFlow(TaskState(items = if (home != null) LoadState.Loading else null))
+    private val _state = MutableStateFlow(
+        TaskState(items = if (home != null) LoadState.Loading else null, people = if (people != null) LoadState.Loading else null),
+    )
     val state: StateFlow<TaskState> = _state.asStateFlow()
 
     private val _messages = Channel<UiMessage>(Channel.BUFFERED)
@@ -128,7 +138,19 @@ class TaskViewModel(
     private fun show(loaded: LoadState<TaskItem>) {
         _state.update { it.copy(task = loaded) }
         loaded.valueOrNull?.let(::loadLinks)
-        if (loaded is LoadState.Loaded) loadItems()
+        if (loaded is LoadState.Loaded) {
+            loadItems()
+            loadPeople()
+        }
+    }
+
+    /** The people of the task, from the People module (both sides of the link). A failed reload keeps the list. */
+    private fun loadPeople() {
+        val people = people ?: return
+        viewModelScope.launch {
+            val loaded = load("Could not load the people.") { people.byLink(PersonLinkKinds.TASK, id) }
+            _state.update { s -> if (loaded is LoadState.Failed && s.people is LoadState.Loaded) s else s.copy(people = loaded) }
+        }
     }
 
     /** The items of the task, from the Home module (both sides of the link). A failed reload keeps the list. */
@@ -226,6 +248,14 @@ class TaskViewModel(
         "Linked to ${item.name}"
     }
 
+    /** Links the task to a person (kind `People.Person`, T93), for example "Call Marco". */
+    fun linkPerson(person: PersonSummary) = write("Could not link the person.") {
+        val link = api.addLink(id, NewTaskLink.person(person.id))
+        added(link)
+        loadPeople()
+        "Linked to ${person.name}"
+    }
+
     private fun added(link: TaskLink) = _state.update { state ->
         val task = state.task.valueOrNull ?: return@update state
         state.copy(task = LoadState.Loaded(task.copy(links = task.links + link)))
@@ -238,6 +268,7 @@ class TaskViewModel(
             state.copy(task = LoadState.Loaded(task.copy(links = task.links.filterNot { it.id == link.id })))
         }
         if (link.kind == TaskLinkKinds.HOME_ITEM) loadItems()
+        if (link.kind == TaskLinkKinds.PEOPLE_PERSON) loadPeople()
         "Link removed"
     }
 
@@ -276,6 +307,12 @@ class TaskViewModel(
                     )
                     val loaded = load("Could not load the transactions.") { finance.transactions(filter).items }
                     _state.update { it.copy(transactionCandidates = loaded) }
+                }
+                LinkPicker.Person -> {
+                    val people = people ?: return@launch
+                    _state.update { it.copy(personCandidates = LoadState.Loading) }
+                    val loaded = load("Could not load the people.") { people.people(q = query, page = 1, pageSize = CANDIDATES).items }
+                    _state.update { it.copy(personCandidates = loaded) }
                 }
                 LinkPicker.Item -> {
                     val home = home ?: return@launch

@@ -93,6 +93,7 @@ import com.guibilar.financeinsights.core.logic.Money
 import com.guibilar.financeinsights.core.logic.formatDay
 import com.guibilar.financeinsights.core.model.Transaction
 import com.guibilar.financeinsights.documents.DocumentItems
+import com.guibilar.financeinsights.documents.DocumentPeople
 import com.guibilar.financeinsights.documents.DocumentTasks
 import com.guibilar.financeinsights.ui.common.ErrorState
 import com.guibilar.financeinsights.ui.common.FitText
@@ -129,6 +130,7 @@ fun DocumentScreen(
     today: LocalDate = LocalDate.now(),
     tasks: DocumentTasks? = null,
     items: DocumentItems? = null,
+    people: DocumentPeople? = null,
 ) {
     val state by model.state.collectAsState()
     val snackbar = remember { SnackbarHostState() }
@@ -215,6 +217,16 @@ fun DocumentScreen(
                                     unlink = { unlinking = it.id },
                                 )
                             }
+                            if (people != null) {
+                                DocumentPeopleSection(
+                                    document = loaded.value,
+                                    people = people,
+                                    canWrite = canWrite,
+                                    busy = state.busy,
+                                    link = { model.linkPerson(it.id, it.name) },
+                                    unlink = { unlinking = it.id },
+                                )
+                            }
                             Spacer(Modifier.height(24.dp))
                         }
                     }
@@ -247,7 +259,11 @@ fun DocumentScreen(
             unlinking = null
         } else {
             val transaction = (state.transactions[link.targetId] as? LinkedTransaction.Found)?.transaction
-            val other = if (link.kind == DocumentLinkKinds.HOME_ITEM) "the item" else transaction?.description ?: "the transaction"
+            val other = when (link.kind) {
+                DocumentLinkKinds.HOME_ITEM -> "the item"
+                DocumentLinkKinds.PEOPLE_PERSON -> "the person"
+                else -> transaction?.description ?: "the transaction"
+            }
             AlertDialog(
                 onDismissRequest = { unlinking = null },
                 title = { Text("Remove the link?") },

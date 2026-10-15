@@ -60,7 +60,7 @@ fun NavHostController.addTask() {
 /**
  * The Tasks pages, for the app's navigation host. [canWrite] false (a read-only user) hides every write action.
  * [openDocument] and [openTransaction] open a linked document or transaction in their modules. [items] gives the task
- * sheet the items of the home (T88).
+ * sheet the items of the home (T88), and [people] the people of a task (T93).
  */
 fun NavGraphBuilder.tasksGraph(
     nav: NavHostController,
@@ -71,6 +71,7 @@ fun NavGraphBuilder.tasksGraph(
     canWrite: Boolean = true,
     today: () -> LocalDate = { LocalDate.now() },
     items: TaskItems? = null,
+    people: TaskPeople? = null,
 ) {
     composable<TasksRoute> { backStack ->
         val route = backStack.toRoute<TasksRoute>()
@@ -88,7 +89,7 @@ fun NavGraphBuilder.tasksGraph(
                 val day = model.state.collectAsState().value.today
                 open?.let { id ->
                     val taskModel = viewModel(key = "task-$id") {
-                        TaskViewModel(client.api(), client.api(), client.api(), id, onChanged = model::changed, home = items?.api)
+                        TaskViewModel(client.api(), client.api(), client.api(), id, onChanged = model::changed, home = items?.api, people = people?.api)
                     }
                     LaunchedEffect(taskModel) { taskModel.opened() }
                     TaskSheet(
@@ -99,6 +100,7 @@ fun NavGraphBuilder.tasksGraph(
                         openTransaction = openTransaction,
                         onDismiss = { open = null },
                         openItem = items?.let { it::openItem },
+                        openPerson = people?.let { it::openPerson },
                     )
                 }
             },
