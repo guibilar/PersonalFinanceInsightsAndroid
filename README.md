@@ -177,8 +177,9 @@ The finance pages:
     Today. A switch per module (Money, Documents, Tasks, Home, People). The first poll after install, sign-in, or turning it on only notes the open alerts and notifies
     nothing. "Hide amounts" hides the amounts in these notifications too, and with the app lock on the lock screen
     shows only the kind of alert.
-  - **Budget warnings** (at 80%) and the **monthly review** are checked on the phone every few hours. The server has
-    no alert for them yet.
+  - Budgets nearly used up (80%) are a server alert since T71. The old local "Budget warnings" switch is gone: if it
+    was on, the server alert notifications and Money turn on.
+  - The **monthly review** is checked on the phone every few hours. The server has no alert for it yet (T82).
 - **Widget and shortcut:** a home-screen widget shows this month's spending and the fullest budgets; a tap opens the
   Money dashboard. Long-pressing the app's icon offers "Add transaction". The widget, the shortcut, the notifications
   and shared statements open their page over the Money home.

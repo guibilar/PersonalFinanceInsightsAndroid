@@ -14,8 +14,10 @@ import kotlinx.coroutines.flow.asStateFlow
  * - The notifications are on when the old "Budget alerts", "Subscription price changes" or "Import reminders" switch
  *   was on: the server alerts tell these now ("budget-over", "price-changed", "statements-not-imported").
  * - Money and Documents start on. Tasks (T84), Home (T88) and People (T92) start on too: new keys, so no migration step.
- * - The old "priceAlerts" and "importReminders" settings are removed. "budgetAlerts" stays: it is now the local
- *   warning at 80% (no server alert yet), with "monthlyReview" (`FinancePreferences`).
+ * - The old "priceAlerts" and "importReminders" settings are removed.
+ *
+ * Version 2 (T71): the budget warning at 80% is a server alert ("budget-warning"). When the old local "Budget warnings"
+ * switch ("budgetAlerts") was on, the notifications and Money turn on, and the old setting is removed.
  */
 class AlertNotificationSettings(context: Context) {
     private val prefs = context.getSharedPreferences("preferences", Context.MODE_PRIVATE)
@@ -89,14 +91,21 @@ class AlertNotificationSettings(context: Context) {
     }
 
     private fun migrate() {
-        if (prefs.contains(KEY_VERSION)) return
-        val wasOn = OLD_KEYS.any { prefs.getBoolean(it, false) }
+        val version = prefs.getInt(KEY_VERSION, 0)
+        if (version >= VERSION) return
         prefs.edit {
-            putBoolean(KEY_ENABLED, wasOn)
-            putBoolean(KEY_MONEY, true)
-            putBoolean(KEY_DOCUMENTS, true)
-            remove(OLD_PRICE_ALERTS)
-            remove(OLD_IMPORT_REMINDERS)
+            if (version < 1) {
+                putBoolean(KEY_ENABLED, OLD_KEYS.any { prefs.getBoolean(it, false) })
+                putBoolean(KEY_MONEY, true)
+                putBoolean(KEY_DOCUMENTS, true)
+                remove(OLD_PRICE_ALERTS)
+                remove(OLD_IMPORT_REMINDERS)
+            }
+            if (prefs.getBoolean(OLD_BUDGET_ALERTS, false)) {
+                putBoolean(KEY_ENABLED, true)
+                putBoolean(KEY_MONEY, true)
+            }
+            remove(OLD_BUDGET_ALERTS)
             putInt(KEY_VERSION, VERSION)
         }
     }
@@ -116,9 +125,9 @@ class AlertNotificationSettings(context: Context) {
         private const val KEY_HOME = "alertNotifications.Home"
         private const val KEY_PEOPLE = "alertNotifications.People"
         private const val KEY_VERSION = "alertNotifications.version"
-        private const val VERSION = 1
+        private const val VERSION = 2
 
-        // The switches of the old local rules (before T68).
+        // The switches of the old local rules (before T68; "budgetAlerts" before T71).
         private const val OLD_BUDGET_ALERTS = "budgetAlerts"
         private const val OLD_PRICE_ALERTS = "priceAlerts"
         private const val OLD_IMPORT_REMINDERS = "importReminders"

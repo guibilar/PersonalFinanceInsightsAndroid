@@ -1,14 +1,8 @@
 package com.guibilar.financeinsights.core.logic
 
 import org.junit.After
-import com.guibilar.financeinsights.core.model.Budget
-import com.guibilar.financeinsights.core.model.BudgetPeriod
-import com.guibilar.financeinsights.core.model.Status
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.LocalDate
 
 class MoneyPrivacyTest {
     @After
@@ -27,20 +21,5 @@ class MoneyPrivacyTest {
         assertEquals("", Money.compact(1200.0))
         // Percentages say nothing of the amounts: kept.
         assertEquals("84%", Money.percentUsed(84.4))
-    }
-
-    @Test
-    fun `hides the amounts in notifications too`() {
-        Money.hidden = { true }
-        val budget = Budget(
-            id = "b1", name = "Groceries", status = Status.Active, period = BudgetPeriod.Monthly, totalAmount = 150.0,
-            // 84%: the local warning (100% is a server alert since T68).
-            totalSpent = 126.0, totalRemaining = 24.0, percentageUsed = 84.0,
-        )
-
-        val alert = budgetAlerts(listOf(budget), LocalDate.of(2026, 10, 9), emptyMap()).single()
-
-        assertTrue(alert.text, alert.text.contains("$••••• of $•••••"))
-        assertFalse(alert.text, alert.text.contains(Regex("""\$\d""")))
     }
 }

@@ -46,7 +46,7 @@ data class AttentionItem(val key: String, val kind: String, val text: String, va
 
 /** "Needs attention" icons by alert kind: one list for Today and Money (T77). A kind not in it gets a general icon. */
 fun attentionIcon(kind: String): ImageVector = when (kind) {
-    "budget-over" -> Icons.Outlined.AccountBalanceWallet
+    "budget-over", "budget-warning" -> Icons.Outlined.AccountBalanceWallet
     "statements-not-imported", "statements-behind" -> Icons.Outlined.UploadFile
     "price-changed" -> Icons.Outlined.Autorenew
     "unsorted" -> Icons.Outlined.Sell

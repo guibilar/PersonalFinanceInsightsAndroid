@@ -50,15 +50,47 @@ class AlertNotificationSettingsTest {
     }
 
     @Test
-    fun `the old budget alerts turn the notifications on and stay as the 80 percent warning`() {
+    fun `the old budget alerts turn the notifications on, and the local switch goes (T71)`() {
         olderApp("budgetAlerts", "monthlyReview")
 
         val settings = AlertNotificationSettings(context)
         val finance = FinancePreferences(context)
 
         assertTrue(settings.enabled.value)
-        assertTrue(finance.budgetAlerts.value)
+        assertTrue(settings.money.value)
+        assertFalse(prefs.contains("budgetAlerts"))
         assertTrue(finance.monthlyReview.value)
+    }
+
+    @Test
+    fun `after the first migration, budget warnings on turn the server alerts and Money on`() {
+        // An app after T68 with its own choices: notifications off, Money off, the local warning on.
+        prefs.edit(commit = true) {
+            putInt("alertNotifications.version", 1)
+            putBoolean("alertNotifications", false)
+            putBoolean("alertNotifications.Money", false)
+            putBoolean("alertNotifications.Documents", false)
+            putBoolean("budgetAlerts", true)
+        }
+
+        val settings = AlertNotificationSettings(context)
+
+        assertTrue(settings.enabled.value)
+        assertTrue(settings.money.value)
+        assertFalse(settings.documents.value)
+        assertFalse(prefs.contains("budgetAlerts"))
+    }
+
+    @Test
+    fun `after the first migration, budget warnings off change nothing`() {
+        prefs.edit(commit = true) {
+            putInt("alertNotifications.version", 1)
+            putBoolean("alertNotifications", false)
+            putBoolean("budgetAlerts", false)
+        }
+
+        assertFalse(AlertNotificationSettings(context).enabled.value)
+        assertFalse(prefs.contains("budgetAlerts"))
     }
 
     @Test
