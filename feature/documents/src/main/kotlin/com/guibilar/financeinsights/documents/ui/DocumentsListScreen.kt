@@ -47,6 +47,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -152,7 +153,9 @@ fun DocumentsListScreen(
                                     item(key = "all-title") {
                                         SectionTitle(if (state.hasCriteria) "${state.totalCount} found" else "All documents")
                                     }
-                                    items(state.items, key = { it.id }) { document -> DocumentRow(document, today) { open(document) } }
+                                    items(state.items, key = { it.id }) { document ->
+                                        DocumentRow(document, today, { model.thumbnail(document) }) { open(document) }
+                                    }
                                     if (state.loadingMore) {
                                         item { Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { CircularProgressIndicator(Modifier.size(24.dp)) } }
                                     } else if (state.moreFailed) {
@@ -235,9 +238,12 @@ private fun ExpiringCard(documents: List<DocumentSummary>, today: LocalDate, ope
     }
 }
 
-/** A document in the list: its kind, title, day, files, and what to know (OCR, links, expiry). */
+/**
+ * A document in the list: the thumbnail of its first file (T61, or the icon of its kind), its title, day, files, and
+ * what to know (OCR, links, expiry).
+ */
 @Composable
-private fun DocumentRow(document: DocumentSummary, today: LocalDate, onClick: () -> Unit) {
+private fun DocumentRow(document: DocumentSummary, today: LocalDate, thumbnail: suspend () -> ImageBitmap?, onClick: () -> Unit) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
@@ -249,7 +255,7 @@ private fun DocumentRow(document: DocumentSummary, today: LocalDate, onClick: ()
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            KindIcon(document.kind)
+            DocumentThumbnail(document.files.firstOrNull()?.id ?: document.id, thumbnail) { KindIcon(document.kind) }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     document.title,

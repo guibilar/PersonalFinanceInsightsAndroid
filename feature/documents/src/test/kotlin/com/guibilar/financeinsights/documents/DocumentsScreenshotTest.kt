@@ -1,11 +1,16 @@
 package com.guibilar.financeinsights.documents
 
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -48,6 +53,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import java.io.ByteArrayOutputStream
 import java.time.LocalDate
 
 /** The Documents screens, to look at (build/shots), and what their buttons do. */
@@ -157,6 +163,23 @@ class DocumentsScreenshotTest {
         compose.onAllNodesWithContentDescription("Scan a document").onFirst().performClick()
         assertEquals(listOf("d5"), opened)
         assertEquals(listOf(false, true), added)
+    }
+
+    @Test
+    fun `the list shows the thumbnail of a file, and the icon of its kind without one (T61)`() {
+        // The first document (a PDF) has a thumbnail: a page that is mostly white, with a blue band at the top.
+        val page = Bitmap.createBitmap(300, 400, Bitmap.Config.ARGB_8888).apply {
+            eraseColor(Color.WHITE)
+            Canvas(this).drawRect(0f, 0f, 300f, 80f, Paint().apply { color = Color.rgb(40, 90, 200) })
+        }
+        api.thumbnails[api.documents.first().files.first().id] = ByteArrayOutputStream().also { page.compress(Bitmap.CompressFormat.JPEG, 90, it) }.toByteArray()
+        list()
+        compose.waitUntil(5_000) { compose.onAllNodesWithTag("thumbnail", useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty() }
+
+        // One thumbnail; the other documents keep the icon of their kind.
+        compose.onAllNodesWithTag("thumbnail", useUnmergedTree = true).assertCountEquals(1)
+        assertTrue(api.sent.count { it.first == "thumbnail" } >= api.documents.size)
+        shoot("documents-thumbnails")
     }
 
     @Test
