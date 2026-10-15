@@ -308,6 +308,7 @@ private fun tileIcon(kind: String): ImageVector? = when (kind) {
 
 /** "Needs attention" icons by card kind, as on the Money dashboard. */
 private fun attentionIcon(kind: String): ImageVector = when (kind) {
+    "probe" -> undefinedIcon
     "budget-over" -> Icons.Outlined.AccountBalanceWallet
     "statements-not-imported", "statements-behind" -> Icons.Outlined.UploadFile
     "price-changed" -> Icons.Outlined.Autorenew
