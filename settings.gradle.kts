@@ -1,4 +1,6 @@
 pluginManagement {
+    // The convention plugins (T30).
+    includeBuild("build-logic")
     repositories {
         google()
         mavenCentral()
