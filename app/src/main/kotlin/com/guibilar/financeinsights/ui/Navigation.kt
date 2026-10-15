@@ -88,6 +88,8 @@ import com.guibilar.financeinsights.people.openPerson
 import com.guibilar.financeinsights.people.peopleGraph
 import com.guibilar.financeinsights.notifications.AlertNotificationSettings
 import com.guibilar.financeinsights.notifications.AlertNotifications
+import com.guibilar.financeinsights.search.SearchScreen
+import com.guibilar.financeinsights.search.SearchViewModel
 import com.guibilar.financeinsights.security.AppLock
 import com.guibilar.financeinsights.tasks.TasksRoute
 import com.guibilar.financeinsights.tasks.addTask
@@ -107,7 +109,6 @@ import com.guibilar.financeinsights.ui.settings.AccountSettingsScreen
 import com.guibilar.financeinsights.ui.settings.AccountSettingsViewModel
 import com.guibilar.financeinsights.ui.settings.AppSettingsScreen
 import com.guibilar.financeinsights.ui.shell.CaptureScreen
-import com.guibilar.financeinsights.ui.shell.PlaceholderScreen
 import com.guibilar.financeinsights.ui.signin.LockScreen
 import com.guibilar.financeinsights.ui.signin.SignInScreen
 import com.guibilar.financeinsights.ui.signin.UnreachableScreen
@@ -417,7 +418,12 @@ fun MainScreen(
                         )
                     }
                     composable<SearchRoute> {
-                        PlaceholderScreen("Search", Icons.Outlined.Search, "One search across all modules.", padding)
+                        // T17: a hit opens its page through the one link map, as a Timeline entry does.
+                        SearchScreen(
+                            model = viewModel { SearchViewModel(client.api()) },
+                            contentPadding = padding,
+                            open = { link -> todayDestination(link)?.let { openDestination(it) } },
+                        )
                     }
                     financeGraph(
                         nav = nav,

@@ -120,25 +120,3 @@ private fun CaptureButton(icon: ImageVector, label: String, enabled: Boolean, mo
         }
     }
 }
-
-/** A top-level page that comes in a later version: its name, what it will do, and a short note. */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun PlaceholderScreen(title: String, icon: ImageVector, message: String, contentPadding: PaddingValues) {
-    Column(Modifier.fillMaxSize().padding(bottom = contentPadding.calculateBottomPadding())) {
-        TopAppBar(title = { FitText(title, fontWeight = FontWeight.SemiBold, minFontSize = 14.sp) })
-        Column(
-            Modifier.fillMaxSize().padding(32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
-        ) {
-            Icon(icon, null, Modifier.size(48.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(message, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-            Text(
-                "Coming soon",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
