@@ -135,6 +135,12 @@ class TodayLinksTest {
     }
 
     @Test
+    fun `the Journal tile opens the Journal, on a day when the link has one (T21)`() {
+        assertEquals(TodayDestination.Journal(), todayDestination("/journal"))
+        assertEquals(TodayDestination.Journal("2026-10-08"), todayDestination("/journal?day=2026-10-08"))
+    }
+
+    @Test
     fun `a People alert opens the person, and other People paths the People screen`() {
         assertEquals(TodayDestination.Person("p1"), todayDestination("/people/p1"))
         assertEquals(TodayDestination.People, todayDestination("/people"))

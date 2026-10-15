@@ -11,16 +11,15 @@ The bar at the bottom has five items: **Today**, **Timeline**, **Capture** (the 
 **Search**. Each keeps its own back stack, and Back from any of them returns to Today.
 
 - **Today** shows the cards that the server gives for today (`GET /api/today` on Hestia.Api): each module's tiles
-  (Money first, with its four headline tiles), then one "Needs attention" list, then a card for the modules that are
-  coming. A tile or an item opens its page. Pull down to get new cards. If a module could not load all its figures,
+  (Money first, with its four headline tiles), then one "Needs attention" list. A tile or an item opens its page. Pull down to get new cards. If a module could not load all its figures,
   Today says so; if a module failed, it has its own "Try again".
-- **Modules** lists the modules. Money opens its home, Documents its list, Tasks, Home and People their screens;
-  Journal is "Coming soon". Under them are the app's settings and your account.
+- **Modules** lists the modules. Money opens its home, Documents its list, Tasks, Home, People and Journal their
+  screens. Under them are the app's settings and your account.
 - **Money** (its home) has the four tiles, the Money items of "Needs attention" (the same as on Today), and a row for each finance page: Dashboard, Net worth and Review; Transactions,
   Budgets and Subscriptions; and Accounts, Categories, Tags and Rules. Back from a finance page returns to the Money
   home, and then to where you opened it from.
-- **Capture** has seven buttons. "Task" opens the quick add of Tasks; "Item" opens a new item of Home; "Person" opens a
-  new person; "Expense" opens
+- **Capture** has eight buttons. "Task" opens the quick add of Tasks; "Item" opens a new item of Home; "Person" opens a
+  new person; "Journal" opens today's journal entry; "Expense" opens
   the "Add transaction" form;
   "Scan" opens the document scanner and "Photo" the photo picker, for a new document; Voice is coming soon.
 - **Timeline** and **Search** are placeholders for now.
@@ -100,6 +99,16 @@ them, a reach-out reminder, birthdays, gift ideas, and things lent or borrowed.
   optional), email, phone, the reminder, and notes. It checks them as the server does.
 - Today: a People alert (`/people/<id>`) opens the person; `/people` opens the People screen.
 - A read-only user sees everything, but no add, edit, delete, log, gift, loan, or unlink.
+
+**Journal** (on Hestia.Api, `/api/journal`, T21) keeps one entry per day:
+
+- The screen has the streak at the top ("6-day streak"), the last 7 days (a filled circle for a day with an entry; a
+  tap opens that day), the editor of one day (today, or the day that was tapped, with "Back to today"), "On this day"
+  (for today: the same day in earlier years), and the newest 50 entries with a search (full-text on the server).
+- "Save" writes the whole text of the day (it is off until the text changes); "Delete" asks first. After a change,
+  Today gets new cards (`DataChanges`).
+- A read-only user can read only: the editor does not change, and there is no Save or Delete.
+- Today: the Journal tile (`/journal`, or `/journal?day=…`) opens the Journal.
 
 **Sign in** with the server's address (where you open the web app, e.g. `https://finance.example.ts.net`) and your
 username and password. The session is kept between launches, for 14 days of inactivity like the web's
@@ -294,6 +303,8 @@ The app is split into Gradle modules, so that more modules (documents, tasks, an
 | `:feature:documents` | Android library | The Documents module: the list, a document, the upload with the scanner and the pickers, the photo scaling, and its navigation graph (`documentsGraph`). It depends on the core modules only; the transactions of its links come from `:core:finance`. |
 | `:feature:tasks` | Android library | The Tasks module: the Tasks screen (quick add, sections, done and undo), the task sheet (details, repeat, links, completions, delete), and its navigation graph (`tasksGraph`). It depends on the core modules only: linked documents come from `:core:documents`, linked transactions from `:core:finance`. |
 | `:feature:home` | Android library | The Home module: the Home screen (maintenance, inventory, rooms, search, the export), a room, an item (details, warranty, photos, links, maintenance), the new item with a photo, and its navigation graph (`homeGraph`). It depends on the core modules only: documents come from `:core:documents`, transactions from `:core:finance`, maintenance tasks from `:core:tasks`. Its own file provider (`HomeFileProvider`, cache folder `home/`) serves the camera and the share sheet. |
+| `:core:journal` | Plain Kotlin | The Journal API (`JournalApi`, `/api/journal`) and its models, and the rules of the Journal screen: the day labels, the streak, and "On this day". Its test fixtures hold the fake `JournalApi` (entries in memory) and sample entries. |
+| `:feature:journal` | Android library | The Journal module: the Journal screen and its navigation graph (`journalGraph`). It depends on `:core:journal` and `:core:ui` only. |
 | `:feature:people` | Android library | The People module: the People screen, a person (actions, gift ideas, loans, history, links), the person form, and its navigation graph (`peopleGraph`). It depends on `:core:people` and `:core:ui` only; linked pages open through `PeopleHost`. |
 | `:app` | Android app | `MainActivity`, the application class, the module registry, the navigation host with the bar (Today, Timeline, Capture, Modules, Search), sign-in, the lock, the account page, the app's settings, and the alert notifications (`notifications/`). |
 

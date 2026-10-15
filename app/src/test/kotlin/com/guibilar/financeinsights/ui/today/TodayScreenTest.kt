@@ -76,7 +76,9 @@ class TodayScreenTest {
     private fun complete(dark: Boolean) {
         show(dark = dark)
         // The server's day, not the phone's.
-        assertShows("Saturday, October 3", "Money", "Open Money", "Needs attention", "Coming soon")
+        assertShows("Saturday, October 3", "Money", "Open Money", "Needs attention")
+        // Every module is active since T21: no "Coming soon" section.
+        compose.onAllNodesWithText("Coming soon").assertCountEquals(0)
         // The same figures as the Money home on the recorded data.
         assertShows(
             "$186.89", "$42.69 over a usual month by now",
@@ -99,7 +101,7 @@ class TodayScreenTest {
     @Test
     fun `a failed module offers a retry for that module`() {
         show(TodaySamples.failed)
-        assertShows("Money could not load.", "Coming soon")
+        assertShows("Money could not load.")
         compose.onAllNodesWithText("Spent this month").assertCountEquals(0)
         shoot("today-failed")
 
@@ -115,7 +117,7 @@ class TodayScreenTest {
     fun `a full failure offers a retry for the page`() {
         api.failing = true
         show()
-        assertShows("Can't reach the server. Check your connection and that Tailscale is on.", "Coming soon")
+        assertShows("Can't reach the server. Check your connection and that Tailscale is on.")
         shoot("today-offline")
 
         api.failing = false
@@ -150,12 +152,10 @@ class TodayScreenTest {
     }
 
     @Test
-    fun `a module with cards gets its own section, and is no longer coming soon`() {
+    fun `a module with cards gets its own section`() {
         show(TodaySamples.twoModules)
         assertShows("Documents", "Expiring soon", "Next on Oct 20, 2026", "Groceries is over its limit (112% used)")
-        // Its "Coming soon" line is gone; the others stay.
         compose.onAllNodesWithText("Documents that expire soon").assertCountEquals(0)
-        assertShows("On this day, and today's entry")
         shoot("today-modules")
         // Documents is active (T12): its section opens its list, and its tile its page.
         compose.onNodeWithText("Open Documents").performClick()

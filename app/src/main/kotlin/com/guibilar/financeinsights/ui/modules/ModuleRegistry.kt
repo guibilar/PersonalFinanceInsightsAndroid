@@ -10,6 +10,7 @@ import androidx.compose.material.icons.outlined.Home
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.guibilar.financeinsights.documents.DocumentsRoute
 import com.guibilar.financeinsights.home.HomeRoute
+import com.guibilar.financeinsights.journal.JournalRoute
 import com.guibilar.financeinsights.people.PeopleRoute
 import com.guibilar.financeinsights.tasks.TasksRoute
 import com.guibilar.financeinsights.ui.MoneyHomeRoute
@@ -74,8 +75,8 @@ val MODULES = listOf(
         name = "Journal",
         description = "A few lines a day, and \"On this day\"",
         icon = Icons.Outlined.Book,
-        route = null,
-        status = ModuleStatus.ComingSoon,
+        route = JournalRoute(),
+        status = ModuleStatus.Active,
         todayPreview = "On this day, and today's entry",
     ),
     HestiaModule(

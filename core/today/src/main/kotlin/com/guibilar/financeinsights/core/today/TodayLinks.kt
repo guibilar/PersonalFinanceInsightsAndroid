@@ -47,6 +47,9 @@ sealed interface TodayDestination {
 
     /** One person ("/people/<id>"): a reminder, a birthday, or a loan. */
     data class Person(val id: String) : TodayDestination
+
+    /** The Journal ("/journal", T21), on [day] ("?day=yyyy-MM-dd") or today. */
+    data class Journal(val day: String? = null) : TodayDestination
 }
 
 /** The finance pages by their web path (under "/money"), as the web app names them (`money.routes.ts`). */
@@ -88,6 +91,7 @@ fun todayDestination(link: String?): TodayDestination? {
         path.startsWith("/tasks/") -> taskPage(path.removePrefix("/tasks/"))
         path == "/home" || path.startsWith("/home/") -> homePage(path.removePrefix("/home").removePrefix("/"))
         path == "/people" || path.startsWith("/people/") -> peoplePage(path.removePrefix("/people").removePrefix("/"))
+        path == "/journal" -> TodayDestination.Journal(queryValue(query, "day"))
         else -> fallback
     }
 }
