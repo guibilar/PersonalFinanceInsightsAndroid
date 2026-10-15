@@ -29,6 +29,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
@@ -51,6 +52,7 @@ import com.guibilar.financeinsights.BuildConfig
 import com.guibilar.financeinsights.QuickAction
 import com.guibilar.financeinsights.core.api.ApiClient
 import com.guibilar.financeinsights.core.api.FinanceApi
+import com.guibilar.financeinsights.core.tasks.TasksApi
 import com.guibilar.financeinsights.core.today.AlertsApi
 import com.guibilar.financeinsights.core.today.TodayApi
 import com.guibilar.financeinsights.core.today.TodayDestination
@@ -298,6 +300,7 @@ fun MainScreen(
     val documentPeople = remember(nav, client, canWrite) { AppDocumentPeople(nav, client, canWrite) }
     val taskPeople = remember(nav, client) { AppTaskPeople(nav, client) }
     val financeHome = remember(nav, canWrite) { AppFinanceHome(nav, canWrite) }
+    val financeTasks = remember(nav, client, canWrite) { AppFinanceTasks(nav, client, canWrite) }
     val homeHost = remember(nav) { AppHomeHost(nav) }
     // The People module (T92): its links open the pages of the other modules.
     val peopleHost = remember(nav) { AppPeopleHost(nav) }
@@ -383,6 +386,10 @@ fun MainScreen(
                         )
                     }
                     composable<ModulesRoute> {
+                        // The overdue count on the Tasks card (T86), loaded each time the page opens; none on a failure.
+                        val overdue by produceState<Int?>(null, client) {
+                            value = runCatching { client.api<TasksApi>().summary().overdue }.getOrNull()
+                        }
                         ModulesScreen(
                             modules = MODULES,
                             account = account,
@@ -391,6 +398,7 @@ fun MainScreen(
                             open = { module -> module.route?.let { nav.navigate(it) } },
                             openSettings = { nav.navigate(AppSettingsRoute) },
                             openAccount = { nav.navigate(AccountSettingsRoute) },
+                            badges = overdue?.takeIf { it > 0 }?.let { mapOf("tasks" to "$it overdue") }.orEmpty(),
                         )
                     }
                     composable<SearchRoute> {
@@ -408,6 +416,7 @@ fun MainScreen(
                         setAmountsHidden = preferences?.let { it::setHideAmounts },
                         documents = financeDocuments,
                         home = financeHome,
+                        tasks = financeTasks,
                     )
                     documentsGraph(
                         nav = nav,

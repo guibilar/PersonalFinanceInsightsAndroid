@@ -160,6 +160,15 @@ class TodayScreenTest {
     }
 
     @Test
+    fun `the Tasks tile shows the tasks due today and the overdue ones, and opens Tasks`() {
+        show(TodaySamples.withTasks)
+        assertShows("Tasks", "3", "2 overdue")
+        shoot("today-tasks")
+        compose.onNodeWithText("2 overdue").performClick()
+        assertEquals(listOf<TodayDestination>(TodayDestination.Tasks()), opened)
+    }
+
+    @Test
     fun `hidden amounts hide every amount`() {
         Money.hidden = { true }
         show()
