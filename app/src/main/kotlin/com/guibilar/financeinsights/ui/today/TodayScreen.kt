@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -26,11 +28,15 @@ import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CheckBox
 import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Savings
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -41,6 +47,8 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -71,6 +79,7 @@ import com.guibilar.financeinsights.ui.common.isLargeText
 import com.guibilar.financeinsights.ui.modules.HestiaModule
 import com.guibilar.financeinsights.ui.modules.ModuleStatus
 import com.guibilar.financeinsights.ui.theme.LocalChartColors
+import kotlinx.coroutines.launch
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -143,6 +152,9 @@ fun TodayScreen(
         onPauseOrDispose {}
     }
     val day = state.day(model.phoneDay()).format(DateTimeFormatter.ofPattern("EEEE, MMMM d", Locale.US))
+    // T69: the bell goes to the "Needs attention" card.
+    val attentionView = remember { BringIntoViewRequester() }
+    val scope = rememberCoroutineScope()
     Column(Modifier.fillMaxSize().padding(bottom = contentPadding.calculateBottomPadding())) {
         TopAppBar(
             title = {
@@ -151,6 +163,7 @@ fun TodayScreen(
                     Text(day, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             },
+            actions = { AttentionBell(state.today?.attention?.size ?: 0) { scope.launch { attentionView.bringIntoView() } } },
         )
         PullToRefreshBox(
             isRefreshing = state.refreshing,
@@ -172,7 +185,7 @@ fun TodayScreen(
                             state.error?.let { Note(it) }
                             sections.shown().forEach { section -> Section(section, open, openModule, model::retry) }
                             val items = today.attention
-                            if (items.isNotEmpty()) NeedsAttention(items, open)
+                            if (items.isNotEmpty()) NeedsAttention(items, open, Modifier.bringIntoViewRequester(attentionView))
                         }
                         state.error != null && !state.loading -> ErrorState(state.error!!, onRetry = model::retry)
                         else -> LoadingTiles()
@@ -308,12 +321,13 @@ private fun severityColor(severity: TodaySeverity): Color {
 
 /** What needs a look, from all modules, each opening where it is dealt with (the shared card, T77). */
 @Composable
-private fun NeedsAttention(items: List<TodayCard>, open: (TodayDestination) -> Unit) {
+private fun NeedsAttention(items: List<TodayCard>, open: (TodayDestination) -> Unit, modifier: Modifier = Modifier) {
     NeedsAttentionCard(
         items.map { item ->
             val destination = todayDestination(item.link)
             AttentionItem(item.id, item.kind, item.filledText, item.severity == TodaySeverity.Bad, destination?.let { { open(it) } })
         },
+        modifier = modifier,
     )
 }
 
@@ -332,4 +346,22 @@ private fun LoadingTiles() {
             }
         },
     )
+}
+
+/**
+ * The bell (T69, the design's notification bell): how many items need attention, as a badge; a tap goes to the
+ * "Needs attention" card. Off when nothing needs a look.
+ */
+@Composable
+private fun AttentionBell(count: Int, show: () -> Unit) {
+    val label = when (count) {
+        0 -> "Nothing needs attention"
+        1 -> "1 item needs attention"
+        else -> "$count items need attention"
+    }
+    IconButton(onClick = show, enabled = count > 0) {
+        BadgedBox(badge = { if (count > 0) Badge { Text("$count") } }) {
+            Icon(Icons.Outlined.Notifications, label)
+        }
+    }
 }
