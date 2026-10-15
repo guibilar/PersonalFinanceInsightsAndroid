@@ -72,6 +72,27 @@ class TasksViewModelsTest {
     }
 
     @Test
+    fun `a tag and the search words filter the tasks on the phone, and the same tag again clears it`() = runTest(dispatcher) {
+        val model = TasksViewModel(api, today = phoneDay)
+        advanceUntilIdle()
+        assertTrue(model.state.value.tags.containsAll(listOf("car", "home", "server")))
+
+        model.filterTag("home")
+        assertEquals(listOf("t1", "t8"), model.state.value.shownOpen.map { it.id })
+        assertEquals(listOf("t1"), model.state.value.sections.overdue.map { it.id })
+        model.search("  LEASE ")
+        assertEquals(listOf("t1"), model.state.value.shownOpen.map { it.id })
+        model.filterTag("home")
+        assertEquals(null, model.state.value.tag)
+        model.search("insurance quotes")
+        assertEquals(listOf("t3"), model.state.value.shownOpen.map { it.id })
+        model.search("no such words")
+        assertTrue(model.state.value.isFiltered && model.state.value.shownOpen.isEmpty())
+        model.search("")
+        assertEquals(false, model.state.value.isFiltered)
+    }
+
+    @Test
     fun `without the summary, the phone's day counts`() = runTest(dispatcher) {
         api.failing += "summary"
         val model = TasksViewModel(api, today = phoneDay)

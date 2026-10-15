@@ -1,6 +1,7 @@
 package com.guibilar.financeinsights.ui.transactions
 
 import androidx.compose.ui.semantics.semantics
+import com.guibilar.financeinsights.FinanceTasks
 import com.guibilar.financeinsights.ui.READ_ONLY_NOTE
 import com.guibilar.financeinsights.ui.LocalFinanceCanWrite
 import androidx.compose.ui.semantics.contentDescription
@@ -114,6 +115,8 @@ fun TransactionsScreen(
     documents: FinanceDocuments? = null,
     /** The Home module, for "Add to inventory" on a transaction (T88); none in most tests. */
     home: FinanceHome? = null,
+    /** The Tasks module, for "Add task" on a transaction (T86); none in most tests. */
+    tasks: FinanceTasks? = null,
 ) {
     val state by model.state.collectAsState()
     // Back from the background on a new day: today moves on.
@@ -406,6 +409,7 @@ fun TransactionsScreen(
                 tags = state.tags,
                 documents = documents,
                 home = home,
+                tasks = tasks,
             )
         }
     }

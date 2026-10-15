@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -55,6 +57,8 @@ fun ModulesScreen(
     open: (HestiaModule) -> Unit,
     openSettings: () -> Unit,
     openAccount: () -> Unit,
+    /** A short note on a module's card, by module id, for example "3 overdue" on Tasks (T86). */
+    badges: Map<String, String> = emptyMap(),
 ) {
     Column(Modifier.fillMaxSize().padding(bottom = contentPadding.calculateBottomPadding())) {
         TopAppBar(title = { FitText("Modules", fontWeight = FontWeight.SemiBold, minFontSize = 14.sp) })
@@ -66,7 +70,7 @@ fun ModulesScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxSize(),
             ) {
-                items(modules, key = { it.id }) { module -> ModuleCard(module) { open(module) } }
+                items(modules, key = { it.id }) { module -> ModuleCard(module, badges[module.id]) { open(module) } }
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     Column {
                         HorizontalDivider(Modifier.padding(vertical = 8.dp))
@@ -101,29 +105,45 @@ fun ModulesScreen(
     }
 }
 
-/** A module's card. A module that is not built yet is outlined, cannot be opened, and says "Coming soon". */
+/**
+ * A module's card. A module that is not built yet is outlined, cannot be opened, and says "Coming soon". [badge] is a
+ * short note in the error colours, for example "3 overdue".
+ */
 @Composable
-private fun ModuleCard(module: HestiaModule, onClick: () -> Unit) {
+private fun ModuleCard(module: HestiaModule, badge: String?, onClick: () -> Unit) {
     val active = module.status == ModuleStatus.Active && module.route != null
     val content: @Composable () -> Unit = {
         Column(
             Modifier.fillMaxWidth().heightIn(min = 132.dp).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Box(
-                Modifier
-                    .size(40.dp)
-                    .background(
-                        if (active) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-                        RoundedCornerShape(12.dp),
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    module.icon,
-                    null,
-                    tint = if (active) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    Modifier
+                        .size(40.dp)
+                        .background(
+                            if (active) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                            RoundedCornerShape(12.dp),
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        module.icon,
+                        null,
+                        tint = if (active) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Spacer(Modifier.weight(1f))
+                if (badge != null) {
+                    Text(
+                        badge,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier
+                            .background(MaterialTheme.colorScheme.errorContainer, RoundedCornerShape(50))
+                            .padding(horizontal = 8.dp, vertical = 2.dp),
+                    )
+                }
             }
             Text(module.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Text(module.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

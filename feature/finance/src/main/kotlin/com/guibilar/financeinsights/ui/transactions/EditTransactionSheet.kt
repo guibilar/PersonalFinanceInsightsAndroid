@@ -18,6 +18,7 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AddTask
 import androidx.compose.material.icons.outlined.Chair
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.LinkOff
@@ -52,6 +53,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import com.guibilar.financeinsights.FinanceDocuments
 import com.guibilar.financeinsights.FinanceHome
+import com.guibilar.financeinsights.FinanceTasks
 import com.guibilar.financeinsights.core.logic.TextLimits
 import com.guibilar.financeinsights.core.logic.description
 import com.guibilar.financeinsights.core.logic.flowsFor
@@ -92,12 +94,13 @@ fun EditTransactionSheet(
     tags: List<Tag> = emptyList(),
     documents: FinanceDocuments? = null,
     home: FinanceHome? = null,
+    tasks: FinanceTasks? = null,
 ) {
     val scope = rememberCoroutineScope()
     val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     fun close() = scope.launch { sheet.hide() }.invokeOnCompletion { onDismiss() }
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheet) {
-        EditTransaction(transaction, categories, budgets, model, onClose = ::close, Modifier.navigationBarsPadding().imePadding(), tags, documents, home)
+        EditTransaction(transaction, categories, budgets, model, onClose = ::close, Modifier.navigationBarsPadding().imePadding(), tags, documents, home, tasks)
     }
 }
 
@@ -116,6 +119,7 @@ private fun EditTransaction(
     tags: List<Tag> = emptyList(),
     documents: FinanceDocuments? = null,
     home: FinanceHome? = null,
+    tasks: FinanceTasks? = null,
 ) {
     val colors = LocalChartColors.current
     val scope = rememberCoroutineScope()
@@ -284,6 +288,20 @@ private fun EditTransaction(
             AddToInventory {
                 home.addToInventory(transaction)
                 close()
+            }
+        }
+        if (tasks != null && tasks.canWrite) {
+            HorizontalDivider()
+            var adding by remember { mutableStateOf(false) }
+            var failure by remember { mutableStateOf<String?>(null) }
+            AddTask(busy = adding, failure = failure) {
+                adding = true
+                failure = null
+                scope.launch {
+                    failure = tasks.addTask(transaction)
+                    adding = false
+                    if (failure == null) close()
+                }
             }
         }
         HorizontalDivider()
@@ -464,6 +482,25 @@ fun TransactionDetailsSheet(transaction: Transaction, onDismiss: () -> Unit, doc
             }
             Spacer(Modifier.height(16.dp))
         }
+    }
+}
+
+/** "Add task" (T86): a task named after the transaction, linked to it; the task then opens to change its details. */
+@Composable
+private fun AddTask(busy: Boolean, failure: String?, add: () -> Unit) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text("Tasks", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+        OutlinedButton(onClick = add, enabled = !busy) {
+            Icon(Icons.Outlined.AddTask, null, Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text("Add task")
+        }
+        Text(
+            "Adds a task about this transaction, linked to it, and opens it.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        failure?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
     }
 }
 

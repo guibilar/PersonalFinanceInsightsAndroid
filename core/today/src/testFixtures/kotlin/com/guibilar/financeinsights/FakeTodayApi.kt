@@ -139,4 +139,22 @@ object TodaySamples {
             tile("expiring", "expiring", "Expiring soon", TodayValue.count(2), "Next on {day}", mapOf("day" to TodayValue.day("2026-10-20")), module = "Documents", link = "/documents") +
             listOf(budgetOver, priceChanged, unsorted),
     )
+
+    /** Money and Tasks (T86): the Tasks tile as the server makes it, 3 due today and 2 overdue. */
+    val withTasks = complete.copy(
+        modules = complete.modules + TodayModule("Tasks", TodayModuleStatus.Complete),
+        cards = listOf(spent, leftOver, netWorth, budgets) +
+            tile(
+                "due-today",
+                "due-today",
+                "Tasks",
+                TodayValue.count(3),
+                "{overdue} overdue",
+                mapOf("overdue" to TodayValue.count(2)),
+                severity = TodaySeverity.Warning,
+                module = "Tasks",
+                link = "/tasks",
+            ) +
+            listOf(budgetOver, priceChanged, unsorted),
+    )
 }

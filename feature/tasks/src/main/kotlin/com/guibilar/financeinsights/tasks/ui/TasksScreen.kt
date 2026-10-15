@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -25,6 +27,8 @@ import androidx.compose.material.icons.outlined.Autorenew
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -32,6 +36,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -113,6 +118,7 @@ fun TasksScreen(
         onPauseOrDispose {}
     }
     var showDone by rememberSaveable { mutableStateOf(false) }
+    var searching by rememberSaveable { mutableStateOf(false) }
     val sections = state.sections
     val today = state.today
 
@@ -121,10 +127,20 @@ fun TasksScreen(
             TopAppBar(
                 title = { FitText("Tasks", fontWeight = FontWeight.SemiBold, minFontSize = 14.sp) },
                 navigationIcon = { if (onBack != null) IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back") } },
+                actions = {
+                    IconButton(onClick = {
+                        if (searching) model.search("")
+                        searching = !searching
+                    }) {
+                        Icon(if (searching) Icons.Outlined.SearchOff else Icons.Outlined.Search, if (searching) "Close the search" else "Search tasks")
+                    }
+                },
             )
             ReadableColumn {
                 Column {
-                    if (canWrite) QuickAdd(model, today, focusQuickAdd)
+                    if (searching) SearchField(state.query, model::search)
+                    if (canWrite && !searching) QuickAdd(model, today, focusQuickAdd)
+                    if (state.tags.isNotEmpty() && !state.overdueOnly) TagChips(state.tags, state.tag, model::filterTag)
                     PullToRefreshBox(isRefreshing = state.refreshing, onRefresh = model::refresh, modifier = Modifier.fillMaxSize()) {
                         LazyColumn(
                             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp),
@@ -148,6 +164,9 @@ fun TasksScreen(
                                         else "No tasks yet.",
                                     )
                                 }
+                                state.isFiltered && state.shownOpen.isEmpty() && state.shownDone.isEmpty() -> item {
+                                    EmptyState("No task matches the search or the tag.")
+                                }
                                 else -> {
                                     if (sections.isEmpty) item { EmptyState("All done. Nothing is open.") }
                                     section("Overdue", sections.overdue, today, state.busy, canWrite, model::done, openTask, showDue = true)
@@ -158,11 +177,11 @@ fun TasksScreen(
                                         item(key = "recurring-title") { SectionTitle("Recurring") }
                                         item(key = "recurring") { RecurringCard(sections.recurring, today, openTask) }
                                     }
-                                    if (state.done.isNotEmpty()) {
-                                        item(key = "done-title") { DoneTitle(state.done.size, showDone) { showDone = !showDone } }
+                                    if (state.shownDone.isNotEmpty()) {
+                                        item(key = "done-title") { DoneTitle(state.shownDone.size, showDone) { showDone = !showDone } }
                                         if (showDone) {
                                             item(key = "done") {
-                                                TaskCard(state.done, today, state.busy, canWrite, onCheck = { model.undo(it.id) }, open = openTask, showDue = true)
+                                                TaskCard(state.shownDone, today, state.busy, canWrite, onCheck = { model.undo(it.id) }, open = openTask, showDue = true)
                                             }
                                         }
                                     }
@@ -176,6 +195,36 @@ fun TasksScreen(
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
     }
     sheet()
+}
+
+/** The search field (T86): words in the title, the notes, or the tags. */
+@Composable
+private fun SearchField(text: String, search: (String) -> Unit) {
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { focus.requestFocus() }
+    OutlinedTextField(
+        value = text,
+        onValueChange = search,
+        placeholder = { Text("Search titles, notes, tags") },
+        leadingIcon = { Icon(Icons.Outlined.Search, null) },
+        singleLine = true,
+        shape = RoundedCornerShape(28.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp).focusRequester(focus),
+    )
+}
+
+/** The tag filter (T86): one chip per tag; a tap selects the tag, a second tap clears it. */
+@Composable
+private fun TagChips(tags: List<String>, selected: String?, select: (String) -> Unit) {
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+    ) {
+        items(tags, key = { it }) { tag ->
+            FilterChip(selected = tag == selected, onClick = { select(tag) }, label = { Text("#$tag") })
+        }
+    }
 }
 
 /** A section: its title with the count, and its tasks in one card. Nothing when it has no tasks. */

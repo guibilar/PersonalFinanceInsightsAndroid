@@ -47,10 +47,33 @@ data class TasksState(
     val busy: Set<String> = emptySet(),
     /** A quick add is under way. */
     val adding: Boolean = false,
+    /** The search words (T86): each must be in the title, the notes, or the tags. */
+    val query: String = "",
+    /** The tag filter (T86), or null for all tags. */
+    val tag: String? = null,
 ) {
+    /** The tags of all tasks, by name: the filter chips. */
+    val tags: List<String> get() = (open + done).flatMap { it.tags }.distinct().sorted()
+
+    /** True when a search or a tag hides some tasks. */
+    val isFiltered: Boolean get() = query.isNotBlank() || tag != null
+
+    /** The open tasks that the search and the tag let through. */
+    val shownOpen: List<TaskSummary> get() = open.filter(::matches)
+
+    /** The done tasks that the search and the tag let through. */
+    val shownDone: List<TaskSummary> get() = done.filter(::matches)
+
+    private fun matches(task: TaskSummary): Boolean {
+        if (tag != null && tag !in task.tags) return false
+        val words = query.lowercase().split(' ').filter { it.isNotBlank() }
+        val text = (listOf(task.title, task.notes.orEmpty()) + task.tags).joinToString(" ").lowercase()
+        return words.all { it in text }
+    }
+
     /** The sections to show. With [overdueOnly], only "Overdue". */
     val sections: TaskSections
-        get() = if (overdueOnly) TaskSections(overdue = overdueTasks(open, today)) else taskSections(open, today)
+        get() = if (overdueOnly) TaskSections(overdue = overdueTasks(shownOpen, today)) else taskSections(shownOpen, today)
 
     val isEmpty get() = open.isEmpty() && done.isEmpty()
 }
@@ -94,6 +117,12 @@ class TasksViewModel(
 
     /** "Show all" after the overdue-only view. */
     fun showAll() = _state.update { it.copy(overdueOnly = false) }
+
+    /** The search words (T86). */
+    fun search(text: String) = _state.update { it.copy(query = text) }
+
+    /** The tag filter (T86): null for all tags; the same tag again clears it. */
+    fun filterTag(tag: String?) = _state.update { it.copy(tag = if (tag == it.tag) null else tag) }
 
     private fun reload(quiet: Boolean = false, refreshing: Boolean = false) {
         loadJob?.cancel()
