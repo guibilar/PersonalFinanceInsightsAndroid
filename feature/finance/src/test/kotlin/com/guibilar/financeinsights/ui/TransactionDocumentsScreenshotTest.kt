@@ -4,6 +4,11 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -25,8 +30,10 @@ import com.guibilar.financeinsights.core.model.Transaction
 import com.guibilar.financeinsights.ui.common.LoadState
 import com.guibilar.financeinsights.ui.theme.FinanceTheme
 import com.guibilar.financeinsights.ui.transactions.TransactionDocumentsContent
+import com.guibilar.financeinsights.ui.transactions.TransactionDocumentsSection
 import com.guibilar.financeinsights.ui.transactions.TransactionsScreen
 import com.guibilar.financeinsights.ui.transactions.TransactionsViewModel
+import com.guibilar.financeinsights.ui.transactions.rememberTransactionDocuments
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -180,6 +187,34 @@ class TransactionDocumentsScreenshotTest {
         assertEquals(listOf("d3"), documents.opened)
         compose.onNodeWithText("Add document").performScrollTo().performClick()
         assertEquals(listOf(metro), documents.added)
+    }
+
+    @Test
+    fun theSectionMadeAgainDoesNotLoadAgain() {
+        // On a phone, the sheet's content was made again and again, and each time the section loaded its documents
+        // (870 requests in 22 seconds). The model now belongs to the screen: the section only shows it.
+        val documents = FakeDocuments()
+        var generation by mutableIntStateOf(0)
+        section {
+            val model = rememberTransactionDocuments(metro, documents)!!
+            key(generation) { TransactionDocumentsSection(model, documents) }
+        }
+        repeat(5) {
+            generation++
+            compose.waitForIdle()
+        }
+        compose.onNodeWithText("Metro receipt").assertExists()
+        assertEquals(1, documentsApi.sent.count { it.first == "byLink" })
+    }
+
+    @Test
+    fun anotherTransactionLoadsItsOwnDocuments() {
+        val documents = FakeDocuments()
+        var id by mutableStateOf(metro)
+        section { TransactionDocumentsSection(rememberTransactionDocuments(id, documents)!!, documents) }
+        id = "another"
+        compose.waitForIdle()
+        assertEquals(listOf(metro, "another"), documentsApi.sent.filter { it.first == "byLink" }.map { (it.second as Pair<*, *>).second })
     }
 
     @Test
