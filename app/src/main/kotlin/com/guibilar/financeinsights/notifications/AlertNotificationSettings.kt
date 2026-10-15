@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
  * Migration of the old local notifications (once, on the first start after T68):
  * - The notifications are on when the old "Budget alerts", "Subscription price changes" or "Import reminders" switch
  *   was on: the server alerts tell these now ("budget-over", "price-changed", "statements-not-imported").
- * - Money and Documents start on. Tasks (T84) and Home (T88) start on too: new keys, so no migration step.
+ * - Money and Documents start on. Tasks (T84), Home (T88) and People (T92) start on too: new keys, so no migration step.
  * - The old "priceAlerts" and "importReminders" settings are removed. "budgetAlerts" stays: it is now the local
  *   warning at 80% (no server alert yet), with "monthlyReview" (`FinancePreferences`).
  */
@@ -44,12 +44,17 @@ class AlertNotificationSettings(context: Context) {
     /** Notifications for the alerts of the Home module (warranties that end soon). */
     val home: StateFlow<Boolean> = _home.asStateFlow()
 
+    private val _people = MutableStateFlow(prefs.getBoolean(KEY_PEOPLE, true))
+    /** Notifications for the alerts of the People module (reach out, birthdays, lent things not back). */
+    val people: StateFlow<Boolean> = _people.asStateFlow()
+
     /** Whether the alerts of [module] give notifications. A module with no switch here (a newer one) does. */
     fun notifies(module: String): Boolean = when (module) {
         MONEY -> money.value
         DOCUMENTS -> documents.value
         TASKS -> tasks.value
         HOME -> home.value
+        PEOPLE -> people.value
         else -> true
     }
 
@@ -78,6 +83,11 @@ class AlertNotificationSettings(context: Context) {
         _home.value = value
     }
 
+    fun setPeople(value: Boolean) {
+        prefs.edit { putBoolean(KEY_PEOPLE, value) }
+        _people.value = value
+    }
+
     private fun migrate() {
         if (prefs.contains(KEY_VERSION)) return
         val wasOn = OLD_KEYS.any { prefs.getBoolean(it, false) }
@@ -97,12 +107,14 @@ class AlertNotificationSettings(context: Context) {
         const val DOCUMENTS = "Documents"
         const val TASKS = "Tasks"
         const val HOME = "Home"
+        const val PEOPLE = "People"
 
         private const val KEY_ENABLED = "alertNotifications"
         private const val KEY_MONEY = "alertNotifications.Money"
         private const val KEY_DOCUMENTS = "alertNotifications.Documents"
         private const val KEY_TASKS = "alertNotifications.Tasks"
         private const val KEY_HOME = "alertNotifications.Home"
+        private const val KEY_PEOPLE = "alertNotifications.People"
         private const val KEY_VERSION = "alertNotifications.version"
         private const val VERSION = 1
 

@@ -44,13 +44,13 @@ class ShellScreenshotTest {
         val opened = mutableListOf<String>()
         show { ModulesScreen(MODULES, account, "1.0", PaddingValues(), open = { opened += it.id }, openSettings = {}, openAccount = {}) }
         shoot("modules")
-        // Money, Documents, Tasks and Home open; the others are coming soon.
+        // Money, Documents, Tasks, Home and People open; the others are coming soon.
         compose.onNodeWithText("Money").performClick()
         compose.onNodeWithText("Documents").performClick()
         compose.onNodeWithText("Tasks").performClick()
         compose.onNodeWithText("Home").performClick()
         compose.onNodeWithText("People").performClick()
-        assertEquals(listOf("money", "documents", "tasks", "home"), opened)
+        assertEquals(listOf("money", "documents", "tasks", "home", "people"), opened)
     }
 
     @Test

@@ -14,12 +14,13 @@ The bar at the bottom has five items: **Today**, **Timeline**, **Capture** (the 
   (Money first, with its four headline tiles), then one "Needs attention" list, then a card for the modules that are
   coming. A tile or an item opens its page. Pull down to get new cards. If a module could not load all its figures,
   Today says so; if a module failed, it has its own "Try again".
-- **Modules** lists the modules. Money opens its home, Documents its list, Tasks and Home their screens; People and
-  Journal are "Coming soon". Under them are the app's settings and your account.
+- **Modules** lists the modules. Money opens its home, Documents its list, Tasks, Home and People their screens;
+  Journal is "Coming soon". Under them are the app's settings and your account.
 - **Money** (its home) has the four tiles, the Money items of "Needs attention" (the same as on Today), and a row for each finance page: Dashboard, Net worth and Review; Transactions,
   Budgets and Subscriptions; and Accounts, Categories, Tags and Rules. Back from a finance page returns to the Money
   home, and then to where you opened it from.
-- **Capture** has six buttons. "Task" opens the quick add of Tasks; "Item" opens a new item of Home; "Expense" opens
+- **Capture** has seven buttons. "Task" opens the quick add of Tasks; "Item" opens a new item of Home; "Person" opens a
+  new person; "Expense" opens
   the "Add transaction" form;
   "Scan" opens the document scanner and "Photo" the photo picker, for a new document; Voice is coming soon.
 - **Timeline** and **Search** are placeholders for now.
@@ -84,6 +85,21 @@ numbers, warranties, receipts and maintenance:
 - A document shows its items (a tap opens one), and "Link to item" links it to one.
 - Today: a warranty alert (`/home/items/<id>`) opens the item; `/home` and `/home/rooms/<id>` open the Home screen and
   a room.
+
+**People** (on Hestia.Api, `/api/people`) is a small personal CRM: the people you care about, when you last talked to
+them, a reach-out reminder, birthdays, gift ideas, and things lent or borrowed.
+
+- The People screen has a search, "Reach out" (people whose reminder is overdue: "Last contact 7 weeks ago"),
+  "Upcoming" (birthdays in the next 30 days, with the new age and the open gift ideas), "Lent and borrowed" (the open
+  loans of everybody), and all people with group chips and the last contact.
+- A person shows the groups, "Log contact", "Gift idea", and "Lend item" (each a sheet), the strip (birthday, last
+  contact, reminder), the gift ideas (a check marks one given today; uncheck makes it an idea again), the open loans
+  ("Got it back" or "Gave it back"), the history (contacts and loans, newest first; delete with a tap), and the links
+  (a tap opens the document, task, home item, or transaction). Edit and delete are in the top bar.
+- The person form has the name, nickname, relationship, groups (with commas), birthday (month and day; the year is
+  optional), email, phone, the reminder, and notes. It checks them as the server does.
+- Today: a People alert (`/people/<id>`) opens the person; `/people` opens the People screen.
+- A read-only user sees everything, but no add, edit, delete, log, gift, loan, or unlink.
 
 **Sign in** with the server's address (where you open the web app, e.g. `https://finance.example.ts.net`) and your
 username and password. The session is kept between launches, for 14 days of inactivity like the web's
@@ -158,7 +174,7 @@ The finance pages:
     Tailscale, and shows a notification for each new alert: a budget over its limit, a price change, statements to
     import, unsorted transactions, a document that expires, an overdue task, a warranty that ends. More than 3 new
     alerts give one summary. A notification goes away when its alert is resolved. A tap opens the alert's page, as on
-    Today. A switch per module (Money, Documents, Tasks, Home). The first poll after install, sign-in, or turning it on only notes the open alerts and notifies
+    Today. A switch per module (Money, Documents, Tasks, Home, People). The first poll after install, sign-in, or turning it on only notes the open alerts and notifies
     nothing. "Hide amounts" hides the amounts in these notifications too, and with the app lock on the lock screen
     shows only the kind of alert.
   - **Budget warnings** (at 80%) and the **monthly review** are checked on the phone every few hours. The server has
@@ -193,7 +209,7 @@ tab and click **Run workflow** on `main` (see [CI artifacts](#ci-artifacts)).
 ## Building
 
 - JDK 21 and the Android SDK (platform 37.2; Gradle downloads what is missing when the SDK's licences are accepted).
-- `./gradlew :core:common:test :core:network:test :core:finance:test :core:today:test :core:documents:test :core:tasks:test :core:home:test :core:ui:lintDebug :feature:finance:testDebugUnitTest :feature:finance:lintDebug :feature:documents:testDebugUnitTest :feature:documents:lintDebug :feature:tasks:testDebugUnitTest :feature:tasks:lintDebug :feature:home:testDebugUnitTest :feature:home:lintDebug :app:testDebugUnitTest :app:lintDebug :app:assembleDebug`
+- `./gradlew :core:common:test :core:network:test :core:finance:test :core:today:test :core:documents:test :core:tasks:test :core:home:test :core:people:test :core:ui:lintDebug :feature:finance:testDebugUnitTest :feature:finance:lintDebug :feature:documents:testDebugUnitTest :feature:documents:lintDebug :feature:tasks:testDebugUnitTest :feature:tasks:lintDebug :feature:home:testDebugUnitTest :feature:home:lintDebug :feature:people:testDebugUnitTest :feature:people:lintDebug :app:testDebugUnitTest :app:lintDebug :app:assembleDebug`
 
 This is the command that CI runs. Lint fails the build on any new warning. `app/lint-baseline.xml` holds the one left on
 purpose: the target SDK, which is raised as a change of its own.
@@ -250,11 +266,13 @@ The app is split into Gradle modules, so that more modules (documents, tasks, an
 | `:core:documents` | Plain Kotlin | The Documents API (`DocumentsApi`, `/api/documents`) and its models, the upload form (`DocumentUpload`, multipart) with the checks of size and type, and the expiry and photo-size rules. Its test fixtures hold the fake `DocumentsApi` and sample documents. |
 | `:core:tasks` | Plain Kotlin | The Tasks API (`TasksApi`, `/api/tasks`) and its models, and the rules of the Tasks screen: the sections, the short labels of due dates and repeats, the repeat form (`TaskDraft`), the quick add, and the "Renew" task of a document. Its test fixtures hold the fake `TasksApi` (done, undo and the repeat rules in memory) and sample tasks. |
 | `:core:home` | Plain Kotlin | The Home API (`HomeApi`, `/api/home`) and its models, and the rules of the Home screens: the warranty state and its words, the short labels, the amounts as typed, and the item form (`ItemDraft`). Its test fixtures hold the fake `HomeApi` (rooms, items, filters, links and the CSV in memory) and sample rooms and items. |
+| `:core:people` | Plain Kotlin | The People API (`PeopleApi`, `/api/people`) and its models, and the rules of the People screens: the reminder and "last contact" words, birthdays, the history, and the person form (`PersonDraft`). Its test fixtures hold the fake `PeopleApi` (people, contacts, gifts, and loans in memory) and sample people. |
 | `:core:ui` | Android library | The theme, the common components, the charts, and the frame of the settings pages. |
 | `:feature:finance` | Android library | The Money module: its home, the finance screens, their navigation graph, the finance notifications, the widget, and the finance settings (`FinancePreferences`). |
 | `:feature:documents` | Android library | The Documents module: the list, a document, the upload with the scanner and the pickers, the photo scaling, and its navigation graph (`documentsGraph`). It depends on the core modules only; the transactions of its links come from `:core:finance`. |
 | `:feature:tasks` | Android library | The Tasks module: the Tasks screen (quick add, sections, done and undo), the task sheet (details, repeat, links, completions, delete), and its navigation graph (`tasksGraph`). It depends on the core modules only: linked documents come from `:core:documents`, linked transactions from `:core:finance`. |
 | `:feature:home` | Android library | The Home module: the Home screen (maintenance, inventory, rooms, search, the export), a room, an item (details, warranty, photos, links, maintenance), the new item with a photo, and its navigation graph (`homeGraph`). It depends on the core modules only: documents come from `:core:documents`, transactions from `:core:finance`, maintenance tasks from `:core:tasks`. Its own file provider (`HomeFileProvider`, cache folder `home/`) serves the camera and the share sheet. |
+| `:feature:people` | Android library | The People module: the People screen, a person (actions, gift ideas, loans, history, links), the person form, and its navigation graph (`peopleGraph`). It depends on `:core:people` and `:core:ui` only; linked pages open through `PeopleHost`. |
 | `:app` | Android app | `MainActivity`, the application class, the module registry, the navigation host with the bar (Today, Timeline, Capture, Modules, Search), sign-in, the lock, the account page, the app's settings, and the alert notifications (`notifications/`). |
 
 How they connect:
@@ -273,8 +291,8 @@ How they connect:
   the server for new cards (`refresh=true`), and not its 30-second cache. `todayDestination(...)` gives a
   `TodayDestination`: a Money page, one transaction (`/money/transactions?id=<id>`), the Documents list
   (`/documents`), one document (`/documents/<id>`), the Tasks screen (`/tasks`, or `/tasks?due=overdue` for the
-  overdue tasks only), one task (`/tasks/<id>`), the Home screen (`/home`), one room (`/home/rooms/<id>`), or one
-  item (`/home/items/<id>`). "Statement to import" for one account
+  overdue tasks only), one task (`/tasks/<id>`), the Home screen (`/home`), one room (`/home/rooms/<id>`), one
+  item (`/home/items/<id>`), the People screen (`/people`), or one person (`/people/<id>`). "Statement to import" for one account
   (`/money/transactions?importAccount=<id>#import`, T63) opens the import sheet with that account picked
   (`TodayDestination.Money.importAccount`, then `FinanceRequests.importAccount`). An account that is not in the list
   picks nothing, as before.
@@ -295,6 +313,8 @@ How they connect:
   `addItemFromPurchase(...)` for the other pages. What it needs from the others comes through the `HomeHost` interface
   (`AppHomeHost` in `:app`): open a document, a transaction or a task, and read and decode photos with the Documents
   rules (T12).
+- `:feature:people` gives `peopleGraph(...)` and `openPeople()`, `openPerson(id)`, and `addPerson()` for the other
+  pages. A link of a person opens through the `PeopleHost` interface (`AppPeopleHost` in `:app`, `AppPeople.kt`).
 - **Home and the other modules (T88):** `DocumentItems` (`:feature:documents`, `documentsGraph(items = …)`) gives a
   document its "Items" section; `TaskItems` (`:feature:tasks`, `tasksGraph(items = …)`) gives a task its items; and
   `FinanceHome` (`:feature:finance`, `financeGraph(home = …)`) gives a transaction "Add to inventory". The app

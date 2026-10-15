@@ -41,6 +41,12 @@ sealed interface TodayDestination {
 
     /** One item ("/home/items/<id>"), for example a warranty that ends soon. */
     data class Item(val id: String) : TodayDestination
+
+    /** The People screen ("/people", T92). */
+    data object People : TodayDestination
+
+    /** One person ("/people/<id>"): a reminder, a birthday, or a loan. */
+    data class Person(val id: String) : TodayDestination
 }
 
 /** The finance pages by their web path (under "/money"), as the web app names them (`money.routes.ts`). */
@@ -81,6 +87,7 @@ fun todayDestination(link: String?): TodayDestination? {
         path == "/tasks" -> TodayDestination.Tasks(overdueOnly = queryValue(query, "due") == "overdue")
         path.startsWith("/tasks/") -> taskPage(path.removePrefix("/tasks/"))
         path == "/home" || path.startsWith("/home/") -> homePage(path.removePrefix("/home").removePrefix("/"))
+        path == "/people" || path.startsWith("/people/") -> peoplePage(path.removePrefix("/people").removePrefix("/"))
         else -> fallback
     }
 }
@@ -130,3 +137,7 @@ private fun homePage(rest: String): TodayDestination {
         else -> TodayDestination.Home
     }
 }
+
+/** "/people/<id>" opens the person; "/people", "/people/new", and a deeper path open the People screen. */
+private fun peoplePage(rest: String): TodayDestination =
+    if (rest.isNotBlank() && rest != "new" && '/' !in rest) TodayDestination.Person(rest) else TodayDestination.People

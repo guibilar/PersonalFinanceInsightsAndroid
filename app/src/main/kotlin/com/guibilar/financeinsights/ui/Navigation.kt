@@ -72,6 +72,12 @@ import com.guibilar.financeinsights.home.isHomePage
 import com.guibilar.financeinsights.home.openHome
 import com.guibilar.financeinsights.home.openHomeItem
 import com.guibilar.financeinsights.home.openRoom
+import com.guibilar.financeinsights.people.PeopleRoute
+import com.guibilar.financeinsights.people.addPerson
+import com.guibilar.financeinsights.people.isPeoplePage
+import com.guibilar.financeinsights.people.openPeople
+import com.guibilar.financeinsights.people.openPerson
+import com.guibilar.financeinsights.people.peopleGraph
 import com.guibilar.financeinsights.notifications.AlertNotificationSettings
 import com.guibilar.financeinsights.security.AppLock
 import com.guibilar.financeinsights.tasks.TasksRoute
@@ -209,14 +215,14 @@ private data class TopLevel(
     val action: Boolean = false,
 )
 
-// The Money, Documents, Tasks and Home pages, the app's settings and the account open from Modules, so they show under it.
+// The Money, Documents, Tasks, Home and People pages, the app's settings and the account open from Modules, so they show under it.
 private val topLevel = listOf(
     TopLevel("Today", Icons.Outlined.WbSunny, TodayRoute, { it.hasRoute<TodayRoute>() }),
     TopLevel("Timeline", Icons.Outlined.Timeline, TimelineRoute, { it.hasRoute<TimelineRoute>() }),
     TopLevel("Capture", Icons.Outlined.Add, CaptureRoute, { it.hasRoute<CaptureRoute>() }, action = true),
     TopLevel("Modules", Icons.Outlined.GridView, ModulesRoute, {
         it.hasRoute<ModulesRoute>() || it.isFinancePage() || it.isDocumentsPage() || it.isTasksPage() ||
-            it.isHomePage() || it.hasRoute<AppSettingsRoute>() || it.hasRoute<AccountSettingsRoute>()
+            it.isHomePage() || it.isPeoplePage() || it.hasRoute<AppSettingsRoute>() || it.hasRoute<AccountSettingsRoute>()
     }),
     TopLevel("Search", Icons.Outlined.Search, SearchRoute, { it.hasRoute<SearchRoute>() }),
 )
@@ -265,6 +271,8 @@ fun MainScreen(
             TodayDestination.Home -> nav.openHome()
             is TodayDestination.Room -> nav.openRoom(destination.id)
             is TodayDestination.Item -> nav.openHomeItem(destination.id)
+            TodayDestination.People -> nav.openPeople()
+            is TodayDestination.Person -> nav.openPerson(destination.id)
         }
     }
     // A tapped alert notification (T68): its page, or Today for an alert with no link (and for the summary).
@@ -285,6 +293,8 @@ fun MainScreen(
     val taskItems = remember(nav, client) { AppTaskItems(nav, client) }
     val financeHome = remember(nav, canWrite) { AppFinanceHome(nav, canWrite) }
     val homeHost = remember(nav) { AppHomeHost(nav) }
+    // The People module (T92): its links open the pages of the other modules.
+    val peopleHost = remember(nav) { AppPeopleHost(nav) }
     // A rail at the side on a wide screen (a tablet, an unfolded foldable, landscape); the bar below otherwise.
     val rail = windowWidth() >= MEDIUM_WIDTH
     fun select(item: TopLevel, selected: Boolean) {
@@ -342,6 +352,7 @@ fun MainScreen(
                                 DocumentsRoute -> nav.openDocuments()
                                 is TasksRoute -> nav.openTasks()
                                 HomeRoute -> nav.openHome()
+                                PeopleRoute -> nav.openPeople()
                                 else -> module.route?.let { nav.navigate(it) }
                             }
                         },
@@ -359,6 +370,7 @@ fun MainScreen(
                         onPhoto = { nav.addDocument(DocumentSource.Photos) },
                         onTask = { nav.addTask() },
                         onItem = { nav.addItem() },
+                        onPerson = { nav.addPerson() },
                     )
                 }
                 composable<ModulesRoute> {
@@ -412,6 +424,13 @@ fun MainScreen(
                     client = client,
                     contentPadding = padding,
                     host = homeHost,
+                    canWrite = canWrite,
+                )
+                peopleGraph(
+                    nav = nav,
+                    client = client,
+                    contentPadding = padding,
+                    host = peopleHost,
                     canWrite = canWrite,
                 )
                 composable<AppSettingsRoute> {

@@ -75,6 +75,7 @@ fun AppSettingsScreen(
     val documentAlerts = alertSettings?.documents?.collectAsState()?.value == true
     val taskAlerts = alertSettings?.tasks?.collectAsState()?.value == true
     val homeAlerts = alertSettings?.home?.collectAsState()?.value == true
+    val peopleAlerts = alertSettings?.people?.collectAsState()?.value == true
     val hideWidget by financePreferences.hideWidgetAmounts.collectAsState()
     val hideAmounts by preferences.hideAmounts.collectAsState()
     var alertsNote by remember { mutableStateOf<String?>(null) }
@@ -214,6 +215,10 @@ fun AppSettingsScreen(
                 SwitchRow("Home", "Warranties that end soon.", homeAlerts, enabled = alertsOn, indent = true) {
                     alertSettings.setHome(it)
                     if (!it) AlertNotifications.removeModule(context, AlertNotificationSettings.HOME)
+                }
+                SwitchRow("People", "People to reach out to, birthdays, and lent things not back.", peopleAlerts, enabled = alertsOn, indent = true) {
+                    alertSettings.setPeople(it)
+                    if (!it) AlertNotifications.removeModule(context, AlertNotificationSettings.PEOPLE)
                 }
             }
             SwitchRow(
