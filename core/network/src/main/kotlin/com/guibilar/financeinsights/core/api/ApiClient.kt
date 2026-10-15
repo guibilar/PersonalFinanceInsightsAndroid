@@ -75,13 +75,15 @@ fun createApiClient(
  * finance's `docs/read-only-queries.txt`). A failed call changes nothing.
  */
 internal object DataWrites : Interceptor {
-    /** The finance POST endpoints that only read (finance `[ReadOnlyQuery]`, Hestia.Api `FinanceProxy:ReadOnlyQueries`). */
+    /** The POST endpoints that only read: finance `[ReadOnlyQuery]` (Hestia.Api `FinanceProxy:ReadOnlyQueries`), and Hestia `.ReadOnlyQuery()`. */
     val READ_ONLY_POSTS = setOf(
         "/api/Budget/Filter",
         "/api/CategoryRules/Preview",
         "/api/Reports/breakdown",
         "/api/Reports/merchants",
         "/api/Transaction/Filter",
+        // Hestia's read-only POST queries (T72).
+        "/api/documents/by-link/counts",
     )
 
     fun isWrite(method: String, path: String): Boolean =

@@ -41,6 +41,7 @@ class DataWritesTest {
         assertEquals(1, call("POST", "/api/tasks/t1/done"))
         assertEquals(0, call("GET", "/api/Transaction"))
         assertEquals(0, call("POST", "/api/Transaction/Filter"))
+        assertEquals(0, call("POST", "/api/documents/by-link/counts"))
         assertEquals(0, call("POST", "/api/Reports/breakdown"))
         assertEquals(0, call("POST", "/api/Auth/login"))
     }

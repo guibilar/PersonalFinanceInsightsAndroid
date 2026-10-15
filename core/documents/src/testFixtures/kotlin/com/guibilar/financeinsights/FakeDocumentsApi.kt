@@ -6,6 +6,7 @@ import com.guibilar.financeinsights.core.documents.DocumentDetails
 import com.guibilar.financeinsights.core.documents.DocumentFile
 import com.guibilar.financeinsights.core.documents.DocumentKind
 import com.guibilar.financeinsights.core.documents.DocumentLink
+import com.guibilar.financeinsights.core.documents.DocumentLinkCounts
 import com.guibilar.financeinsights.core.documents.DocumentLinkKinds
 import com.guibilar.financeinsights.core.documents.DocumentPage
 import com.guibilar.financeinsights.core.documents.DocumentSummary
@@ -166,6 +167,12 @@ class FakeDocumentsApi(documents: List<Document> = DocumentsSamples.all) : Docum
 
     override suspend fun byLink(kind: String, id: String): List<DocumentSummary> = call("byLink", kind to id) {
         documents.filter { d -> d.links.any { it.kind == kind && it.targetId == id } }.map { it.summary }
+    }
+
+    override suspend fun countByLink(request: DocumentLinkCounts): Map<String, Int> = call("countByLink", request) {
+        request.targetIds.associate { id ->
+            id.lowercase() to documents.count { d -> d.links.any { it.kind == request.kind && it.targetId.equals(id, ignoreCase = true) } }
+        }
     }
 
     companion object {
