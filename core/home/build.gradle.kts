@@ -2,19 +2,9 @@
 // of the Home screens (the warranty state, the item form, the labels). Plain Kotlin, tested on the JVM.
 // Its test fixtures hold the fake HomeApi and sample rooms and items.
 plugins {
-    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.hestia.jvm.library)
     alias(libs.plugins.kotlin.serialization)
     `java-test-fixtures`
-}
-
-kotlin {
-    jvmToolchain(21)
-    compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) }
-}
-
-java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
 }
 
 dependencies {

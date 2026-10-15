@@ -25,6 +25,10 @@ roborazzi = "1.76.0"
 androidxTestExt = "1.3.0"
 
 [libraries]
+# The Gradle plugins, for the convention plugins in build-logic (T30).
+android-gradlePlugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }
+kotlin-gradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
+compose-compiler-gradlePlugin = { module = "org.jetbrains.kotlin:compose-compiler-gradle-plugin", version.ref = "kotlin" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
@@ -71,3 +75,8 @@ android-library = { id = "com.android.library", version.ref = "agp" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+# The convention plugins of build-logic (T30): the shared settings of the modules.
+hestia-jvm-library = { id = "hestia.jvm.library" }
+hestia-android-library = { id = "hestia.android.library" }
+hestia-android-compose = { id = "hestia.android.compose" }
+hestia-android-feature = { id = "hestia.android.feature" }

@@ -1,37 +1,10 @@
 // What every module's screens share: the theme, common components and charts, and the settings page's frame.
 plugins {
-    alias(libs.plugins.android.library)
-    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.hestia.android.compose)
 }
 
 android {
     namespace = "com.guibilar.financeinsights.core.ui"
-    compileSdk {
-        version = release(37) { minorApiLevel = 2 }
-    }
-
-    defaultConfig {
-        minSdk = 26
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    buildFeatures {
-        compose = true
-    }
-
-    lint {
-        warningsAsErrors = true
-        disable += setOf("GradleDependency", "NewerVersionAvailable", "AndroidGradlePluginVersion")
-    }
-}
-
-kotlin {
-    jvmToolchain(21)
-    compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) }
 }
 
 dependencies {

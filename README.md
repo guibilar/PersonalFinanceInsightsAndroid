@@ -347,7 +347,16 @@ How they connect:
 - The plain Kotlin modules are tested on the JVM. The Android modules' tests include screenshot tests (Robolectric and
   Roborazzi) that render the screens with the recorded responses. They write to `<module>/build/shots`. CI uploads
   them on pull requests and when a run fails. The finance module's tests run in `TestFinanceApp` (see `feature/finance/src/test/resources/robolectric.properties`).
-- To add a module (for example `:feature:documents`), make an Android library that depends on `:core:ui` and
+- The shared build settings are in the convention plugins of `build-logic` (T30). A module build file names one plugin,
+  its namespace (Android modules), and its dependencies:
+  - `hestia.jvm.library`: a plain Kotlin module (`:core:*` without Android): JDK 21 toolchain, Java 17 bytecode;
+  - `hestia.android.library`: an Android library (compile SDK, min SDK, Java and Kotlin versions, lint);
+  - `hestia.android.compose`: the same with Compose (`:core:ui`);
+  - `hestia.android.feature`: a feature module: Compose and the Robolectric screenshot test settings.
+
+  Versions stay in `gradle/libs.versions.toml`. To change a shared setting, change the plugin in
+  `build-logic/convention/src/main/kotlin/Conventions.kt`, not a module build file.
+- To add a module (for example `:feature:documents`), make an Android library with `alias(libs.plugins.hestia.android.feature)` that depends on `:core:ui` and
   `:core:network`, give it a graph function like `financeGraph` with a home route, and call it from the app's
   navigation host. Make the module's API with `client.api<YourApi>()`. In tests, use `fakeApiClient(yourFake)`. In `MODULES`, give the module its route and the status `Active`, and add its pages to the Modules
   item of the bar. Nothing in `:feature:finance` changes.

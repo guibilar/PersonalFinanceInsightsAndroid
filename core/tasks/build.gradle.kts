@@ -2,19 +2,9 @@
 // rules of the Tasks screen (sections, labels, the repeat form). Plain Kotlin, tested on the JVM.
 // Its test fixtures hold the fake TasksApi and sample tasks.
 plugins {
-    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.hestia.jvm.library)
     alias(libs.plugins.kotlin.serialization)
     `java-test-fixtures`
-}
-
-kotlin {
-    jvmToolchain(21)
-    compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) }
-}
-
-java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
 }
 
 dependencies {
