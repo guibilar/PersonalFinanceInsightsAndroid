@@ -29,6 +29,10 @@ import com.guibilar.financeinsights.core.today.TodaySeverity
 import com.guibilar.financeinsights.core.today.TodayValue
 import com.guibilar.financeinsights.fakeApiClient
 import com.guibilar.financeinsights.QuickAction
+import com.guibilar.financeinsights.timeline.TimelineApi
+import com.guibilar.financeinsights.timeline.TimelineDay
+import com.guibilar.financeinsights.timeline.TimelineEntry
+import com.guibilar.financeinsights.timeline.TimelinePage
 import com.guibilar.financeinsights.ui.theme.FinanceTheme
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertTrue
@@ -53,8 +57,26 @@ class ShellNavigationTest {
     private val tasksApi = FakeTasksApi()
     private val homeApi = FakeHomeApi()
 
+    /** The Timeline (T16): one journal entry today. */
+    private val timelineApi = object : TimelineApi {
+        val asked = mutableListOf<String?>()
+
+        override suspend fun page(before: String?, days: Int, module: String?): TimelinePage {
+            asked += before
+            return TimelinePage(
+                today = "2026-10-03", from = "2026-09-20", to = "2026-10-03", earlier = "2026-09-20",
+                days = listOf(
+                    TimelineDay(
+                        "2026-10-03",
+                        listOf(TimelineEntry("journal.entry.e1", "Journal", "entry", "2026-10-03", null, "Journal", "Long walk by the river.", null, "/nowhere")),
+                    ),
+                ),
+            )
+        }
+    }
+
     private fun show(canWrite: Boolean = true) {
-        val client = fakeApiClient(FakeFinanceApi(), todayApi, FakeDocumentsApi(), FakeAlertsApi(), tasksApi, homeApi, FakePeopleApi())
+        val client = fakeApiClient(FakeFinanceApi(), todayApi, FakeDocumentsApi(), FakeAlertsApi(), tasksApi, homeApi, FakePeopleApi(), timelineApi)
         compose.setContent {
             FinanceTheme(ripples = false, dynamicColor = false) { Surface { MainScreen(client, account, {}, quickAction = quickAction, canWrite = canWrite) } }
         }
@@ -253,11 +275,12 @@ class ShellNavigationTest {
     }
 
     @Test
-    fun `Timeline and Search are placeholders`() {
+    fun `Timeline shows the entries, and Search is a placeholder`() {
         show()
         tab("Timeline").performClick()
         compose.waitForIdle()
-        assertShows("Timeline", "Everything that happened, day by day, from all modules.")
+        assertShows("Timeline", "Long walk by the river.")
+        assertTrue(timelineApi.asked == listOf<String?>(null))
         tab("Search").performClick()
         compose.waitForIdle()
         assertShows("Search", "One search across all modules.")

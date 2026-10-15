@@ -97,6 +97,8 @@ import com.guibilar.financeinsights.tasks.openTasks
 import com.guibilar.financeinsights.tasks.tasksGraph
 import com.guibilar.financeinsights.security.authenticate
 import com.guibilar.financeinsights.security.canAuthenticate
+import com.guibilar.financeinsights.timeline.TimelineScreen
+import com.guibilar.financeinsights.timeline.TimelineViewModel
 import com.guibilar.financeinsights.ui.common.MEDIUM_WIDTH
 import com.guibilar.financeinsights.ui.common.windowWidth
 import com.guibilar.financeinsights.ui.modules.MODULES
@@ -378,7 +380,12 @@ fun MainScreen(
                         )
                     }
                     composable<TimelineRoute> {
-                        PlaceholderScreen("Timeline", Icons.Outlined.Timeline, "Everything that happened, day by day, from all modules.", padding)
+                        // T16: an entry opens its page through the one link map, as a Today item does.
+                        TimelineScreen(
+                            model = viewModel { TimelineViewModel(client.api()) },
+                            contentPadding = padding,
+                            open = { link -> todayDestination(link)?.let { openDestination(it) } },
+                        )
                     }
                     composable<CaptureRoute> {
                         CaptureScreen(

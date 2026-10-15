@@ -83,6 +83,7 @@ dependencies {
     implementation(project(":feature:home"))
     implementation(project(":feature:people"))
     implementation(project(":feature:journal"))
+    implementation(project(":feature:timeline"))
     implementation(project(":core:today"))
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.core.ktx)
