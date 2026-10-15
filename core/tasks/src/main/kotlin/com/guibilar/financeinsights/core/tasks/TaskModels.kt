@@ -59,6 +59,9 @@ object TaskLinkKinds {
 
     /** An item of the Home module (T22): maintenance. The target id is the item id. */
     const val HOME_ITEM = "Home.Item"
+
+    /** A person of the People module (T93), for example "Call Marco". The target id is the person id. */
+    const val PEOPLE_PERSON = "People.Person"
 }
 
 /** One time that a task was done. */
@@ -171,6 +174,8 @@ data class NewTaskLink(val kind: String, val targetId: String) {
         fun transaction(id: String) = NewTaskLink(TaskLinkKinds.TRANSACTION, id)
 
         fun item(id: String) = NewTaskLink(TaskLinkKinds.HOME_ITEM, id)
+
+        fun person(id: String) = NewTaskLink(TaskLinkKinds.PEOPLE_PERSON, id)
     }
 }
 

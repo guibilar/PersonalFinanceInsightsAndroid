@@ -336,15 +336,23 @@ private fun LazyListScope.person(
         }
     }
 
-    if (person.links.isNotEmpty()) {
+    if (person.links.isNotEmpty() || person.linkedFrom.isNotEmpty()) {
         item(key = "links-title") { SectionTitle("Links") }
         item(key = "links") {
+            val count = person.links.size + person.linkedFrom.size
             RowsCard {
                 person.links.forEachIndexed { index, link ->
-                    CardRow({ openLink(link.kind, link.targetId) }, last = index == person.links.lastIndex) {
+                    CardRow({ openLink(link.kind, link.targetId) }, last = index == count - 1) {
                         Icon(Icons.Outlined.Link, null)
                         TwoLines(linkLabel(link), null)
                         if (canWrite) TextButton(onClick = { model.unlink(link) }, enabled = !busy) { Text("Unlink") }
+                    }
+                }
+                // The documents and the tasks that link to the person (T93): the link is removed on their page.
+                person.linkedFrom.forEachIndexed { index, link ->
+                    CardRow({ openLink(link.kind, link.targetId) }, last = person.links.size + index == count - 1) {
+                        Icon(Icons.Outlined.Link, null)
+                        TwoLines(link.title, "${if (link.kind == PersonLinkKinds.TASK) "Task" else "Document"} links here")
                     }
                 }
             }

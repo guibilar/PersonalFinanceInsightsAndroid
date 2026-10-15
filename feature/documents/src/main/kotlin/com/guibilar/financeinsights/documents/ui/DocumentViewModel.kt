@@ -201,6 +201,17 @@ class DocumentViewModel(
         "Linked to $name"
     }
 
+    /** Links the document to a person (T93, kind `People.Person`). */
+    fun linkPerson(personId: String, name: String) = write("Could not link the person.") {
+        val link = api.addLink(id, NewDocumentLink.person(personId))
+        _state.update { state ->
+            val document = state.document.valueOrNull ?: return@update state
+            state.copy(document = LoadState.Loaded(document.copy(links = document.links + link)))
+        }
+        DataChanges.changed()
+        "Linked to $name"
+    }
+
     fun unlink(link: DocumentLink) = write("Could not remove the link.") {
         api.removeLink(id, link.id)
         _state.update { state ->

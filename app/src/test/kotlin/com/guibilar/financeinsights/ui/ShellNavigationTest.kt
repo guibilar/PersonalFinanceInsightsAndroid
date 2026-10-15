@@ -19,6 +19,7 @@ import com.guibilar.financeinsights.DocumentsSamples
 import com.guibilar.financeinsights.FakeDocumentsApi
 import com.guibilar.financeinsights.FakeFinanceApi
 import com.guibilar.financeinsights.FakeHomeApi
+import com.guibilar.financeinsights.FakePeopleApi
 import com.guibilar.financeinsights.FakeTasksApi
 import com.guibilar.financeinsights.FakeTodayApi
 import com.guibilar.financeinsights.TodaySamples
@@ -53,7 +54,7 @@ class ShellNavigationTest {
     private val homeApi = FakeHomeApi()
 
     private fun show(canWrite: Boolean = true) {
-        val client = fakeApiClient(FakeFinanceApi(), todayApi, FakeDocumentsApi(), FakeAlertsApi(), tasksApi, homeApi)
+        val client = fakeApiClient(FakeFinanceApi(), todayApi, FakeDocumentsApi(), FakeAlertsApi(), tasksApi, homeApi, FakePeopleApi())
         compose.setContent {
             FinanceTheme(ripples = false, dynamicColor = false) { Surface { MainScreen(client, account, {}, quickAction = quickAction, canWrite = canWrite) } }
         }

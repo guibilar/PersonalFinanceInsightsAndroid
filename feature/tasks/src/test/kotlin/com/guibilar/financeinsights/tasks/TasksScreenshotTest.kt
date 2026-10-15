@@ -21,9 +21,13 @@ import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.guibilar.financeinsights.FakeDocumentsApi
 import com.guibilar.financeinsights.FakeFinanceApi
 import com.guibilar.financeinsights.FakeHomeApi
+import com.guibilar.financeinsights.FakePeopleApi
 import com.guibilar.financeinsights.FakeTasksApi
 import com.guibilar.financeinsights.HomeSamples
+import com.guibilar.financeinsights.PeopleSamples
 import com.guibilar.financeinsights.TasksSamples
+import com.guibilar.financeinsights.core.people.PersonLink
+import com.guibilar.financeinsights.core.people.PersonLinkKinds
 import com.guibilar.financeinsights.core.tasks.NewTaskLink
 import com.guibilar.financeinsights.core.tasks.RepeatMode
 import com.guibilar.financeinsights.core.tasks.RepeatUnit
@@ -260,5 +264,33 @@ class TasksScreenshotTest {
         compose.onNodeWithText("Sofa").performClick()
         compose.waitForIdle()
         assertTrue(api.sent.contains("addLink" to NewTaskLink.item(HomeSamples.sofa.id)))
+    }
+
+    @Test
+    fun `the sheet shows the people of a task, and links another`() {
+        api.tasks += TaskItem(id = "t-call", title = "Call Marco", dueOn = "2026-10-16")
+        // Marco links to the task from his side; the sheet lists him through the People API (both sides).
+        val people = FakePeopleApi(
+            listOf(
+                PeopleSamples.marco.copy(links = listOf(PersonLink("pl1", PersonLinkKinds.TASK, "t-call"))),
+                PeopleSamples.ana,
+            ),
+        )
+        val openedPeople = mutableListOf<String>()
+        val model = TaskViewModel(api, documents, finance, "t-call", people = people)
+        show {
+            TaskSheet(model, TasksSamples.TODAY, canWrite = true, openDocument = {}, openTransaction = {}, onDismiss = {}, openPerson = { openedPeople += it })
+        }
+        assertShows("Marco Silva", "Link to a person")
+        shootScreen("task-people")
+
+        compose.onNodeWithText("Marco Silva").performScrollTo().performClick()
+        assertEquals(listOf(PeopleSamples.marco.person.id), openedPeople)
+
+        compose.onNodeWithText("Link to a person").performScrollTo().performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Ana Lima").performClick()
+        compose.waitForIdle()
+        assertTrue(api.sent.contains("addLink" to NewTaskLink.person(PeopleSamples.ana.person.id)))
     }
 }
