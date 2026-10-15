@@ -1,5 +1,6 @@
 package com.guibilar.financeinsights.ui.signin
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,7 +17,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.LocalFireDepartment
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Button
@@ -39,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentType
 import androidx.compose.ui.semantics.liveRegion
@@ -50,6 +51,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.guibilar.financeinsights.R
 import com.guibilar.financeinsights.ui.common.Placeholder
 import kotlinx.coroutines.launch
 
@@ -94,8 +96,10 @@ fun SignInScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Icon(Icons.Outlined.LocalFireDepartment, null, Modifier.size(48.dp), tint = MaterialTheme.colorScheme.primary)
-                Text("Hestia", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
+                // The front door: the house, the name, and a welcome.
+                Image(painterResource(R.drawable.ic_hestia_mark), null, Modifier.size(64.dp))
+                Text("Hestia", style = MaterialTheme.typography.headlineMedium)
+                Text("Welcome home.", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(
                     "Sign in with the account you use on the web.",
                     style = MaterialTheme.typography.bodyMedium,

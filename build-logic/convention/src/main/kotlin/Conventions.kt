@@ -83,6 +83,8 @@ class AndroidFeatureConventionPlugin : Plugin<Project> {
                     isIncludeAndroidResources = true
                     all {
                         it.systemProperty("robolectric.pixelCopyRenderMode", "hardware")
+                        // The phone's time zone in the tests: the same on every machine (Today's greeting reads the hour).
+                        it.systemProperty("user.timezone", "UTC")
                         // Robolectric reaches into these on JDK 17+.
                         it.jvmArgs(
                             "--add-opens=java.base/java.io=ALL-UNNAMED",

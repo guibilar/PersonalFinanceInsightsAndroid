@@ -21,8 +21,8 @@ class AppPreferences(context: Context) {
     )
     val theme: StateFlow<ThemeChoice> = _theme.asStateFlow()
 
-    private val _dynamicColor = MutableStateFlow(prefs.getBoolean(KEY_DYNAMIC_COLOR, true))
-    /** Colours from the wallpaper (Android 12 and later), or the app's own blue. */
+    private val _dynamicColor = MutableStateFlow(prefs.getBoolean(KEY_DYNAMIC_COLOR, false))
+    /** Colours from the wallpaper (Android 12 and later); off by default: Hestia's own Hearth colours. */
     val dynamicColor: StateFlow<Boolean> = _dynamicColor.asStateFlow()
 
     private val _lock = MutableStateFlow(prefs.getBoolean(KEY_LOCK, false))

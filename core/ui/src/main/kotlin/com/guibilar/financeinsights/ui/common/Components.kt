@@ -68,6 +68,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.guibilar.financeinsights.ui.theme.LocalChartColors
+import com.guibilar.financeinsights.ui.theme.LocalModuleAccent
 
 /** A card with a title, an optional subtitle and action, and its content: the web app's card-wrapper. */
 @Composable
@@ -128,11 +129,13 @@ fun StatTile(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f),
                 )
+                // The module's own colour on Today (LocalModuleAccent), else terracotta.
+                val accent = LocalModuleAccent.current
                 Box(
-                    Modifier.size(28.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
+                    Modifier.size(28.dp).clip(CircleShape).background(accent?.container ?: MaterialTheme.colorScheme.primaryContainer),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(icon, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                    Icon(icon, null, Modifier.size(16.dp), tint = accent?.color ?: MaterialTheme.colorScheme.onPrimaryContainer)
                 }
             }
             // Shrinks to fit rather than cutting an amount off ("$1,49…").

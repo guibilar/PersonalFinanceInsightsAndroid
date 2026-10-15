@@ -57,7 +57,7 @@ class TodayScreenTest {
         val model = TodayViewModel(api) { LocalDate.of(2026, 10, 4) }
         compose.setContent {
             FinanceTheme(ripples = false, darkTheme = dark, dynamicColor = false) {
-                Surface { TodayScreen(model, MODULES, PaddingValues(), open = { opened += it }, openModule = { openedModules += it }) }
+                Surface { TodayScreen(model, MODULES, PaddingValues(), open = { opened += it }, openModule = { openedModules += it }, userName = "alex") }
             }
         }
         compose.waitForIdle()
@@ -77,6 +77,8 @@ class TodayScreenTest {
         show(dark = dark)
         // The server's day, not the phone's.
         assertShows("Saturday, October 3", "Money", "Open Money", "Needs attention")
+        // Hearth: a greeting by the hour the cards were made (15:00 UTC; the tests run in UTC).
+        assertShows("Good afternoon, Alex")
         // Every module is active since T21: no "Coming soon" section.
         compose.onAllNodesWithText("Coming soon").assertCountEquals(0)
         // The same figures as the Money home on the recorded data.
@@ -212,5 +214,16 @@ class TodayScreenTest {
             opened,
         )
         assertEquals(listOf("money"), openedModules.map { it.id })
+    }
+
+    @Test
+    fun `the greeting follows the hour and the first name`() {
+        assertEquals(
+            listOf("Good night", "Good morning", "Good afternoon", "Good evening, Alex", "Welcome home"),
+            listOf(greeting(3, null), greeting(5, ""), greeting(12, null), greeting(23, "alex.smith"), greeting(null, null)),
+        )
+        assertEquals(listOf("Guilherme", "Maria", "Jo"), listOf("guilherme", " maria_s ", "jo@home").map(::firstName))
+        assertEquals(9, localHour("2026-10-03T15:00:00Z", java.time.ZoneId.of("America/Edmonton")))
+        assertEquals(null, localHour("garbage"))
     }
 }

@@ -372,6 +372,7 @@ fun MainScreen(
                             contentPadding = padding,
                             open = { openDestination(it) },
                             onRefresh = { alertSettings?.let { AlertNotifications.pollSoon(context, it) } },
+                            userName = account.username.takeIf { canWrite },
                             openModule = { module ->
                                 when (module.route) {
                                     MoneyHomeRoute -> nav.openMoneyHome()

@@ -147,7 +147,7 @@ fun AppSettingsScreen(
             }
             // Wallpaper colours exist from Android 12 on.
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                SwitchRow("Colours from the wallpaper", "Off: the app's own blue.", dynamicColor) { preferences.setDynamicColor(it) }
+                SwitchRow("Colours from the wallpaper", "Off: Hestia's own warm colours.", dynamicColor) { preferences.setDynamicColor(it) }
             }
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
 

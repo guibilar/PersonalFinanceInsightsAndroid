@@ -1,6 +1,8 @@
 package com.guibilar.financeinsights.ui.today
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -17,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
@@ -45,18 +48,21 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.guibilar.financeinsights.core.today.TodayCard
 import com.guibilar.financeinsights.core.today.TodayCardType
@@ -79,6 +85,8 @@ import com.guibilar.financeinsights.ui.common.isLargeText
 import com.guibilar.financeinsights.ui.modules.HestiaModule
 import com.guibilar.financeinsights.ui.modules.ModuleStatus
 import com.guibilar.financeinsights.ui.theme.LocalChartColors
+import com.guibilar.financeinsights.ui.theme.LocalModuleAccent
+import com.guibilar.financeinsights.ui.theme.accentOf
 import kotlinx.coroutines.launch
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -144,6 +152,8 @@ fun TodayScreen(
     openModule: (HestiaModule) -> Unit,
     /** After a pull to refresh: the phone asks for new alerts too (T81). */
     onRefresh: () -> Unit = {},
+    /** The signed-in user's name, for the greeting; null for none (the read-only token). */
+    userName: String? = null,
 ) {
     val state by model.state.collectAsState()
     // Back from another tab or the background: the cards reload (new ones when the data changed in the app).
@@ -157,12 +167,7 @@ fun TodayScreen(
     val scope = rememberCoroutineScope()
     Column(Modifier.fillMaxSize().padding(bottom = contentPadding.calculateBottomPadding())) {
         TopAppBar(
-            title = {
-                Column {
-                    Text("Today", fontWeight = FontWeight.SemiBold)
-                    Text(day, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            },
+            title = { Text("Today", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold) },
             actions = { AttentionBell(state.today?.attention?.size ?: 0) { scope.launch { attentionView.bringIntoView() } } },
         )
         PullToRefreshBox(
@@ -178,6 +183,21 @@ fun TodayScreen(
                     Modifier.verticalScroll(rememberScrollState()).padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
+                    // Hearth: a greeting, as when you come home.
+                    Column(Modifier.padding(bottom = 4.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(day, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                        Text(
+                            greeting(localHour(state.today?.generatedAt), userName),
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.semantics { heading() },
+                        )
+                        Text(
+                            "Here is how things are at home today.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                     val today = state.today
                     val sections = today?.sections(modules).orEmpty()
                     when {
@@ -212,12 +232,23 @@ fun TodayScreen(
 /** A module's heading, its status, and its tiles. */
 @Composable
 private fun Section(section: TodaySection, open: (TodayDestination) -> Unit, openModule: (HestiaModule) -> Unit, retry: () -> Unit) {
+    // Each module in its own warm colour: the icon here and the tiles' icons (LocalModuleAccent).
+    val accent = accentOf(section.module?.id)
+    CompositionLocalProvider(LocalModuleAccent provides accent) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            section.module?.let { module ->
+                Box(
+                    Modifier.size(28.dp).clip(CircleShape).background(accent?.container ?: MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(module.icon, null, Modifier.size(16.dp), tint = accent?.color ?: MaterialTheme.colorScheme.onPrimaryContainer)
+                }
+                Spacer(Modifier.width(10.dp))
+            }
             Text(
                 section.name,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.titleLarge.copy(fontSize = 18.sp),
                 modifier = Modifier.weight(1f).semantics { heading() },
             )
             val module = section.module
@@ -236,6 +267,7 @@ private fun Section(section: TodaySection, open: (TodayDestination) -> Unit, ope
                 Tiles(section.tiles.map<TodayCard, @Composable (Modifier) -> Unit> { card -> { m -> Tile(card, section.module, open, m) } })
             }
         }
+    }
     }
 }
 
@@ -365,3 +397,27 @@ private fun AttentionBell(count: Int, show: () -> Unit) {
         }
     }
 }
+
+/**
+ * The hour on the phone when the server made the cards (`generatedAt`, so the greeting follows the data and the tests
+ * can fix it); null when there is none yet.
+ */
+fun localHour(generatedAt: String?, zone: java.time.ZoneId = java.time.ZoneId.systemDefault()): Int? =
+    generatedAt?.let { runCatching { java.time.OffsetDateTime.parse(it).atZoneSameInstant(zone).hour }.getOrNull() }
+
+/** "Good evening, Alex": by the hour, with the first name of [userName]. Without an hour: "Welcome home". */
+fun greeting(hour: Int?, userName: String?): String {
+    val part = when {
+        hour == null -> "Welcome home"
+        hour < 5 -> "Good night"
+        hour < 12 -> "Good morning"
+        hour < 18 -> "Good afternoon"
+        else -> "Good evening"
+    }
+    val name = userName?.let(::firstName).orEmpty()
+    return if (name.isEmpty()) part else "$part, $name"
+}
+
+/** A user name as a first name: "alex.smith" or "alex" → "Alex". */
+fun firstName(userName: String): String =
+    userName.trim().split(Regex("[\\s._@-]+")).firstOrNull().orEmpty().replaceFirstChar { it.uppercase() }

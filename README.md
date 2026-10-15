@@ -8,6 +8,16 @@ keep their old name.
 renamed app as a new app, next to the old one: sign in again, set the app settings and the widget again, then
 uninstall "Finance Insights".
 
+
+## Look: "Hearth"
+
+The same identity as the web app (chosen 2026-10-15): the launcher icon is a cream house on terracotta whose doorway is
+a glowing hearth (`ic_launcher_*`, `ic_hestia_mark`); the colours are cream, warm white cards, charcoal ink,
+terracotta, sage and honey, with a warm dark mode (`core/ui` `Theme.kt`); Fraunces with soft serifs is the type of the
+big titles and figures (`core/ui/src/main/res/font/fraunces.ttf`, SIL Open Font License in `core/ui/licenses`). Today
+greets you ("Good evening, Alex") and gives each module its own warm colour. "Colours from the wallpaper" (Settings) is
+off by default now, so the app looks like Hestia; turn it on for Material You.
+
 ## What it does
 
 The app is the shell of Hestia, a personal "everything app". Finance is its first module, **Money**.
