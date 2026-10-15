@@ -88,6 +88,7 @@ fun NavGraphBuilder.peopleGraph(
             deleted = { nav.popBackStack() },
             onBack = { nav.popBackStack() },
             canWrite = canWrite,
+            findLinks = if (host.canFindLinks) host::linkCandidates else null,
         )
     }
     composable<PersonFormRoute> { backStack ->

@@ -14,6 +14,7 @@ import com.guibilar.financeinsights.core.people.InteractionDetails
 import com.guibilar.financeinsights.core.people.Loan
 import com.guibilar.financeinsights.core.people.LoanDetails
 import com.guibilar.financeinsights.core.people.LoanDirection
+import com.guibilar.financeinsights.core.people.NewPersonLink
 import com.guibilar.financeinsights.core.people.PeopleApi
 import com.guibilar.financeinsights.core.people.PeopleSummary
 import com.guibilar.financeinsights.core.people.Person
@@ -275,6 +276,11 @@ class PersonViewModel(
 
     fun deleteContact(contact: Interaction) {
         viewModelScope.launch { write("Deleted the contact", "Could not delete the contact.") { api.deleteInteraction(contact.id) } }
+    }
+
+    /** Links the person to a thing picked in "Add a link" (T94). */
+    fun addLink(kind: String, targetId: String, name: String) {
+        viewModelScope.launch { write("Linked to “$name”", "Could not add the link.") { api.addLink(id, NewPersonLink(kind, targetId)) } }
     }
 
     fun unlink(link: PersonLink) {

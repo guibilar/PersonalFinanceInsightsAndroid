@@ -15,9 +15,11 @@ import androidx.compose.ui.test.performScrollTo
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.guibilar.financeinsights.FakePeopleApi
 import com.guibilar.financeinsights.PeopleSamples
+import com.guibilar.financeinsights.core.people.NewPersonLink
 import com.guibilar.financeinsights.core.people.PersonLink
 import com.guibilar.financeinsights.core.people.PersonLinkKinds
 import com.guibilar.financeinsights.core.people.PersonLinkedFrom
+import com.guibilar.financeinsights.people.LinkCandidate
 import com.guibilar.financeinsights.people.ui.PeopleScreen
 import com.guibilar.financeinsights.people.ui.PeopleViewModel
 import com.guibilar.financeinsights.people.ui.PersonFormScreen
@@ -26,6 +28,7 @@ import com.guibilar.financeinsights.people.ui.PersonScreen
 import com.guibilar.financeinsights.people.ui.PersonViewModel
 import com.guibilar.financeinsights.ui.theme.FinanceTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -57,7 +60,12 @@ class PeopleScreenshotTest {
         show(dark) { PeopleScreen(model, PaddingValues(), openPerson = { opened += it }, addPerson = { opened += "add" }, canWrite = canWrite) }
     }
 
-    private fun person(canWrite: Boolean = true, dark: Boolean = false, opened: MutableList<String> = mutableListOf()) {
+    private fun person(
+        canWrite: Boolean = true,
+        dark: Boolean = false,
+        opened: MutableList<String> = mutableListOf(),
+        findLinks: (suspend (String, String) -> List<LinkCandidate>)? = null,
+    ) {
         val model = PersonViewModel(api, PeopleSamples.MARCO, today)
         show(dark) {
             PersonScreen(
@@ -68,6 +76,7 @@ class PeopleScreenshotTest {
                 deleted = { opened += "deleted" },
                 onBack = {},
                 canWrite = canWrite,
+                findLinks = findLinks,
             )
         }
     }
@@ -138,6 +147,35 @@ class PeopleScreenshotTest {
 
         compose.onNodeWithText("Call Marco").performClick()
         assertEquals(listOf("${PersonLinkKinds.TASK} t-call"), opened)
+    }
+
+    @Test
+    fun `Add a link searches the chosen kind and links the picked thing`() {
+        val searched = mutableListOf<Pair<String, String>>()
+        person(findLinks = { kind, text ->
+            searched += kind to text
+            when (kind) {
+                PersonLinkKinds.TASK -> listOf(LinkCandidate("t-call", "Call Marco", "Due Oct 16, 2026"))
+                else -> listOf(LinkCandidate("d1", "Birthday card scan", "Other"))
+            }
+        })
+        compose.onNodeWithText("Add a link").performScrollTo().performClick()
+        compose.waitForIdle()
+        assertShows("Birthday card scan")
+        shoot("person-add-link")
+
+        compose.onNodeWithText("Task").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Call Marco").performClick()
+        compose.waitForIdle()
+        assertEquals(listOf(PersonLinkKinds.DOCUMENT to "", PersonLinkKinds.TASK to ""), searched)
+        assertTrue(api.sent.contains("addLink" to (PeopleSamples.MARCO to NewPersonLink(PersonLinkKinds.TASK, "t-call"))))
+    }
+
+    @Test
+    fun `a read-only user gets no Add a link`() {
+        person(canWrite = false, findLinks = { _, _ -> emptyList() })
+        compose.onAllNodesWithText("Add a link").assertCountEquals(0)
     }
 
     @Test

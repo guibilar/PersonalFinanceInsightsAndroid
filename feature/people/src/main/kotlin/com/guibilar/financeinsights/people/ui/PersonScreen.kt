@@ -1,8 +1,11 @@
 package com.guibilar.financeinsights.people.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,22 +16,29 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.AddLink
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -44,8 +54,10 @@ import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -56,6 +68,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.guibilar.financeinsights.core.logic.Money
@@ -71,6 +84,7 @@ import com.guibilar.financeinsights.core.people.birthdayText
 import com.guibilar.financeinsights.core.people.groupsLine
 import com.guibilar.financeinsights.core.people.historyOf
 import com.guibilar.financeinsights.core.people.reminderText
+import com.guibilar.financeinsights.people.LinkCandidate
 import com.guibilar.financeinsights.ui.common.ChoiceRow
 import com.guibilar.financeinsights.ui.common.DateField
 import com.guibilar.financeinsights.ui.common.DropdownPicker
@@ -80,8 +94,10 @@ import com.guibilar.financeinsights.ui.common.LoadState
 import com.guibilar.financeinsights.ui.common.ReadableColumn
 import com.guibilar.financeinsights.ui.common.ShowMessages
 import com.guibilar.financeinsights.ui.common.Skeleton
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * One person (design canvas, "Person"): the name and groups, "Log contact", "Gift idea", and "Lend item", the strip
@@ -98,6 +114,8 @@ fun PersonScreen(
     deleted: () -> Unit,
     onBack: () -> Unit,
     canWrite: Boolean = true,
+    /** The search of "Add a link" (T94), in the other modules; null hides the action. */
+    findLinks: (suspend (kind: String, text: String) -> List<LinkCandidate>)? = null,
 ) {
     val state by model.state.collectAsState()
     val snackbar = remember { SnackbarHostState() }
@@ -109,6 +127,7 @@ fun PersonScreen(
     var action by rememberSaveable { mutableStateOf<PersonAction?>(null) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     var deletingContact by remember { mutableStateOf<Interaction?>(null) }
+    var addingLink by rememberSaveable { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     Box(Modifier.fillMaxSize().padding(bottom = contentPadding.calculateBottomPadding())) {
@@ -133,7 +152,16 @@ fun PersonScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.fillMaxSize(),
                         ) {
-                            person(loaded.value, canWrite, state.busy, model, openLink, { action = it }, { deletingContact = it })
+                            person(
+                                loaded.value,
+                                canWrite,
+                                state.busy,
+                                model,
+                                openLink,
+                                { action = it },
+                                { deletingContact = it },
+                                addLink = if (canWrite && findLinks != null) ({ addingLink = true }) else null,
+                            )
                         }
                     }
                 }
@@ -161,6 +189,17 @@ fun PersonScreen(
             onDismiss = { action = null },
         )
         null -> {}
+    }
+    if (addingLink && findLinks != null && person != null) {
+        AddLinkSheet(
+            find = findLinks,
+            linked = person.links.map { it.kind to it.targetId }.toSet(),
+            pick = { kind, candidate ->
+                addingLink = false
+                model.addLink(kind, candidate.id, candidate.title)
+            },
+            onDismiss = { addingLink = false },
+        )
     }
     if (confirmDelete && person != null) {
         AlertDialog(
@@ -198,6 +237,7 @@ private fun LazyListScope.person(
     openLink: (String, String) -> Unit,
     openAction: (PersonAction) -> Unit,
     deleteContact: (Interaction) -> Unit,
+    addLink: (() -> Unit)? = null,
 ) {
     item(key = "header") {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -336,8 +376,19 @@ private fun LazyListScope.person(
         }
     }
 
-    if (person.links.isNotEmpty() || person.linkedFrom.isNotEmpty()) {
+    if (person.links.isNotEmpty() || person.linkedFrom.isNotEmpty() || addLink != null) {
         item(key = "links-title") { SectionTitle("Links") }
+    }
+    if (addLink != null) {
+        item(key = "add-link") {
+            OutlinedButton(onClick = addLink, enabled = !busy) {
+                Icon(Icons.Outlined.AddLink, null, Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Add a link")
+            }
+        }
+    }
+    if (person.links.isNotEmpty() || person.linkedFrom.isNotEmpty()) {
         item(key = "links") {
             val count = person.links.size + person.linkedFrom.size
             RowsCard {
@@ -356,6 +407,93 @@ private fun LazyListScope.person(
                     }
                 }
             }
+        }
+    }
+}
+
+/** The kinds that "Add a link" offers (T94), with their labels. */
+private val LINK_KINDS = listOf(
+    PersonLinkKinds.DOCUMENT to "Document",
+    PersonLinkKinds.TASK to "Task",
+    PersonLinkKinds.HOME_ITEM to "Home item",
+    PersonLinkKinds.TRANSACTION to "Transaction",
+)
+
+/** How long the sheet waits for typing to pause before it searches. */
+private const val LINK_SEARCH_DEBOUNCE_MS = 350L
+
+/**
+ * "Add a link" (T94): the kind (document, task, home item, transaction), a search in that module, and a tap on a
+ * result links it. Things that the person links to already show "Linked".
+ */
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+private fun AddLinkSheet(
+    find: suspend (kind: String, text: String) -> List<LinkCandidate>,
+    linked: Set<Pair<String, String>>,
+    pick: (kind: String, candidate: LinkCandidate) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var kind by rememberSaveable { mutableStateOf(PersonLinkKinds.DOCUMENT) }
+    var text by rememberSaveable { mutableStateOf("") }
+    var attempt by remember { mutableIntStateOf(0) }
+    var candidates by remember { mutableStateOf<LoadState<List<LinkCandidate>>>(LoadState.Loading) }
+    LaunchedEffect(kind, text, attempt) {
+        candidates = LoadState.Loading
+        if (text.isNotBlank()) delay(LINK_SEARCH_DEBOUNCE_MS)
+        candidates = try {
+            LoadState.Loaded(find(kind, text))
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            LoadState.Failed("Could not load the list.")
+        }
+    }
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+        Column(Modifier.padding(horizontal = 16.dp).navigationBarsPadding(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Add a link", style = MaterialTheme.typography.titleLarge)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                LINK_KINDS.forEach { (value, label) ->
+                    FilterChip(selected = kind == value, onClick = { kind = value }, label = { Text(label) })
+                }
+            }
+            OutlinedTextField(
+                value = text,
+                onValueChange = { text = it },
+                placeholder = { Text("Search") },
+                leadingIcon = { Icon(Icons.Outlined.Search, null) },
+                singleLine = true,
+                shape = RoundedCornerShape(28.dp),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            when (val loaded = candidates) {
+                LoadState.Loading -> Skeleton(lines = 5, lineHeight = 28.dp, modifier = Modifier.padding(vertical = 8.dp))
+                is LoadState.Failed -> ErrorState(loaded.message, onRetry = { attempt++ })
+                is LoadState.Loaded -> if (loaded.value.isEmpty()) {
+                    Text(
+                        if (text.isBlank()) "Nothing to link yet." else "Nothing matches “${text.trim()}”.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 16.dp),
+                    )
+                } else {
+                    LazyColumn(Modifier.heightIn(max = 480.dp)) {
+                        items(loaded.value, key = { it.id }) { candidate ->
+                            val done = (kind to candidate.id) in linked
+                            Column(
+                                Modifier.fillMaxWidth().clickable(enabled = !done) { pick(kind, candidate) }.padding(vertical = 10.dp),
+                            ) {
+                                Text(candidate.title, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                val line = listOf(candidate.subtitle, if (done) "Linked" else "").filter { it.isNotEmpty() }.joinToString(" · ")
+                                if (line.isNotEmpty()) {
+                                    Text(line, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(16.dp))
         }
     }
 }
