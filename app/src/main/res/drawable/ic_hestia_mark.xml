@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The full-colour Hestia mark (as app-logo on the web): the house with its hearth, cream on terracotta. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="32dp"
+    android:height="32dp"
+    android:viewportWidth="32"
+    android:viewportHeight="32">
+    <path android:fillColor="#B5562F" android:pathData="M9,0h14a9,9 0,0 1,9 9v14a9,9 0,0 1,-9 9h-14a9,9 0,0 1,-9 -9v-14a9,9 0,0 1,9 -9z" />
+    <path android:fillColor="#FAF6EF" android:pathData="M20.6,7.2h2.6v5.6l-2.6,-2.2z" />
+    <path
+        android:fillColor="#FAF6EF"
+        android:pathData="M16,5.6 L5.2,14.6a1,1 0,0 0,1.3 1.6l1.6,-1.3V24a1.6,1.6 0,0 0,1.6 1.6h12.6a1.6,1.6 0,0 0,1.6 -1.6v-9.1l1.6,1.3a1,1 0,0 0,1.3 -1.6z" />
+    <path android:fillColor="#F2B45A" android:pathData="M12.4,25.6v-4.4a3.6,3.6 0,0 1,7.2 0v4.4z" />
+    <path android:fillColor="#E07A3A" android:pathData="M14.3,25.6v-2.6a1.7,1.7 0,0 1,3.4 0v2.6z" />
+</vector>
