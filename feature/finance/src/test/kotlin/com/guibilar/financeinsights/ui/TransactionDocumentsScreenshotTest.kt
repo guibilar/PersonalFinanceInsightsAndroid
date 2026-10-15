@@ -28,6 +28,7 @@ import com.guibilar.financeinsights.ui.transactions.TransactionDocumentsContent
 import com.guibilar.financeinsights.ui.transactions.TransactionsScreen
 import com.guibilar.financeinsights.ui.transactions.TransactionsViewModel
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -193,6 +194,22 @@ class TransactionDocumentsScreenshotTest {
         compose.waitForIdle()
         compose.onNodeWithText("Recent documents").assertDoesNotExist()
         compose.onNodeWithText("Dishwasher warranty").performScrollTo().assertExists()
+    }
+
+    @Test
+    fun aTransactionWithDocumentsHasAnIconInTheList() {
+        val model = TransactionsViewModel(finance, TransactionsRoute(transactionId = metro)) { today }
+        compose.setContent {
+            FinanceTheme(ripples = false, dynamicColor = false) {
+                Surface { TransactionsScreen(model, account, {}, PaddingValues(), documents = FakeDocuments()) }
+            }
+        }
+        compose.waitForIdle()
+
+        // T72: the counts of the shown transactions, in one read-only POST; the Metro row has its receipt.
+        compose.onNode(hasContentDescription("METRO 221", substring = true) and hasContentDescription("1 document", substring = true))
+            .assertExists()
+        assertTrue(documentsApi.sent.any { it.first == "countByLink" })
     }
 
     @Test

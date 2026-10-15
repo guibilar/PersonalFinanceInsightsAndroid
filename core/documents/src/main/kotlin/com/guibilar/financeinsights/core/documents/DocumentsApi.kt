@@ -69,4 +69,11 @@ interface DocumentsApi {
     /** The documents linked to one thing, for example a transaction. */
     @GET("documents/by-link")
     suspend fun byLink(@Query("kind") kind: String, @Query("id") id: String): List<DocumentSummary>
+
+    /**
+     * How many documents link to each of some things (T72), by id in its stored form (lower case), 0 included. At most
+     * [DocumentLinkCounts.MAX_TARGETS] ids. A read-only query: the read-only user can call it.
+     */
+    @POST("documents/by-link/counts")
+    suspend fun countByLink(@Body request: DocumentLinkCounts): Map<String, Int>
 }
