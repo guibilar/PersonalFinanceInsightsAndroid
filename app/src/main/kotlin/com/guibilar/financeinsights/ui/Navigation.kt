@@ -76,6 +76,10 @@ import com.guibilar.financeinsights.home.isHomePage
 import com.guibilar.financeinsights.home.openHome
 import com.guibilar.financeinsights.home.openHomeItem
 import com.guibilar.financeinsights.home.openRoom
+import com.guibilar.financeinsights.journal.JournalRoute
+import com.guibilar.financeinsights.journal.isJournalPage
+import com.guibilar.financeinsights.journal.journalGraph
+import com.guibilar.financeinsights.journal.openJournal
 import com.guibilar.financeinsights.people.PeopleRoute
 import com.guibilar.financeinsights.people.addPerson
 import com.guibilar.financeinsights.people.isPeoplePage
@@ -220,14 +224,15 @@ private data class TopLevel(
     val action: Boolean = false,
 )
 
-// The Money, Documents, Tasks, Home and People pages, the app's settings and the account open from Modules, so they show under it.
+// The Money, Documents, Tasks, Home, People and Journal pages, the app's settings and the account open from Modules, so they show under it.
 private val topLevel = listOf(
     TopLevel("Today", Icons.Outlined.WbSunny, TodayRoute, { it.hasRoute<TodayRoute>() }),
     TopLevel("Timeline", Icons.Outlined.Timeline, TimelineRoute, { it.hasRoute<TimelineRoute>() }),
     TopLevel("Capture", Icons.Outlined.Add, CaptureRoute, { it.hasRoute<CaptureRoute>() }, action = true),
     TopLevel("Modules", Icons.Outlined.GridView, ModulesRoute, {
         it.hasRoute<ModulesRoute>() || it.isFinancePage() || it.isDocumentsPage() || it.isTasksPage() ||
-            it.isHomePage() || it.isPeoplePage() || it.hasRoute<AppSettingsRoute>() || it.hasRoute<AccountSettingsRoute>()
+            it.isHomePage() || it.isPeoplePage() || it.isJournalPage() || it.hasRoute<AppSettingsRoute>() ||
+            it.hasRoute<AccountSettingsRoute>()
     }),
     TopLevel("Search", Icons.Outlined.Search, SearchRoute, { it.hasRoute<SearchRoute>() }),
 )
@@ -279,6 +284,7 @@ fun MainScreen(
             is TodayDestination.Item -> nav.openHomeItem(destination.id)
             TodayDestination.People -> nav.openPeople()
             is TodayDestination.Person -> nav.openPerson(destination.id)
+            is TodayDestination.Journal -> nav.openJournal(destination.day)
         }
     }
     // A tapped alert notification (T68): its page, or Today for an alert with no link (and for the summary).
@@ -365,6 +371,7 @@ fun MainScreen(
                                     is TasksRoute -> nav.openTasks()
                                     HomeRoute -> nav.openHome()
                                     PeopleRoute -> nav.openPeople()
+                                    is JournalRoute -> nav.openJournal()
                                     else -> module.route?.let { nav.navigate(it) }
                                 }
                             },
@@ -383,6 +390,7 @@ fun MainScreen(
                             onTask = { nav.addTask() },
                             onItem = { nav.addItem() },
                             onPerson = { nav.addPerson() },
+                            onJournal = { nav.openJournal() },
                         )
                     }
                     composable<ModulesRoute> {
@@ -451,6 +459,12 @@ fun MainScreen(
                         client = client,
                         contentPadding = padding,
                         host = peopleHost,
+                        canWrite = canWrite,
+                    )
+                    journalGraph(
+                        nav = nav,
+                        client = client,
+                        contentPadding = padding,
                         canWrite = canWrite,
                     )
                     composable<AppSettingsRoute> {
