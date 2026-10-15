@@ -1,5 +1,6 @@
 package com.guibilar.financeinsights.ui
 
+import java.time.LocalDate
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -32,7 +33,7 @@ class SettingsScreenshotTest {
     private val api = FakeFinanceApi()
 
     private fun show(dark: Boolean = false, content: @Composable () -> Unit) {
-        compose.setContent { FinanceTheme(darkTheme = dark, dynamicColor = false) { Surface { content() } } }
+        compose.setContent { FinanceTheme(ripples = false, darkTheme = dark, dynamicColor = false) { Surface { content() } } }
         compose.waitForIdle()
     }
 
@@ -71,7 +72,7 @@ class SettingsScreenshotTest {
 
     @Test
     fun accounts() {
-        val model = AccountsViewModel(api)
+        val model = AccountsViewModel(api, today = { LocalDate.of(2026, 10, 14) })
         show { AccountsScreen(model, PaddingValues()) {} }
         shoot("accounts")
         compose.onNodeWithText("Neo card").performClick()

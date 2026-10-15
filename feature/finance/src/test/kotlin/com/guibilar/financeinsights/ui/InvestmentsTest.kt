@@ -54,7 +54,7 @@ class InvestmentsTest {
     )
 
     private fun show(content: @Composable () -> Unit) {
-        compose.setContent { FinanceTheme(darkTheme = false, dynamicColor = false) { Surface { content() } } }
+        compose.setContent { FinanceTheme(ripples = false, darkTheme = false, dynamicColor = false) { Surface { content() } } }
         compose.waitForIdle()
     }
 
@@ -76,7 +76,7 @@ class InvestmentsTest {
     @Test
     fun accounts() {
         api.extraAccounts += tfsa
-        val model = AccountsViewModel(api)
+        val model = AccountsViewModel(api, today = { LocalDate.of(2026, 10, 14) })
         show { AccountsScreen(model, PaddingValues(), onBack = {}) }
 
         compose.onNodeWithText("$3,500.00 of $7,000.00 room left this year", substring = true).assertExists()
@@ -92,13 +92,13 @@ class InvestmentsTest {
         compose.onNodeWithText("Save balance").performClick()
         compose.waitForIdle()
         val (id, input) = api.sent.single { it.first == "setBalance" }.second as Pair<*, *>
-        assertEquals("tfsa" to AccountBalanceInput(LocalDate.now().toString(), 13000.0), id to input)
+        assertEquals("tfsa" to AccountBalanceInput("2026-10-14", 13000.0), id to input)
         compose.onNodeWithText("Balance saved").assertExists()
     }
 
     @Test
     fun newInvestmentWithAPlan() {
-        val model = AccountsViewModel(api)
+        val model = AccountsViewModel(api, today = { LocalDate.of(2026, 10, 14) })
         show { AccountsScreen(model, PaddingValues(), onBack = {}) }
         compose.onNodeWithText("New account", useUnmergedTree = true).performClick()
         compose.waitForIdle()

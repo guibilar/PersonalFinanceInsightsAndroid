@@ -1,5 +1,6 @@
 package com.guibilar.financeinsights.ui
 
+import java.time.LocalDate
 import com.guibilar.financeinsights.FakeFinanceApi
 import com.guibilar.financeinsights.core.api.ApiError
 import com.guibilar.financeinsights.core.model.AccountUpdate
@@ -99,7 +100,7 @@ class SettingsTest {
 
     @Test
     fun `an account with transactions after all is explained, and the list reloads`() = runTest(dispatcher) {
-        val model = AccountsViewModel(api)
+        val model = AccountsViewModel(api, today = { LocalDate.of(2026, 10, 14) })
         val messages = messages(model)
         advanceUntilIdle()
         val account = model.state.value.valueOrNull!!.first()

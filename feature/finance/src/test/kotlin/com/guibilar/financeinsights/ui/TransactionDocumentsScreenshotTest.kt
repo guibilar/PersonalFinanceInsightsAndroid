@@ -66,7 +66,7 @@ class TransactionDocumentsScreenshotTest {
 
     private fun section(dark: Boolean = false, content: @Composable () -> Unit) {
         compose.setContent {
-            FinanceTheme(darkTheme = dark, dynamicColor = false) { Surface(Modifier.padding(0.dp)) { content() } }
+            FinanceTheme(ripples = false, darkTheme = dark, dynamicColor = false) { Surface(Modifier.padding(0.dp)) { content() } }
         }
         compose.waitForIdle()
     }
@@ -158,7 +158,7 @@ class TransactionDocumentsScreenshotTest {
     private fun openMetro(documents: FakeDocuments) {
         val model = TransactionsViewModel(finance, TransactionsRoute(transactionId = metro)) { today }
         compose.setContent {
-            FinanceTheme(dynamicColor = false) {
+            FinanceTheme(ripples = false, dynamicColor = false) {
                 Surface { TransactionsScreen(model, account, {}, PaddingValues(), documents = documents) }
             }
         }
@@ -198,7 +198,7 @@ class TransactionDocumentsScreenshotTest {
     @Test
     fun noSectionWithoutTheDocumentsModule() {
         val model = TransactionsViewModel(finance, TransactionsRoute(transactionId = metro)) { today }
-        compose.setContent { FinanceTheme(dynamicColor = false) { Surface { TransactionsScreen(model, account, {}, PaddingValues()) } } }
+        compose.setContent { FinanceTheme(ripples = false, dynamicColor = false) { Surface { TransactionsScreen(model, account, {}, PaddingValues()) } } }
         compose.waitForIdle()
         compose.onNode(hasContentDescription("METRO 221", substring = true)).performClick()
         compose.waitForIdle()
@@ -216,7 +216,7 @@ class TransactionDocumentsScreenshotTest {
         }
         val model = TransactionsViewModel(finance, TransactionsRoute(transactionId = metro)) { today }
         compose.setContent {
-            FinanceTheme(dynamicColor = false) { Surface { TransactionsScreen(model, account, {}, PaddingValues(), home = home) } }
+            FinanceTheme(ripples = false, dynamicColor = false) { Surface { TransactionsScreen(model, account, {}, PaddingValues(), home = home) } }
         }
         compose.waitForIdle()
         compose.onNode(hasContentDescription("METRO 221", substring = true)).performClick()
@@ -235,7 +235,7 @@ class TransactionDocumentsScreenshotTest {
         }
         val model = TransactionsViewModel(finance, TransactionsRoute(transactionId = metro)) { today }
         compose.setContent {
-            FinanceTheme(dynamicColor = false) { Surface { TransactionsScreen(model, account, {}, PaddingValues(), home = home) } }
+            FinanceTheme(ripples = false, dynamicColor = false) { Surface { TransactionsScreen(model, account, {}, PaddingValues(), home = home) } }
         }
         compose.waitForIdle()
         compose.onNode(hasContentDescription("METRO 221", substring = true)).performClick()

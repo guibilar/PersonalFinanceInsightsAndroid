@@ -38,8 +38,14 @@ jobs:
             :feature:people:testDebugUnitTest :feature:people:lintDebug
             :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
         # --continue runs the tests of all modules after a failure, so the annotations below list all failed tests.
+        # The output is also kept in a file for the compile error annotations (T28).
         shell: bash
-        run: ./gradlew --console=plain --continue $CHECKS
+        run: ./gradlew --console=plain --continue $CHECKS 2>&1 | tee gradle-output.log; exit "${PIPESTATUS[0]}"
+
+      - name: Compile errors as annotations
+        if: failure()
+        shell: bash
+        run: python3 scripts/gradle-annotations.py gradle-output.log
 
       # Task sessions cannot read the logs. These steps write the results as annotations (see "CI annotations").
       - name: Test results as annotations
@@ -47,33 +53,11 @@ jobs:
         shell: bash
         run: python3 scripts/test-annotations.py
 
-      # The list of screenshot hashes of main is in the Actions cache. A pull request compares its images with it.
-      - name: Restore the screenshot list of main
-        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
-        continue-on-error: true
-        uses: actions/cache/restore@v5
-        with:
-          path: screenshot-list/
-          key: screenshots-${{ github.event.pull_request.base.sha }}
-          restore-keys: screenshots-
-
-      - name: Screenshot summary as an annotation
+      # T28: each image must be the same as its recorded copy in <module>/screenshots (README, Screenshots).
+      - name: Screenshots match the recorded images
         if: ${{ !cancelled() }}
         shell: bash
-        env:
-          OUTPUT: ${{ github.event_name == 'pull_request' && 'screenshots-head.txt' || 'screenshot-list/screenshots.txt' }}
-        run: |
-          mkdir -p screenshot-list
-          # On main the new list is written where the cache saves it; only a pull request compares with a base list.
-          python3 scripts/screenshot-summary.py "$OUTPUT" ${{ github.event_name == 'pull_request' && 'screenshot-list/screenshots.txt' || '' }}
-
-      - name: Save the screenshot list of main
-        if: ${{ success() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
-        continue-on-error: true
-        uses: actions/cache/save@v5
-        with:
-          path: screenshot-list/
-          key: screenshots-${{ github.sha }}
+        run: python3 scripts/screenshots.py check
 
       # Artifacts count against the account's storage quota. See "CI artifacts" in the README for the policy.
       # A failed upload (usually a full quota) does not fail the job: the next step writes a warning instead.
@@ -89,7 +73,8 @@ jobs:
 
       - name: Upload the screenshots
         id: upload-screenshots
-        if: ${{ !cancelled() && (failure() || github.event_name == 'pull_request') }}
+        # The recorded images are in git (T28), so only a failed run uploads the new ones.
+        if: failure()
         continue-on-error: true
         uses: actions/upload-artifact@v7
         with:

@@ -26,7 +26,7 @@ class MessagesTest {
         val messages = Channel<UiMessage>(Channel.BUFFERED)
         val flow = messages.receiveAsFlow()
         compose.setContent {
-            FinanceTheme(dynamicColor = false) {
+            FinanceTheme(ripples = false, dynamicColor = false) {
                 val snackbar = remember { SnackbarHostState() }
                 ShowMessages(flow, snackbar)
                 SnackbarHost(snackbar)

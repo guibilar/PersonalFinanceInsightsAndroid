@@ -212,6 +212,7 @@ fun AccountsScreen(model: AccountsViewModel, contentPadding: PaddingValues, onBa
                 adding = false
                 editing = null
             },
+            thisYear = model.today().year,
         )
     }
     balancesOf?.let { account -> BalancesSheet(account, model, onDismiss = { balancesOf = null }) }
@@ -236,6 +237,7 @@ private fun AccountSheet(
     onSave: suspend (AccountInput) -> String?,
     onDelete: (Account) -> Unit,
     onDismiss: () -> Unit,
+    thisYear: Int,
 ) {
     val scope = rememberCoroutineScope()
     val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -243,7 +245,6 @@ private fun AccountSheet(
     var type by rememberSaveable { mutableStateOf(account?.type ?: AccountType.Chequing) }
     var format by rememberSaveable { mutableStateOf(account?.format ?: StatementFormat.Cibc) }
     var plan by rememberSaveable { mutableStateOf(account?.plan ?: RegisteredPlan.None) }
-    val thisYear = remember { java.time.LocalDate.now().year }
     // Last year's room is no use this year: the field asks for this year's (left empty, the old one stays as it is).
     val roomIsOld = (account?.contributionRoomYear ?: thisYear) < thisYear
     var room by rememberSaveable {
@@ -383,7 +384,7 @@ private fun BalancesSheet(account: Account, model: AccountsViewModel, onDismiss:
     val scope = rememberCoroutineScope()
     var balances by remember { mutableStateOf<List<AccountBalance>?>(null) }
     var loadFailed by remember { mutableStateOf(false) }
-    var date by rememberSaveable { mutableStateOf(java.time.LocalDate.now()) }
+    var date by rememberSaveable { mutableStateOf(model.today()) }
     var amount by rememberSaveable { mutableStateOf("") }
     var saving by remember { mutableStateOf(false) }
     var failure by remember { mutableStateOf<String?>(null) }

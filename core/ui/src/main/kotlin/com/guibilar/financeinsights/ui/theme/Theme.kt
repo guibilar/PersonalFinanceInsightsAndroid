@@ -3,6 +3,7 @@ package com.guibilar.financeinsights.ui.theme
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.LocalRippleConfiguration
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
@@ -94,11 +95,17 @@ private val DarkScheme = darkColorScheme(
     error = Color(0xFFF27272),
 )
 
-/** Material 3, with the wallpaper's colours on Android 12 and later; the charts keep their own palette. */
+/**
+ * Material 3, with the wallpaper's colours on Android 12 and later; the charts keep their own palette.
+ *
+ * [ripples] false is for the screenshot tests (T28): a ripple is drawn by an Android view on the system clock, not on
+ * the Compose test clock, so a capture soon after a tap showed it at a different point on each run.
+ */
 @Composable
 fun FinanceTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = true,
+    ripples: Boolean = true,
     content: @Composable () -> Unit,
 ) {
     val scheme: ColorScheme = when {
@@ -108,7 +115,9 @@ fun FinanceTheme(
         else -> LightScheme
     }
     CompositionLocalProvider(LocalChartColors provides if (darkTheme) DarkChartColors else LightChartColors) {
-        MaterialTheme(colorScheme = scheme, content = content)
+        MaterialTheme(colorScheme = scheme) {
+            if (ripples) content() else CompositionLocalProvider(LocalRippleConfiguration provides null, content = content)
+        }
     }
 }
 

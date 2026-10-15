@@ -37,7 +37,7 @@ class RotationTest {
     fun `an open budget form survives rotating, with its edits`() {
         val model = BudgetsViewModel(api)
         val restoration = StateRestorationTester(compose)
-        restoration.setContent { FinanceTheme(dynamicColor = false) { Surface { BudgetsScreen(model, account, {}, PaddingValues()) } } }
+        restoration.setContent { FinanceTheme(ripples = false, dynamicColor = false) { Surface { BudgetsScreen(model, account, {}, PaddingValues()) } } }
         compose.waitForIdle()
         compose.onNodeWithText("Groceries").performClick()
         compose.waitForIdle()
@@ -54,7 +54,7 @@ class RotationTest {
     fun `a new rule keeps its chosen category when rotating`() {
         val model = RulesViewModel(api)
         val restoration = StateRestorationTester(compose)
-        restoration.setContent { FinanceTheme(dynamicColor = false) { Surface { RulesScreen(model, PaddingValues()) {} } } }
+        restoration.setContent { FinanceTheme(ripples = false, dynamicColor = false) { Surface { RulesScreen(model, PaddingValues()) {} } } }
         compose.waitForIdle()
         compose.onNodeWithText("New rule", useUnmergedTree = true).performClick()
         compose.waitForIdle()

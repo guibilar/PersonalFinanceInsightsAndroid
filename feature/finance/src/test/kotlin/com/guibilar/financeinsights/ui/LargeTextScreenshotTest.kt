@@ -44,7 +44,7 @@ class LargeTextScreenshotTest {
     @Before fun big() = RuntimeEnvironment.setFontScale(2.0f)
 
     private fun show(content: @Composable () -> Unit) {
-        compose.setContent { FinanceTheme(dynamicColor = false) { Surface { content() } } }
+        compose.setContent { FinanceTheme(ripples = false, dynamicColor = false) { Surface { content() } } }
         compose.waitForIdle()
     }
 
@@ -80,7 +80,7 @@ class LargeTextScreenshotTest {
     }
 
     @Test fun accounts() {
-        val model = AccountsViewModel(api)
+        val model = AccountsViewModel(api, today = { LocalDate.of(2026, 10, 14) })
         show { AccountsScreen(model, PaddingValues()) {} }
         shoot("accounts")
     }

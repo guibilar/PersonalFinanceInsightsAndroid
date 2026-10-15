@@ -22,7 +22,7 @@ class UnreachableScreenshotTest {
     @Test
     fun unreachableAtLaunch() {
         compose.setContent {
-            FinanceTheme(dynamicColor = false) {
+            FinanceTheme(ripples = false, dynamicColor = false) {
                 UnreachableScreen("https://finance.example.ts.net", "Could not reach the server. Is Tailscale on?", {}, {})
             }
         }

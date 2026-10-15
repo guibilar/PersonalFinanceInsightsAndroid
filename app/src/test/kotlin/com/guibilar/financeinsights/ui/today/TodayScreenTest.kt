@@ -51,7 +51,7 @@ class TodayScreenTest {
         api.answer = answer
         val model = TodayViewModel(api) { LocalDate.of(2026, 10, 4) }
         compose.setContent {
-            FinanceTheme(darkTheme = dark, dynamicColor = false) {
+            FinanceTheme(ripples = false, darkTheme = dark, dynamicColor = false) {
                 Surface { TodayScreen(model, MODULES, PaddingValues(), open = { opened += it }, openModule = { openedModules += it }) }
             }
         }
