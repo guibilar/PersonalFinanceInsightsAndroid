@@ -95,7 +95,7 @@ fun SignInScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Icon(Icons.Outlined.Insights, null, Modifier.size(48.dp), tint = MaterialTheme.colorScheme.primary)
-                Text("Finance Insights", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
+                Text("Hestia", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
                 Text(
                     "Sign in with the account you use on the web.",
                     style = MaterialTheme.typography.bodyMedium,

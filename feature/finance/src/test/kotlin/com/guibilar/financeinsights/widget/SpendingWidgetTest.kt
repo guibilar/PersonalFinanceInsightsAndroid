@@ -32,7 +32,7 @@ class SpendingWidgetTest {
     fun `signed out, it says to sign in`() = runGlanceAppWidgetUnitTest {
         setContext(ApplicationProvider.getApplicationContext())
         provideComposable { Content(WidgetData.SignedOut) }
-        onNode(hasText("Open Finance Insights to sign in.")).assertExists()
+        onNode(hasText("Open Hestia to sign in.")).assertExists()
     }
 
     @Test

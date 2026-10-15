@@ -37,7 +37,7 @@ fun LockScreen(onUnlock: () -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Icon(Icons.Outlined.Lock, null, Modifier.size(48.dp), tint = MaterialTheme.colorScheme.primary)
-                Text("Finance Insights is locked", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
+                Text("Hestia is locked", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
                 Text(
                     "Unlock with your fingerprint, face or the phone's PIN.",
                     style = MaterialTheme.typography.bodyMedium,
