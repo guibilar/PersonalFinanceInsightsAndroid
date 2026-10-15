@@ -1,5 +1,6 @@
 package com.guibilar.financeinsights.ui.settings
 
+import com.guibilar.financeinsights.ui.LocalFinanceCanWrite
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -71,7 +72,8 @@ fun TagsScreen(model: TagsViewModel, contentPadding: PaddingValues, onBack: () -
     var adding by rememberSaveable { mutableStateOf(false) }
     var deleting by rememberOpenItem(tags) { it.id }
 
-    SettingsScaffold("Tags", onBack, contentPadding, model.messages, addLabel = "New tag", onAdd = { adding = true }) {
+    val canWrite = LocalFinanceCanWrite.current
+    SettingsScaffold("Tags", onBack, contentPadding, model.messages, addLabel = if (canWrite) "New tag" else null, onAdd = { adding = true }) {
         Text(
             "Your own labels across categories, like a trip or what's tax deductible. Tag a transaction while editing it, or many at once by selecting them.",
             style = MaterialTheme.typography.bodySmall,
@@ -85,7 +87,7 @@ fun TagsScreen(model: TagsViewModel, contentPadding: PaddingValues, onBack: () -
                 LazyColumn(contentPadding = PaddingValues(bottom = 88.dp), modifier = Modifier.fillMaxSize()) {
                     items(current.value, key = { it.id }) { tag ->
                         Row(
-                            Modifier.fillMaxWidth().clickable { editing = tag }.padding(horizontal = 16.dp, vertical = 12.dp),
+                            Modifier.fillMaxWidth().clickable(enabled = canWrite) { editing = tag }.padding(horizontal = 16.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Icon(Icons.Outlined.Tag, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)

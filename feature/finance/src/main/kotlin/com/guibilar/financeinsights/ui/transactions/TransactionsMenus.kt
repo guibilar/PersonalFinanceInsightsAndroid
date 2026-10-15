@@ -33,20 +33,25 @@ import com.guibilar.financeinsights.core.model.SortDirection
 import com.guibilar.financeinsights.core.model.TransactionSortField
 
 @Composable
-internal fun MoreMenu(onImport: () -> Unit, onApplyRules: () -> Unit, onShowDeleted: () -> Unit) {
+internal fun MoreMenu(onImport: (() -> Unit)?, onApplyRules: (() -> Unit)?, onShowDeleted: () -> Unit) {
     var open by remember { mutableStateOf(false) }
     IconButton(onClick = { open = true }) { Icon(Icons.Outlined.MoreVert, "More") }
     DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-        DropdownMenuItem(
-            text = { Text("Import a statement") },
-            leadingIcon = { Icon(Icons.Outlined.FileUpload, null) },
-            onClick = { open = false; onImport() },
-        )
-        DropdownMenuItem(
-            text = { Text("Apply the rules") },
-            leadingIcon = { Icon(Icons.Outlined.Rule, null) },
-            onClick = { open = false; onApplyRules() },
-        )
+        // Null for a read-only user (T75): the item is not there.
+        if (onImport != null) {
+            DropdownMenuItem(
+                text = { Text("Import a statement") },
+                leadingIcon = { Icon(Icons.Outlined.FileUpload, null) },
+                onClick = { open = false; onImport() },
+            )
+        }
+        if (onApplyRules != null) {
+            DropdownMenuItem(
+                text = { Text("Apply the rules") },
+                leadingIcon = { Icon(Icons.Outlined.Rule, null) },
+                onClick = { open = false; onApplyRules() },
+            )
+        }
         DropdownMenuItem(
             text = { Text("Deleted transactions") },
             leadingIcon = { Icon(Icons.Outlined.DeleteOutline, null) },

@@ -1,5 +1,6 @@
 package com.guibilar.financeinsights.ui.settings
 
+import com.guibilar.financeinsights.ui.LocalFinanceCanWrite
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -124,7 +125,8 @@ fun AccountsScreen(model: AccountsViewModel, contentPadding: PaddingValues, onBa
     var deleting by rememberOpenItem(accounts) { it.id }
     var balancesOf by rememberOpenItem(accounts) { it.id }
 
-    SettingsScaffold("Accounts", onBack, contentPadding, model.messages, addLabel = "New account", onAdd = { adding = true }) {
+    val canWrite = LocalFinanceCanWrite.current
+    SettingsScaffold("Accounts", onBack, contentPadding, model.messages, addLabel = if (canWrite) "New account" else null, onAdd = { adding = true }) {
         Text(
             "The bank accounts, cards and investments statements are imported into. Tap the balance to enter what one holds; only an account without transactions can be deleted.",
             style = MaterialTheme.typography.bodySmall,
@@ -138,7 +140,7 @@ fun AccountsScreen(model: AccountsViewModel, contentPadding: PaddingValues, onBa
                 LazyColumn(contentPadding = PaddingValues(bottom = 88.dp), modifier = Modifier.fillMaxSize()) {
                     items(current.value, key = { it.id }) { account ->
                         Row(
-                            Modifier.fillMaxWidth().clickable { editing = account }.padding(horizontal = 16.dp, vertical = 12.dp),
+                            Modifier.fillMaxWidth().clickable(enabled = canWrite) { editing = account }.padding(horizontal = 16.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Icon(account.type.icon(), null, tint = MaterialTheme.colorScheme.primary)
@@ -394,6 +396,8 @@ private fun BalancesSheet(account: Account, model: AccountsViewModel, onDismiss:
     LaunchedEffect(account.id) { refresh() }
     val card = account.type == AccountType.CreditCard
 
+    // T75: a read-only user sees the balances, without the form or the deletes.
+    val canWrite = LocalFinanceCanWrite.current
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(
             Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).navigationBarsPadding().imePadding(),
@@ -410,7 +414,7 @@ private fun BalancesSheet(account: Account, model: AccountsViewModel, onDismiss:
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
+            if (canWrite) Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
                 DateField("On", date, onChange = { date = it }, modifier = Modifier.weight(1f))
                 OutlinedTextField(
                     value = amount, onValueChange = { amount = it }, label = { Text(if (card) "Owed" else "Balance") },
@@ -420,7 +424,7 @@ private fun BalancesSheet(account: Account, model: AccountsViewModel, onDismiss:
                 )
             }
             if (failure != null) Text(failure!!, color = MaterialTheme.colorScheme.error)
-            Button(
+            if (canWrite) Button(
                 enabled = !saving && parseBalance(amount) != null,
                 onClick = {
                     val value = parseBalance(amount) ?: return@Button
@@ -448,8 +452,10 @@ private fun BalancesSheet(account: Account, model: AccountsViewModel, onDismiss:
                         Text(formatDay(balance.day), Modifier.weight(1f))
                         Text(Money.format(balance.amount), fontWeight = FontWeight.Medium)
                         // Asked first, as on the web: a balance deleted can't be brought back.
-                        IconButton(onClick = { deletingId = balance.id }) {
-                            Icon(Icons.Outlined.Delete, "Delete the balance of ${formatDay(balance.day)}")
+                        if (canWrite) {
+                            IconButton(onClick = { deletingId = balance.id }) {
+                                Icon(Icons.Outlined.Delete, "Delete the balance of ${formatDay(balance.day)}")
+                            }
                         }
                     }
                 }

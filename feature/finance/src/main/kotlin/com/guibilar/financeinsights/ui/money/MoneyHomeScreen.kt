@@ -1,5 +1,6 @@
 package com.guibilar.financeinsights.ui.money
 
+import com.guibilar.financeinsights.ui.LocalFinanceCanWrite
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -79,7 +80,7 @@ fun MoneyHomeScreen(
         TopAppBar(
             title = { FitText("Money", fontWeight = FontWeight.SemiBold, minFontSize = 14.sp) },
             navigationIcon = { if (onBack != null) IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back") } },
-            actions = { IconButton(onClick = openImport) { Icon(Icons.Outlined.UploadFile, "Import statements") } },
+            actions = { if (LocalFinanceCanWrite.current) IconButton(onClick = openImport) { Icon(Icons.Outlined.UploadFile, "Import statements") } },
         )
         PullToRefreshBox(isRefreshing = state.refreshing, onRefresh = model::refresh, modifier = Modifier.fillMaxSize()) {
             // On a tablet, a centred column rather than rows stretched across the screen.

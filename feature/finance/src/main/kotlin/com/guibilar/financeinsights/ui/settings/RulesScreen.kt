@@ -1,5 +1,6 @@
 package com.guibilar.financeinsights.ui.settings
 
+import com.guibilar.financeinsights.ui.LocalFinanceCanWrite
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -62,14 +63,15 @@ fun RulesScreen(model: RulesViewModel, contentPadding: PaddingValues, onBack: ()
     var addingFlow by rememberSaveable { mutableStateOf(false) }
     var confirmApply by rememberSaveable { mutableStateOf(false) }
 
+    val canWrite = LocalFinanceCanWrite.current
     SettingsScaffold(
         title = "Rules",
         onBack = onBack,
         contentPadding = contentPadding,
         messages = model.messages,
-        addLabel = "New rule",
+        addLabel = if (canWrite) "New rule" else null,
         onAdd = { if (tab == 0) addingRule = true else addingFlow = true },
-        actions = { IconButton(onClick = { confirmApply = true }) { Icon(Icons.Outlined.Refresh, "Apply the rules to transactions") } },
+        actions = { if (canWrite) IconButton(onClick = { confirmApply = true }) { Icon(Icons.Outlined.Refresh, "Apply the rules to transactions") } },
     ) {
         PrimaryTabRow(selectedTabIndex = tab) {
             Tab(tab == 0, onClick = { tab = 0 }, text = { Text("Categories") })
@@ -127,7 +129,7 @@ private fun FlowRules(state: RulesState, model: RulesViewModel, onEdit: (FlowRul
                 LazyColumn(contentPadding = PaddingValues(bottom = 88.dp), modifier = Modifier.fillMaxSize()) {
                     items(rules.value, key = { it.id }) { rule ->
                         Row(
-                            Modifier.fillMaxWidth().clickable { onEdit(rule) }.padding(horizontal = 16.dp, vertical = 12.dp),
+                            Modifier.fillMaxWidth().clickable(enabled = LocalFinanceCanWrite.current) { onEdit(rule) }.padding(horizontal = 16.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(rule.keyword, Modifier.weight(1f), fontWeight = FontWeight.Medium, maxLines = 2, overflow = TextOverflow.Ellipsis)

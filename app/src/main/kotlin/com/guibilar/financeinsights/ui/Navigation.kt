@@ -25,6 +25,7 @@ import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -342,111 +343,114 @@ fun MainScreen(
                     Spacer(Modifier.weight(1f))
                 }
             }
-            NavHost(nav, startDestination = TodayRoute, modifier = Modifier.weight(1f)) {
-                composable<TodayRoute> {
-                    TodayScreen(
-                        model = viewModel { TodayViewModel(todayApi) },
-                        modules = MODULES,
-                        contentPadding = padding,
-                        open = { openDestination(it) },
-                        onRefresh = { alertSettings?.let { AlertNotifications.pollSoon(context, it) } },
-                        openModule = { module ->
-                            when (module.route) {
-                                MoneyHomeRoute -> nav.openMoneyHome()
-                                DocumentsRoute -> nav.openDocuments()
-                                is TasksRoute -> nav.openTasks()
-                                HomeRoute -> nav.openHome()
-                                PeopleRoute -> nav.openPeople()
-                                else -> module.route?.let { nav.navigate(it) }
-                            }
-                        },
-                    )
-                }
-                composable<TimelineRoute> {
-                    PlaceholderScreen("Timeline", Icons.Outlined.Timeline, "Everything that happened, day by day, from all modules.", padding)
-                }
-                composable<CaptureRoute> {
-                    CaptureScreen(
-                        padding,
-                        canWrite = canWrite,
-                        onExpense = { quickAction.value = QuickAction.AddTransaction },
-                        onScan = { nav.addDocument(DocumentSource.Scan) },
-                        onPhoto = { nav.addDocument(DocumentSource.Photos) },
-                        onTask = { nav.addTask() },
-                        onItem = { nav.addItem() },
-                        onPerson = { nav.addPerson() },
-                    )
-                }
-                composable<ModulesRoute> {
-                    ModulesScreen(
-                        modules = MODULES,
-                        account = account,
-                        version = BuildConfig.VERSION_NAME,
-                        contentPadding = padding,
-                        open = { module -> module.route?.let { nav.navigate(it) } },
-                        openSettings = { nav.navigate(AppSettingsRoute) },
-                        openAccount = { nav.navigate(AccountSettingsRoute) },
-                    )
-                }
-                composable<SearchRoute> {
-                    PlaceholderScreen("Search", Icons.Outlined.Search, "One search across all modules.", padding)
-                }
-                financeGraph(
-                    nav = nav,
-                    api = api,
-                    alerts = alertsApi,
-                    account = account,
-                    onSignOut = onSignOut,
-                    contentPadding = padding,
-                    requests = requests,
-                    amountsHidden = preferences?.hideAmounts,
-                    setAmountsHidden = preferences?.let { it::setHideAmounts },
-                    documents = financeDocuments,
-                    home = financeHome,
-                )
-                documentsGraph(
-                    nav = nav,
-                    client = client,
-                    contentPadding = padding,
-                    openTransaction = { id -> nav.openTransaction(id) },
-                    canWrite = canWrite,
-                    tasks = documentTasks,
-                    items = documentItems,
-                )
-                tasksGraph(
-                    nav = nav,
-                    client = client,
-                    contentPadding = padding,
-                    // A linked document opens over the tasks, so Back returns to the task.
-                    openDocument = { id -> nav.navigate(DocumentRoute(id)) },
-                    openTransaction = { id -> nav.openTransaction(id) },
-                    canWrite = canWrite,
-                    items = taskItems,
-                )
-                homeGraph(
-                    nav = nav,
-                    client = client,
-                    contentPadding = padding,
-                    host = homeHost,
-                    canWrite = canWrite,
-                )
-                peopleGraph(
-                    nav = nav,
-                    client = client,
-                    contentPadding = padding,
-                    host = peopleHost,
-                    canWrite = canWrite,
-                )
-                composable<AppSettingsRoute> {
-                    if (preferences != null && financePreferences != null) {
-                        AppSettingsScreen(
-                            preferences, financePreferences, lock, padding, onBack = { nav.popBackStack() },
-                            alertSettings = alertSettings,
+            // T75: the Money pages hide their write actions for a read-only user.
+            CompositionLocalProvider(LocalFinanceCanWrite provides canWrite) {
+                NavHost(nav, startDestination = TodayRoute, modifier = Modifier.weight(1f)) {
+                    composable<TodayRoute> {
+                        TodayScreen(
+                            model = viewModel { TodayViewModel(todayApi) },
+                            modules = MODULES,
+                            contentPadding = padding,
+                            open = { openDestination(it) },
+                            onRefresh = { alertSettings?.let { AlertNotifications.pollSoon(context, it) } },
+                            openModule = { module ->
+                                when (module.route) {
+                                    MoneyHomeRoute -> nav.openMoneyHome()
+                                    DocumentsRoute -> nav.openDocuments()
+                                    is TasksRoute -> nav.openTasks()
+                                    HomeRoute -> nav.openHome()
+                                    PeopleRoute -> nav.openPeople()
+                                    else -> module.route?.let { nav.navigate(it) }
+                                }
+                            },
                         )
                     }
-                }
-                composable<AccountSettingsRoute> {
-                    AccountSettingsScreen(viewModel { AccountSettingsViewModel(client.auth) }, account, onSignOut, padding, onBack = { nav.popBackStack() })
+                    composable<TimelineRoute> {
+                        PlaceholderScreen("Timeline", Icons.Outlined.Timeline, "Everything that happened, day by day, from all modules.", padding)
+                    }
+                    composable<CaptureRoute> {
+                        CaptureScreen(
+                            padding,
+                            canWrite = canWrite,
+                            onExpense = { quickAction.value = QuickAction.AddTransaction },
+                            onScan = { nav.addDocument(DocumentSource.Scan) },
+                            onPhoto = { nav.addDocument(DocumentSource.Photos) },
+                            onTask = { nav.addTask() },
+                            onItem = { nav.addItem() },
+                            onPerson = { nav.addPerson() },
+                        )
+                    }
+                    composable<ModulesRoute> {
+                        ModulesScreen(
+                            modules = MODULES,
+                            account = account,
+                            version = BuildConfig.VERSION_NAME,
+                            contentPadding = padding,
+                            open = { module -> module.route?.let { nav.navigate(it) } },
+                            openSettings = { nav.navigate(AppSettingsRoute) },
+                            openAccount = { nav.navigate(AccountSettingsRoute) },
+                        )
+                    }
+                    composable<SearchRoute> {
+                        PlaceholderScreen("Search", Icons.Outlined.Search, "One search across all modules.", padding)
+                    }
+                    financeGraph(
+                        nav = nav,
+                        api = api,
+                        alerts = alertsApi,
+                        account = account,
+                        onSignOut = onSignOut,
+                        contentPadding = padding,
+                        requests = requests,
+                        amountsHidden = preferences?.hideAmounts,
+                        setAmountsHidden = preferences?.let { it::setHideAmounts },
+                        documents = financeDocuments,
+                        home = financeHome,
+                    )
+                    documentsGraph(
+                        nav = nav,
+                        client = client,
+                        contentPadding = padding,
+                        openTransaction = { id -> nav.openTransaction(id) },
+                        canWrite = canWrite,
+                        tasks = documentTasks,
+                        items = documentItems,
+                    )
+                    tasksGraph(
+                        nav = nav,
+                        client = client,
+                        contentPadding = padding,
+                        // A linked document opens over the tasks, so Back returns to the task.
+                        openDocument = { id -> nav.navigate(DocumentRoute(id)) },
+                        openTransaction = { id -> nav.openTransaction(id) },
+                        canWrite = canWrite,
+                        items = taskItems,
+                    )
+                    homeGraph(
+                        nav = nav,
+                        client = client,
+                        contentPadding = padding,
+                        host = homeHost,
+                        canWrite = canWrite,
+                    )
+                    peopleGraph(
+                        nav = nav,
+                        client = client,
+                        contentPadding = padding,
+                        host = peopleHost,
+                        canWrite = canWrite,
+                    )
+                    composable<AppSettingsRoute> {
+                        if (preferences != null && financePreferences != null) {
+                            AppSettingsScreen(
+                                preferences, financePreferences, lock, padding, onBack = { nav.popBackStack() },
+                                alertSettings = alertSettings,
+                            )
+                        }
+                    }
+                    composable<AccountSettingsRoute> {
+                        AccountSettingsScreen(viewModel { AccountSettingsViewModel(client.auth) }, account, onSignOut, padding, onBack = { nav.popBackStack() })
+                    }
                 }
             }
         }

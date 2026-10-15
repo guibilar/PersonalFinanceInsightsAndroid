@@ -393,7 +393,7 @@ private fun BudgetLink(transaction: Transaction, budgets: List<Budget>, model: T
 /** A deleted transaction: what it was, and restoring it. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DeletedTransactionSheet(transaction: Transaction, model: TransactionsViewModel, onDismiss: () -> Unit) {
+fun DeletedTransactionSheet(transaction: Transaction, model: TransactionsViewModel, onDismiss: () -> Unit, canWrite: Boolean = true) {
     val scope = rememberCoroutineScope()
     val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheet) {
@@ -408,11 +408,60 @@ fun DeletedTransactionSheet(transaction: Transaction, model: TransactionsViewMod
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Button(onClick = {
-                model.restore(transaction)
-                // Slides away like the other sheets, instead of vanishing.
-                scope.launch { sheet.hide() }.invokeOnCompletion { onDismiss() }
-            }, modifier = Modifier.fillMaxWidth().height(48.dp)) { Text("Restore") }
+            if (canWrite) {
+                Button(onClick = {
+                    model.restore(transaction)
+                    // Slides away like the other sheets, instead of vanishing.
+                    scope.launch { sheet.hide() }.invokeOnCompletion { onDismiss() }
+                }, modifier = Modifier.fillMaxWidth().height(48.dp)) { Text("Restore") }
+            }
+            Spacer(Modifier.height(16.dp))
+        }
+    }
+}
+
+/**
+ * One transaction for a read-only user (T75): the details, without fields or actions. Its documents show read-only
+ * ([FinanceDocuments.canWrite] is false for that user).
+ */
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+fun TransactionDetailsSheet(transaction: Transaction, onDismiss: () -> Unit, documents: FinanceDocuments? = null) {
+    val colors = LocalChartColors.current
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+        Column(
+            Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).navigationBarsPadding(),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(
+                signedAmount(transaction),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = if (transaction.transactionType == TransactionType.Credit) colors.positive else MaterialTheme.colorScheme.onSurface,
+            )
+            Text(transaction.description, style = MaterialTheme.typography.titleMedium)
+            Text(
+                listOfNotNull(
+                    DateTimeFormatter.ofPattern("EEE, MMM d, yyyy", Locale.US).format(transaction.day),
+                    transaction.accountName.takeIf { it.isNotBlank() },
+                    transaction.category.name.takeIf { it.isNotBlank() },
+                ).joinToString(" · "),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            transaction.note?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+            if (transaction.tags.isNotEmpty()) {
+                Text(transaction.tags.joinToString(", ") { it.name }, style = MaterialTheme.typography.bodySmall)
+            }
+            Text(
+                "This account can only read. It cannot change transactions.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (documents != null) {
+                HorizontalDivider()
+                TransactionDocumentsSection(transaction.id, documents)
+            }
             Spacer(Modifier.height(16.dp))
         }
     }

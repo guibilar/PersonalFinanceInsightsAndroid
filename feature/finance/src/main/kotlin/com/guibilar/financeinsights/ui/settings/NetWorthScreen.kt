@@ -1,5 +1,6 @@
 package com.guibilar.financeinsights.ui.settings
 
+import com.guibilar.financeinsights.ui.LocalFinanceCanWrite
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -265,6 +266,6 @@ private fun AccountLine(account: NetWorthAccount, openAccounts: () -> Unit, hori
                 }
             }
         }
-        if (balance == null) TextButton(onClick = openAccounts) { Text("Add its balance") }
+        if (balance == null && LocalFinanceCanWrite.current) TextButton(onClick = openAccounts) { Text("Add its balance") }
     }
 }

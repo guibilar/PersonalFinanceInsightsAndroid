@@ -92,6 +92,11 @@ class TransactionsViewModel(
     private val _messages = Channel<UiMessage>(Channel.BUFFERED)
     val messages: kotlinx.coroutines.flow.Flow<UiMessage> = _messages.receiveAsFlow()
 
+    /** Tells the person something (T75: a quick action that a read-only user cannot use). */
+    fun say(text: String) {
+        _messages.trySend(UiMessage(text))
+    }
+
     // Every text typed, the same one again included (a StateFlow would drop that): see the debounce in init.
     private val searchText = MutableSharedFlow<String>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
     private var listJob: Job? = null
