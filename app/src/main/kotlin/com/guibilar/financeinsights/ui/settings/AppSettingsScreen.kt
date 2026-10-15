@@ -68,7 +68,6 @@ fun AppSettingsScreen(
     val theme by preferences.theme.collectAsState()
     val dynamicColor by preferences.dynamicColor.collectAsState()
     val locking by preferences.lock.collectAsState()
-    val budgetWarnings by financePreferences.budgetAlerts.collectAsState()
     val monthlyReview by financePreferences.monthlyReview.collectAsState()
     val alertsOn = alertSettings?.enabled?.collectAsState()?.value == true
     val moneyAlerts = alertSettings?.money?.collectAsState()?.value == true
@@ -89,10 +88,9 @@ fun AppSettingsScreen(
         onPauseOrDispose {}
     }
     // Each notification switch, by a key that survives the phone rotating while the permission is asked for. "alerts"
-    // is the server alerts (T68); the other two are the local finance rules that have no server alert yet.
+    // is the server alerts (T68); "review" is the local monthly review, which has no server alert yet (T82).
     val setters = remember(financePreferences, alertSettings) {
         buildMap<String, (Boolean) -> Unit> {
-            put("budgets", financePreferences::setBudgetAlerts)
             put("review", financePreferences::setMonthlyReview)
             if (alertSettings != null) put("alerts", alertSettings::setEnabled)
         }
@@ -195,12 +193,12 @@ fun AppSettingsScreen(
             if (alertSettings != null) {
                 SwitchRow(
                     "Needs attention",
-                    "A notification when something new needs attention: a budget over its limit, a price change, " +
+                    "A notification when something new needs attention: a budget nearly used up or over its limit, a price change, " +
                         "statements to import, a document that expires, an overdue task, a warranty that ends. The phone asks " +
                         "the server every hour, over Tailscale.",
                     alertsOn,
                 ) { switch("alerts", it) }
-                SwitchRow("Money", "Budgets, subscriptions, statements and transactions.", moneyAlerts, enabled = alertsOn, indent = true) {
+                SwitchRow("Money", "Budgets nearly used up or over, subscriptions, statements and transactions.", moneyAlerts, enabled = alertsOn, indent = true) {
                     alertSettings.setMoney(it)
                     if (!it) AlertNotifications.removeModule(context, AlertNotificationSettings.MONEY)
                 }
@@ -221,11 +219,6 @@ fun AppSettingsScreen(
                     if (!it) AlertNotifications.removeModule(context, AlertNotificationSettings.PEOPLE)
                 }
             }
-            SwitchRow(
-                "Budget warnings",
-                "A notification when a budget passes 80%, once each period. Checked on the phone every few hours.",
-                budgetWarnings,
-            ) { switch("budgets", it) }
             SwitchRow(
                 "Monthly review",
                 "Early each month, the month before: what was spent against the month before it, and where most went.",
