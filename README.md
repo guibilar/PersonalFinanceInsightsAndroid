@@ -1,7 +1,12 @@
-# Personal Finance Insights for Android
+# Hestia for Android
 
-A native Android app (Kotlin, Jetpack Compose, Material 3) for the Personal Finance Insights backend: the same
-account and data as the web app, on your phone.
+A native Android app (Kotlin, Jetpack Compose, Material 3) for Hestia and its Money module (the Personal Finance
+Insights backend): the same account and data as the web app, on your phone. The repository and the Kotlin packages
+keep their old name.
+
+**The app id changed in T23** from `com.guibilar.financeinsights` to `com.guibilar.hestia`. Android installs the
+renamed app as a new app, next to the old one: sign in again, set the app settings and the widget again, then
+uninstall "Finance Insights".
 
 ## What it does
 

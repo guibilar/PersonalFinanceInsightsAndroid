@@ -150,9 +150,9 @@ internal fun Content(data: WidgetData) {
         GlanceModifier.fillMaxSize().background(GlanceTheme.colors.widgetBackground).cornerRadius(20.dp).padding(WIDGET_PADDING).clickable(open),
     ) {
         when (data) {
-            WidgetData.SignedOut -> Text("Open Finance Insights to sign in.", style = TextStyle(color = GlanceTheme.colors.onSurface))
+            WidgetData.SignedOut -> Text("Open Hestia to sign in.", style = TextStyle(color = GlanceTheme.colors.onSurface))
             WidgetData.Hidden -> {
-                Text("Finance Insights", style = muted)
+                Text("Hestia", style = muted)
                 Text("Amounts hidden. Tap to open.", style = TextStyle(color = GlanceTheme.colors.onSurface))
             }
             WidgetData.Failed -> {

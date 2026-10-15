@@ -11,7 +11,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.guibilar.financeinsights"
+        applicationId = "com.guibilar.hestia"
         minSdk = 26
         targetSdk = 36
         versionCode = 37

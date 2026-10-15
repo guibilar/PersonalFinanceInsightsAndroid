@@ -166,7 +166,7 @@ fun AppSettingsScreen(
                     lock?.enabledChanged(false)
                 } else if (activity != null) {
                     // Confirmed first, so it can't be turned on by someone who couldn't unlock it.
-                    authenticate(activity, "Lock Finance Insights", "Confirm it's you") { ok ->
+                    authenticate(activity, "Lock Hestia", "Confirm it's you") { ok ->
                         if (ok) {
                             preferences.setLock(true)
                             lock?.enabledChanged(true)

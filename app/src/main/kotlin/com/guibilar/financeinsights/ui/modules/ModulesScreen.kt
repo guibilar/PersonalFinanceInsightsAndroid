@@ -93,7 +93,7 @@ fun ModulesScreen(
                             modifier = Modifier.clickable(onClick = openAccount),
                         )
                         Text(
-                            "Finance Insights $version",
+                            "Hestia $version",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(16.dp),

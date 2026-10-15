@@ -50,7 +50,7 @@ class LockTest {
         // A while away: locked, and nothing of the account shows.
         lock.onBackground(); now += AppLock.GRACE_MS; lock.onForeground()
         compose.waitForIdle()
-        compose.onNodeWithText("Finance Insights is locked").assertExists()
+        compose.onNodeWithText("Hestia is locked").assertExists()
         compose.onNodeWithText("Appearance").assertDoesNotExist()
 
         lock.unlocked()

@@ -191,7 +191,7 @@ fun FinanceRoot(
             LockScreen(onUnlock = {
                 if (activity == null) return@LockScreen
                 if (canAuthenticate(activity)) {
-                    authenticate(activity, "Unlock Finance Insights") { ok -> if (ok) lock.unlocked() }
+                    authenticate(activity, "Unlock Hestia") { ok -> if (ok) lock.unlocked() }
                 } else {
                     // The phone's screen lock was removed: nothing can confirm the owner, and the prompt would fail
                     // for good. The app lock goes off rather than locking its owner out.

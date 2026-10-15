@@ -16,7 +16,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Insights
+import androidx.compose.material.icons.outlined.LocalFireDepartment
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Button
@@ -94,8 +94,8 @@ fun SignInScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Icon(Icons.Outlined.Insights, null, Modifier.size(48.dp), tint = MaterialTheme.colorScheme.primary)
-                Text("Finance Insights", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
+                Icon(Icons.Outlined.LocalFireDepartment, null, Modifier.size(48.dp), tint = MaterialTheme.colorScheme.primary)
+                Text("Hestia", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
                 Text(
                     "Sign in with the account you use on the web.",
                     style = MaterialTheme.typography.bodyMedium,
