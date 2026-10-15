@@ -3,6 +3,7 @@ package com.guibilar.financeinsights.ui
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.Surface
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
@@ -76,13 +77,12 @@ class TransactionLinkScreenshotTest {
         api.deletedIds += metro
         val model = show(metro)
         compose.waitForIdle()
-        compose.onNodeWithText("The linked transaction is deleted.").assertIsDisplayed()
+        compose.onNodeWithText("The linked transaction is deleted.", substring = true).assertIsDisplayed()
         shoot("transaction-link-deleted")
 
-        compose.onNodeWithText("Show deleted transactions").performClick()
-        compose.waitForIdle()
+        // T65: the deleted list, on its day, with the row there to restore.
         assertEquals(true, model.state.value.showDeleted)
-        assertNull(model.state.value.linkNotice)
+        compose.onNode(hasContentDescription("METRO 221", substring = true)).assertExists()
     }
 
     @Test

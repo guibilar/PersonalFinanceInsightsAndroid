@@ -17,8 +17,11 @@ import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.LinkOff
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -125,6 +128,23 @@ class TransactionDocumentsModel(private val api: DocumentsApi, val transactionId
         return false
     }
 
+    /** Removes the link of [document] to the transaction (T65), then loads the list again. Both stay. */
+    suspend fun unlink(document: DocumentSummary) {
+        val link = document.links.firstOrNull {
+            it.kind == DocumentLinkKinds.MONEY_TRANSACTION && it.targetId.equals(transactionId, ignoreCase = true)
+        } ?: return
+        if (busy) return
+        busy = true
+        error = null
+        val failure = apiCall { api.removeLink(document.id, link.id) }.apiError
+        busy = false
+        when {
+            failure == null || (failure as? ApiError.Http)?.status == 404 -> load()
+            (failure as? ApiError.Http)?.status == 403 -> readOnly = true
+            else -> error = failure.validationOr(failure.loadMessage("Could not remove the link of “${document.title}”."))
+        }
+    }
+
     fun clearError() {
         error = null
     }
@@ -152,6 +172,7 @@ fun TransactionDocumentsSection(transactionId: String, documents: FinanceDocumen
     LaunchedEffect(model) { model.load() }
     val scope = rememberCoroutineScope()
     var linking by rememberSaveable(transactionId) { mutableStateOf(false) }
+    var unlinking by remember(transactionId) { mutableStateOf<DocumentSummary?>(null) }
     TransactionDocumentsContent(
         documents = model.documents,
         canWrite = documents.canWrite && !model.readOnly,
@@ -165,8 +186,23 @@ fun TransactionDocumentsSection(transactionId: String, documents: FinanceDocumen
         },
         retry = { scope.launch { model.retry() } },
         modifier = modifier,
+        unlink = { unlinking = it },
     )
     if (linking && !model.readOnly) LinkDocumentPanel(model, onClose = { linking = false }, modifier = modifier)
+    unlinking?.let { document ->
+        AlertDialog(
+            onDismissRequest = { unlinking = null },
+            title = { Text("Remove the link?") },
+            text = { Text("The transaction and “${document.title}” both stay. Only the link goes.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    unlinking = null
+                    scope.launch { model.unlink(document) }
+                }) { Text("Remove") }
+            },
+            dismissButton = { TextButton(onClick = { unlinking = null }) { Text("Cancel") } },
+        )
+    }
 }
 
 /** What [TransactionDocumentsSection] shows, without the API: for the screenshots. */
@@ -182,6 +218,8 @@ fun TransactionDocumentsContent(
     modifier: Modifier = Modifier,
     readOnly: Boolean = false,
     error: String? = null,
+    /** Removes the link of a document (T65); shown with [canWrite]. */
+    unlink: (DocumentSummary) -> Unit = {},
 ) {
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Documents", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
@@ -203,7 +241,9 @@ fun TransactionDocumentsContent(
                 )
             } else {
                 Column {
-                    documents.value.forEach { document -> DocumentRow(document, onClick = { open(document) }) }
+                    documents.value.forEach { document ->
+                        DocumentRow(document, onClick = { open(document) }, unlink = if (canWrite) ({ unlink(document) }) else null)
+                    }
                 }
             }
         }
@@ -229,7 +269,7 @@ fun TransactionDocumentsContent(
 }
 
 @Composable
-private fun DocumentRow(document: DocumentSummary, onClick: () -> Unit) {
+private fun DocumentRow(document: DocumentSummary, onClick: () -> Unit, unlink: (() -> Unit)? = null) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -245,7 +285,11 @@ private fun DocumentRow(document: DocumentSummary, onClick: () -> Unit) {
             Text(document.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(documentSubtitle(document), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (unlink != null) {
+            IconButton(onClick = unlink) { Icon(Icons.Outlined.LinkOff, "Remove the link of ${document.title}") }
+        } else {
+            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 

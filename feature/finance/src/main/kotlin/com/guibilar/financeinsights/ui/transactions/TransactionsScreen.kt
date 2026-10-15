@@ -300,7 +300,6 @@ fun TransactionsScreen(
                                         LinkNoticeCard(
                                             notice,
                                             onClose = model::dismissLinkNotice,
-                                            onShowDeleted = model::toggleDeleted,
                                             modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp),
                                         )
                                     }

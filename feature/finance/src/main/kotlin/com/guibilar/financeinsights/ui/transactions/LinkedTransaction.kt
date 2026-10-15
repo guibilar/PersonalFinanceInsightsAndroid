@@ -49,7 +49,7 @@ internal fun rememberReducedMotion(): Boolean {
 
 /** Why the linked transaction is not in the list, over the normal list; a deleted one offers the deleted list. */
 @Composable
-internal fun LinkNoticeCard(notice: LinkNotice, onClose: () -> Unit, onShowDeleted: () -> Unit, modifier: Modifier = Modifier) {
+internal fun LinkNoticeCard(notice: LinkNotice, onClose: () -> Unit, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite },
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
@@ -58,9 +58,6 @@ internal fun LinkNoticeCard(notice: LinkNotice, onClose: () -> Unit, onShowDelet
             Icon(Icons.Outlined.Info, null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
             Column(Modifier.weight(1f).padding(start = 12.dp, top = 8.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(notice.text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
-                if (notice == LinkNotice.Deleted) {
-                    TextButton(onClick = onShowDeleted) { Text("Show deleted transactions") }
-                }
             }
             IconButton(onClick = onClose) { Icon(Icons.Outlined.Close, "Close the message") }
         }

@@ -98,8 +98,8 @@ enum class LinkNotice(val text: String) {
     /** No transaction has the id, or the id is not a GUID. */
     Missing("The linked transaction does not exist."),
 
-    /** It is deleted: the deleted list has it, to restore it. */
-    Deleted("The linked transaction is deleted."),
+    /** It is deleted: the deleted list shows it (T65), to restore it. */
+    Deleted("The linked transaction is deleted. Here it is among the deleted ones, where you can restore it."),
 
     /** The look-up failed. */
     Failed("Could not load the linked transaction."),

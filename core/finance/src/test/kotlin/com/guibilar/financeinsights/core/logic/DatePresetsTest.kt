@@ -46,5 +46,7 @@ class DatePresetsTest {
         assertEquals("Sep 1 – today", describeRange(DatePreset.ThisMonth.range(today)))
         assertEquals("Jun 1 – Aug 31, 2026", describeRange(DatePreset.Last3Months.range(today)))
         assertEquals("Sep 1, 2025 – Aug 31, 2026", describeRange(DatePreset.Last12Months.range(today)))
+        // One day (T65).
+        assertEquals("Oct 3, 2026", describeRange(DateRange(LocalDate.of(2026, 10, 3), LocalDate.of(2026, 10, 3))))
     }
 }
