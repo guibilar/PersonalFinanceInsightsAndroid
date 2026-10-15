@@ -76,6 +76,10 @@ import com.guibilar.financeinsights.home.isHomePage
 import com.guibilar.financeinsights.home.openHome
 import com.guibilar.financeinsights.home.openHomeItem
 import com.guibilar.financeinsights.home.openRoom
+import com.guibilar.financeinsights.inbox.InboxRoute
+import com.guibilar.financeinsights.inbox.inboxGraph
+import com.guibilar.financeinsights.inbox.isInboxPage
+import com.guibilar.financeinsights.inbox.openInbox
 import com.guibilar.financeinsights.journal.JournalRoute
 import com.guibilar.financeinsights.journal.isJournalPage
 import com.guibilar.financeinsights.journal.journalGraph
@@ -234,7 +238,7 @@ private val topLevel = listOf(
     TopLevel("Capture", Icons.Outlined.Add, CaptureRoute, { it.hasRoute<CaptureRoute>() }, action = true),
     TopLevel("Modules", Icons.Outlined.GridView, ModulesRoute, {
         it.hasRoute<ModulesRoute>() || it.isFinancePage() || it.isDocumentsPage() || it.isTasksPage() ||
-            it.isHomePage() || it.isPeoplePage() || it.isJournalPage() || it.hasRoute<AppSettingsRoute>() ||
+            it.isHomePage() || it.isPeoplePage() || it.isJournalPage() || it.isInboxPage() || it.hasRoute<AppSettingsRoute>() ||
             it.hasRoute<AccountSettingsRoute>()
     }),
     TopLevel("Search", Icons.Outlined.Search, SearchRoute, { it.hasRoute<SearchRoute>() }),
@@ -288,6 +292,7 @@ fun MainScreen(
             TodayDestination.People -> nav.openPeople()
             is TodayDestination.Person -> nav.openPerson(destination.id)
             is TodayDestination.Journal -> nav.openJournal(destination.day)
+            TodayDestination.Inbox -> nav.openInbox()
         }
     }
     // A tapped alert notification (T68): its page, or Today for an alert with no link (and for the summary).
@@ -375,6 +380,7 @@ fun MainScreen(
                                     HomeRoute -> nav.openHome()
                                     PeopleRoute -> nav.openPeople()
                                     is JournalRoute -> nav.openJournal()
+                                    InboxRoute -> nav.openInbox()
                                     else -> module.route?.let { nav.navigate(it) }
                                 }
                             },
@@ -399,6 +405,7 @@ fun MainScreen(
                             onItem = { nav.addItem() },
                             onPerson = { nav.addPerson() },
                             onJournal = { nav.openJournal() },
+                            onNote = { nav.openInbox() },
                         )
                     }
                     composable<ModulesRoute> {
@@ -474,6 +481,7 @@ fun MainScreen(
                         host = peopleHost,
                         canWrite = canWrite,
                     )
+                    inboxGraph(nav = nav, client = client, contentPadding = padding, canWrite = canWrite)
                     journalGraph(
                         nav = nav,
                         client = client,

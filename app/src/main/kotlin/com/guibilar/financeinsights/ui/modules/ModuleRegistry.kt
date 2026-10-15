@@ -7,9 +7,11 @@ import androidx.compose.material.icons.outlined.CheckBox
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.guibilar.financeinsights.documents.DocumentsRoute
 import com.guibilar.financeinsights.home.HomeRoute
+import com.guibilar.financeinsights.inbox.InboxRoute
 import com.guibilar.financeinsights.journal.JournalRoute
 import com.guibilar.financeinsights.people.PeopleRoute
 import com.guibilar.financeinsights.tasks.TasksRoute
@@ -69,6 +71,15 @@ val MODULES = listOf(
         route = PeopleRoute,
         status = ModuleStatus.Active,
         todayPreview = "Birthdays, and people to get in touch with",
+    ),
+    HestiaModule(
+        id = "inbox",
+        name = "Inbox",
+        description = "Quick notes, to sort later",
+        icon = Icons.Outlined.Inbox,
+        route = InboxRoute,
+        status = ModuleStatus.Active,
+        todayPreview = "Notes to sort",
     ),
     HestiaModule(
         id = "journal",

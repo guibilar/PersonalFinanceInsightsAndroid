@@ -141,6 +141,11 @@ class TodayLinksTest {
     }
 
     @Test
+    fun `the Inbox tile opens the Inbox (T18)`() {
+        assertEquals(TodayDestination.Inbox, todayDestination("/inbox"))
+    }
+
+    @Test
     fun `a People alert opens the person, and other People paths the People screen`() {
         assertEquals(TodayDestination.Person("p1"), todayDestination("/people/p1"))
         assertEquals(TodayDestination.People, todayDestination("/people"))
