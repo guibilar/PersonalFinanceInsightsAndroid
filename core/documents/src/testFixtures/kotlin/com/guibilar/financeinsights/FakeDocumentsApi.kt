@@ -41,6 +41,9 @@ class FakeDocumentsApi(documents: List<Document> = DocumentsSamples.all) : Docum
     /** The forms of the uploads, as (field name, value or file name) pairs. */
     val uploads = mutableListOf<List<Pair<String, String>>>()
 
+    /** The thumbnails (T61), by file id. A file without one answers 404, as a file the server cannot preview. */
+    val thumbnails = mutableMapOf<String, ByteArray>()
+
     /** The status that [document] answers for a document that is Pending, after that many calls (none: it stays). */
     var ocrDoneAfter: Int? = null
 
@@ -146,6 +149,12 @@ class FakeDocumentsApi(documents: List<Document> = DocumentsSamples.all) : Docum
         val file = find(id).files.first { it.id == fileId }
         val bytes = if (file.isPdf) "%PDF-1.7 sample".toByteArray() else DocumentsSamples.jpegBytes
         bytes.toResponseBody(file.contentType.toMediaType())
+    }
+
+    override suspend fun thumbnail(id: String, fileId: String): ResponseBody = call("thumbnail", fileId) {
+        find(id).files.firstOrNull { it.id == fileId } ?: throw ApiError.Http(404, "Not found", "No file $fileId.", null, emptyMap())
+        val bytes = thumbnails[fileId] ?: throw ApiError.Http(404, "Not found", "No thumbnail for $fileId.", null, emptyMap())
+        bytes.toResponseBody("image/jpeg".toMediaType())
     }
 
     override suspend fun retryOcr(id: String): Document = call("retryOcr", id) {

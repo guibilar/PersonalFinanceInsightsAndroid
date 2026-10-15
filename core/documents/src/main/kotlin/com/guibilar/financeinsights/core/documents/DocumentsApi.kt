@@ -55,6 +55,13 @@ interface DocumentsApi {
     @GET("documents/{id}/files/{fileId}")
     suspend fun file(@Path("id") id: String, @Path("fileId") fileId: String): ResponseBody
 
+    /**
+     * A small JPEG preview of one file (T61): the first page of a PDF, or the photo, at most 480 pixels on its longest
+     * side. 404 when the server cannot make one: show the icon of the type then.
+     */
+    @GET("documents/{id}/files/{fileId}/thumbnail")
+    suspend fun thumbnail(@Path("id") id: String, @Path("fileId") fileId: String): ResponseBody
+
     /** Runs the OCR again, in the background ([OcrStatus.Pending]). */
     @POST("documents/{id}/ocr")
     suspend fun retryOcr(@Path("id") id: String): Document

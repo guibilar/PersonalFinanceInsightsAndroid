@@ -1,5 +1,6 @@
 package com.guibilar.financeinsights.documents.ui
 
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.guibilar.financeinsights.core.api.apiCall
@@ -51,6 +52,12 @@ class DocumentsListViewModel(
     private val api: DocumentsApi,
     private val today: () -> LocalDate = { LocalDate.now() },
 ) : ViewModel() {
+    private val thumbnails = DocumentThumbnails(api)
+
+    /** The thumbnail of the first file of [document] (T61), or null: the row shows the icon of its kind. */
+    suspend fun thumbnail(document: DocumentSummary): ImageBitmap? =
+        document.files.firstOrNull()?.let { thumbnails.load(document.id, it.id) }
+
     private val _state = MutableStateFlow(DocumentsListState())
     val state: StateFlow<DocumentsListState> = _state.asStateFlow()
 
