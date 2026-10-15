@@ -1,5 +1,6 @@
 package com.guibilar.financeinsights.ui.settings
 
+import com.guibilar.financeinsights.ui.LocalFinanceCanWrite
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -189,8 +190,10 @@ private fun RuleList(visible: List<CategoryRule>, moving: Boolean, model: RulesV
                     Modifier.animateItem()
                 },
             ) {
+                // T75: a read-only user cannot open, drag, or move a rule.
+                val canWrite = LocalFinanceCanWrite.current
                 Row(
-                    Modifier.fillMaxWidth().clickable { onEdit(rule) }.padding(end = 4.dp, top = 4.dp, bottom = 4.dp),
+                    Modifier.fillMaxWidth().clickable(enabled = canWrite) { onEdit(rule) }.padding(end = 4.dp, top = 4.dp, bottom = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
@@ -201,8 +204,8 @@ private fun RuleList(visible: List<CategoryRule>, moving: Boolean, model: RulesV
                             .padding(start = 8.dp)
                             .size(32.dp)
                             .padding(4.dp)
-                            .pointerInput(rule.id, moving) {
-                                if (moving) return@pointerInput
+                            .pointerInput(rule.id, moving, canWrite) {
+                                if (moving || !canWrite) return@pointerInput
                                 detectDragGestures(
                                     onDragStart = {
                                         dragging = rule.id
@@ -231,11 +234,11 @@ private fun RuleList(visible: List<CategoryRule>, moving: Boolean, model: RulesV
                             Text(rule.category.name, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
-                    IconButton(
+                    if (canWrite) IconButton(
                         onClick = { model.move(visible, rule, -1) },
                         enabled = !moving && dragging == null && model.movePosition(visible, rule, -1) != null,
                     ) { Icon(Icons.Outlined.ArrowUpward, "Move ${rule.keyword} up") }
-                    IconButton(
+                    if (canWrite) IconButton(
                         onClick = { model.move(visible, rule, 1) },
                         enabled = !moving && dragging == null && model.movePosition(visible, rule, 1) != null,
                     ) { Icon(Icons.Outlined.ArrowDownward, "Move ${rule.keyword} down") }

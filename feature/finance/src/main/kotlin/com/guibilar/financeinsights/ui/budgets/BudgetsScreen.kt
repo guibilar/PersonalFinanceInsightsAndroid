@@ -1,5 +1,6 @@
 package com.guibilar.financeinsights.ui.budgets
 
+import com.guibilar.financeinsights.ui.LocalFinanceCanWrite
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -189,7 +190,7 @@ fun BudgetsScreen(
                                             OutlinedButton(onClick = model::clearAll) { Text("Clear filters") }
                                         } else {
                                             EmptyState("No budgets yet. A budget sets a limit, for a month, a year, some dates, or a trip.")
-                                            OutlinedButton(onClick = { adding = true }) { Text("New budget") }
+                                            if (LocalFinanceCanWrite.current) OutlinedButton(onClick = { adding = true }) { Text("New budget") }
                                         }
                                     }
                                 }
@@ -213,7 +214,7 @@ fun BudgetsScreen(
                 }
             }
         }
-        ExtendedFloatingActionButton(
+        if (LocalFinanceCanWrite.current) ExtendedFloatingActionButton(
             onClick = { adding = true },
             icon = { Icon(Icons.Outlined.Add, null) },
             text = { Text("New budget") },
@@ -279,7 +280,7 @@ private fun BudgetCard(budget: Budget, onEdit: () -> Unit, onDelete: () -> Unit,
                     Badge("Inactive", MaterialTheme.colorScheme.surfaceContainerHighest, MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Box {
-                    IconButton(onClick = { menu = true }) { Icon(Icons.Outlined.MoreVert, "More for ${budget.name}") }
+                    if (LocalFinanceCanWrite.current) IconButton(onClick = { menu = true }) { Icon(Icons.Outlined.MoreVert, "More for ${budget.name}") }
                     DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                         DropdownMenuItem(text = { Text("Edit") }, leadingIcon = { Icon(Icons.Outlined.Edit, null) }, onClick = { menu = false; onEdit() })
                         DropdownMenuItem(text = { Text("Delete") }, leadingIcon = { Icon(Icons.Outlined.Delete, null) }, onClick = { menu = false; onDelete() })

@@ -1,5 +1,6 @@
 package com.guibilar.financeinsights.ui.settings
 
+import com.guibilar.financeinsights.ui.LocalFinanceCanWrite
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -95,7 +96,8 @@ fun CategoriesScreen(model: CategoriesViewModel, contentPadding: PaddingValues, 
     var adding by rememberSaveable { mutableStateOf(false) }
     var deleting by rememberOpenItem(categories) { it.id }
 
-    SettingsScaffold("Categories", onBack, contentPadding, model.messages, addLabel = "New category", onAdd = { adding = true }) {
+    val canWrite = LocalFinanceCanWrite.current
+    SettingsScaffold("Categories", onBack, contentPadding, model.messages, addLabel = if (canWrite) "New category" else null, onAdd = { adding = true }) {
         Text(
             "Renaming or recolouring a category changes it everywhere. Deleting one moves its transactions and rules to another.",
             style = MaterialTheme.typography.bodySmall,
@@ -109,7 +111,7 @@ fun CategoriesScreen(model: CategoriesViewModel, contentPadding: PaddingValues, 
                 LazyColumn(contentPadding = PaddingValues(bottom = 88.dp), modifier = Modifier.fillMaxSize()) {
                     items(current.value, key = { it.id }) { category ->
                         Row(
-                            Modifier.fillMaxWidth().clickable { editing = category }.padding(horizontal = 16.dp, vertical = 12.dp),
+                            Modifier.fillMaxWidth().clickable(enabled = canWrite) { editing = category }.padding(horizontal = 16.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             ColorDot(parseHexColor(category.color), size = 14.dp)

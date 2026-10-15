@@ -1,6 +1,8 @@
 package com.guibilar.financeinsights.ui.transactions
 
 import androidx.compose.ui.semantics.semantics
+import com.guibilar.financeinsights.ui.READ_ONLY_NOTE
+import com.guibilar.financeinsights.ui.LocalFinanceCanWrite
 import androidx.compose.ui.semantics.contentDescription
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
@@ -123,6 +125,8 @@ fun TransactionsScreen(
     var filtersOpen by rememberSaveable { mutableStateOf(false) }
     var opened by rememberOpenItem(state.list.items) { it.id }
     var adding by rememberSaveable { mutableStateOf(false) }
+    // T75: a read-only user gets no write action, and a quick action opens the list with a note, not the form.
+    val canWrite = LocalFinanceCanWrite.current
     val importState by model.importState.collectAsState()
     var confirmRules by rememberSaveable { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
@@ -130,7 +134,7 @@ fun TransactionsScreen(
     // Statements shared to the app open the import, ready to go.
     LaunchedEffect(sharedFiles) {
         if (sharedFiles != null) {
-            model.openImport(sharedFiles)
+            if (canWrite) model.openImport(sharedFiles) else model.say(READ_ONLY_NOTE)
             onSharedFileTaken()
         }
     }
@@ -139,14 +143,14 @@ fun TransactionsScreen(
     LaunchedEffect(addRequested) {
         if (addRequested) {
             if (state.showDeleted) model.toggleDeleted()
-            adding = true
+            if (canWrite) adding = true else model.say(READ_ONLY_NOTE)
             onAddTaken()
         }
     }
     // "Import statements" from the dashboard.
     LaunchedEffect(importRequested) {
         if (importRequested) {
-            model.openImport(accountId = importAccount)
+            if (canWrite) model.openImport(accountId = importAccount) else model.say(READ_ONLY_NOTE)
             onImportTaken()
         }
     }
@@ -227,8 +231,8 @@ fun TransactionsScreen(
                         }
                         if (!state.showDeleted) {
                             MoreMenu(
-                                onImport = { model.openImport() },
-                                onApplyRules = { confirmRules = true },
+                                onImport = if (canWrite) ({ model.openImport() }) else null,
+                                onApplyRules = if (canWrite) ({ confirmRules = true }) else null,
                                 onShowDeleted = model::toggleDeleted,
                             )
                         }
@@ -316,7 +320,7 @@ fun TransactionsScreen(
                                             SwipeRow(
                                                 transaction = transaction,
                                                 deletedList = state.showDeleted,
-                                                enabled = !stale && !selecting,
+                                                enabled = canWrite && !stale && !selecting,
                                                 onDelete = { model.delete(transaction) },
                                                 onRestore = { model.restore(transaction) },
                                                 onCategorise = { opened = transaction },
@@ -340,7 +344,7 @@ fun TransactionsScreen(
                                                         },
                                                         actions = actions,
                                                         // Long-pressed, it starts a change to several at once (not in the deleted list).
-                                                        onLongClick = if (state.showDeleted || stale) null else ({ model.toggleSelected(transaction.id) }),
+                                                        onLongClick = if (!canWrite || state.showDeleted || stale) null else ({ model.toggleSelected(transaction.id) }),
                                                         selected = if (selecting) transaction.id in state.selected else null,
                                                     )
                                                 }
@@ -372,7 +376,7 @@ fun TransactionsScreen(
                 }
             }
 
-            if (!state.showDeleted && !selecting) {
+            if (canWrite && !state.showDeleted && !selecting) {
                 ExtendedFloatingActionButton(
                     onClick = { adding = true },
                     icon = { Icon(Icons.Outlined.Add, null) },
@@ -389,7 +393,9 @@ fun TransactionsScreen(
     if (filtersOpen) FiltersSheet(state, onDismiss = { filtersOpen = false }, model = model)
     opened?.let { transaction ->
         if (transaction.hidden || state.showDeleted) {
-            DeletedTransactionSheet(transaction, model, onDismiss = { opened = null })
+            DeletedTransactionSheet(transaction, model, onDismiss = { opened = null }, canWrite = canWrite)
+        } else if (!canWrite) {
+            TransactionDetailsSheet(transaction, onDismiss = { opened = null }, documents = documents)
         } else {
             EditTransactionSheet(
                 transaction = transaction,
@@ -403,8 +409,8 @@ fun TransactionsScreen(
             )
         }
     }
-    if (adding) AddTransactionSheet(state, model, onDismiss = { adding = false })
-    if (importState.open) ImportSheet(state.accounts, model, onDismiss = model::closeImport, accountsLoaded = state.accountsLoaded)
+    if (adding && canWrite) AddTransactionSheet(state, model, onDismiss = { adding = false })
+    if (importState.open && canWrite) ImportSheet(state.accounts, model, onDismiss = model::closeImport, accountsLoaded = state.accountsLoaded)
     if (confirmRules) {
         AlertDialog(
             onDismissRequest = { confirmRules = false },

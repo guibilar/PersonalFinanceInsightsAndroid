@@ -1,5 +1,6 @@
 package com.guibilar.financeinsights.ui.dashboard
 
+import com.guibilar.financeinsights.ui.LocalFinanceCanWrite
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -120,7 +121,7 @@ fun DashboardScreen(
                         else Icon(Icons.Outlined.Visibility, "Hide amounts")
                     }
                 }
-                IconButton(onClick = openImport) { Icon(Icons.Outlined.UploadFile, "Import statements") }
+                if (LocalFinanceCanWrite.current) IconButton(onClick = openImport) { Icon(Icons.Outlined.UploadFile, "Import statements") }
                 AccountMenuButton(account, onSignOut)
             },
         )
