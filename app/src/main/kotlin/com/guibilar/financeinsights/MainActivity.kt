@@ -75,6 +75,8 @@ class MainActivity : FragmentActivity() {
     override fun onStart() {
         super.onStart()
         app.lock.onForeground()
+        // T81: a new alert shows soon after the app opens, not only at the hourly poll.
+        AlertNotifications.pollSoon(this, app.alertSettings)
     }
 
     override fun onStop() {

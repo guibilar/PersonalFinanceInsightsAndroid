@@ -22,6 +22,8 @@ import com.guibilar.financeinsights.ui.theme.FinanceTheme
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Rule
+import com.guibilar.financeinsights.core.today.TodayModule
+import com.guibilar.financeinsights.core.today.TodayModuleStatus
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -116,6 +118,30 @@ class TodayScreenTest {
         compose.waitForIdle()
 
         assertShows("Spent this month", "Needs attention")
+    }
+
+    @Test
+    fun `System and People alerts show in Needs attention, with no empty section, System without a link (T81)`() {
+        show(TodaySamples.withSystem)
+        assertShows("Money", "Needs attention", "No event broker since Oct 2, 2026", "Reach out to Marco Silva: last contact on Aug 15, 2026")
+        compose.onAllNodesWithText("System").assertCountEquals(0)
+        compose.onAllNodesWithText("Open People").assertCountEquals(0)
+        shoot("today-system")
+        compose.onNodeWithText("No event broker since Oct 2, 2026").performClick()
+        assertEquals(emptyList<TodayDestination>(), opened)
+        compose.onNodeWithText("Reach out to Marco Silva: last contact on Aug 15, 2026").performClick()
+        assertEquals(listOf<TodayDestination>(TodayDestination.Person("p1")), opened)
+    }
+
+    @Test
+    fun `the shown sections leave out modules without tiles, and put System last`() {
+        val sections = TodaySamples.withSystem.sections(MODULES)
+        assertEquals(listOf("System", "Money", "People"), sections.map { it.name })
+        assertEquals(listOf("Money"), sections.shown().map { it.name })
+        val failed = TodaySamples.withSystem.copy(
+            modules = listOf(TodayModule("System", TodayModuleStatus.Failed), TodayModule("Money", TodayModuleStatus.Complete)),
+        )
+        assertEquals(listOf("Money", "System"), failed.sections(MODULES).shown().map { it.name })
     }
 
     @Test

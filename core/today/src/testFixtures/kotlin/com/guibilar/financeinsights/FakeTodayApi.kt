@@ -114,6 +114,25 @@ object TodaySamples {
     val failed = complete.copy(modules = listOf(TodayModule("Money", TodayModuleStatus.Failed)), cards = emptyList())
 
     /** Money and a second module (Documents) with a tile of its own. */
+    /**
+     * T81: the server's own alerts (module System, no link) and a People alert, next to the Money cards. System and
+     * People have no tiles, so Today shows no section for them; their items are in "Needs attention".
+     */
+    val withSystem = complete.copy(
+        modules = listOf(
+            TodayModule("System", TodayModuleStatus.Complete),
+            TodayModule("Money", TodayModuleStatus.Complete),
+            TodayModule("People", TodayModuleStatus.Complete),
+        ),
+        cards = complete.cards +
+            TodayCard("system.broker-down", "System", TodayCardType.Attention, "broker-down", "No event broker",
+                null, "No event broker since {since}", mapOf("since" to TodayValue.day("2026-10-02")), TodaySeverity.Warning, null, null) +
+            TodayCard("people.reach-out.p1", "People", TodayCardType.Attention, "reach-out", "Time to reach out",
+                null, "Reach out to {person}: last contact on {date}",
+                mapOf("person" to TodayValue.plain("Marco Silva"), "date" to TodayValue.day("2026-08-15")),
+                TodaySeverity.Neutral, null, "/people/p1"),
+    )
+
     val twoModules = complete.copy(
         modules = complete.modules + TodayModule("Documents", TodayModuleStatus.Complete),
         cards = listOf(spent, leftOver, netWorth, budgets) +
