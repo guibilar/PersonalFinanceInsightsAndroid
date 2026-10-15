@@ -72,6 +72,9 @@ object DocumentLinkKinds {
 
     /** An item of the Home module (T22): the receipt, the manual, or a photo of it. The target id is the item id. */
     const val HOME_ITEM = "Home.Item"
+
+    /** A person of the People module (T93), for example the doctor of a prescription. The target id is the person id. */
+    const val PEOPLE_PERSON = "People.Person"
 }
 
 /** A document in a list: everything except the OCR text. */
@@ -155,5 +158,7 @@ data class NewDocumentLink(val kind: String, val targetId: String) {
         fun transaction(id: String) = NewDocumentLink(DocumentLinkKinds.MONEY_TRANSACTION, id)
 
         fun item(id: String) = NewDocumentLink(DocumentLinkKinds.HOME_ITEM, id)
+
+        fun person(id: String) = NewDocumentLink(DocumentLinkKinds.PEOPLE_PERSON, id)
     }
 }

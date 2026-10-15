@@ -108,6 +108,17 @@ data class Person(
     /** Open loans first, then the returned ones. */
     val loans: List<Loan> = emptyList(),
     val links: List<PersonLink> = emptyList(),
+    /** The documents and the tasks that link to the person (T93): documents first, each group by title. */
+    val linkedFrom: List<PersonLinkedFrom> = emptyList(),
+)
+
+/** A document or a task that links to the person (T93). The link belongs to it: it is removed there. */
+@Serializable
+data class PersonLinkedFrom(
+    /** [PersonLinkKinds.DOCUMENT] or [PersonLinkKinds.TASK]. */
+    val kind: String,
+    val targetId: String,
+    val title: String,
 )
 
 /** A page of people. */

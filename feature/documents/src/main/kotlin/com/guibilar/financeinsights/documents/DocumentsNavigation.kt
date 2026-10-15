@@ -86,6 +86,7 @@ fun NavGraphBuilder.documentsGraph(
     today: () -> LocalDate = { LocalDate.now() },
     tasks: DocumentTasks? = null,
     items: DocumentItems? = null,
+    people: DocumentPeople? = null,
 ) {
     composable<DocumentsRoute> {
         DocumentsListScreen(
@@ -109,6 +110,7 @@ fun NavGraphBuilder.documentsGraph(
             today = today(),
             tasks = tasks,
             items = items,
+            people = people,
         )
     }
     composable<AddDocumentRoute> { backStack ->

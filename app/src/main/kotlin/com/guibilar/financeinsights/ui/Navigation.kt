@@ -297,6 +297,8 @@ fun MainScreen(
     // Home pages open and how they read photos.
     val documentItems = remember(nav, client, canWrite) { AppDocumentItems(nav, client, canWrite) }
     val taskItems = remember(nav, client) { AppTaskItems(nav, client) }
+    val documentPeople = remember(nav, client, canWrite) { AppDocumentPeople(nav, client, canWrite) }
+    val taskPeople = remember(nav, client) { AppTaskPeople(nav, client) }
     val financeHome = remember(nav, canWrite) { AppFinanceHome(nav, canWrite) }
     val financeTasks = remember(nav, client, canWrite) { AppFinanceTasks(nav, client, canWrite) }
     val homeHost = remember(nav) { AppHomeHost(nav) }
@@ -424,6 +426,7 @@ fun MainScreen(
                         canWrite = canWrite,
                         tasks = documentTasks,
                         items = documentItems,
+                        people = documentPeople,
                     )
                     tasksGraph(
                         nav = nav,
@@ -434,6 +437,7 @@ fun MainScreen(
                         openTransaction = { id -> nav.openTransaction(id) },
                         canWrite = canWrite,
                         items = taskItems,
+                        people = taskPeople,
                     )
                     homeGraph(
                         nav = nav,

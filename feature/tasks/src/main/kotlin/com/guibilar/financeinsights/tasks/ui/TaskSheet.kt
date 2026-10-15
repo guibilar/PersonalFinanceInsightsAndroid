@@ -33,6 +33,7 @@ import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.LinkOff
 import androidx.compose.material.icons.outlined.Payments
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.automirrored.outlined.Undo
 import androidx.compose.material3.AlertDialog
@@ -75,6 +76,8 @@ import com.guibilar.financeinsights.core.home.itemSubtitle
 import com.guibilar.financeinsights.core.logic.Money
 import com.guibilar.financeinsights.core.logic.formatDay
 import com.guibilar.financeinsights.core.model.Transaction
+import com.guibilar.financeinsights.core.people.PersonSummary
+import com.guibilar.financeinsights.core.people.groupsLine
 import com.guibilar.financeinsights.core.tasks.RepeatMode
 import com.guibilar.financeinsights.core.tasks.RepeatUnit
 import com.guibilar.financeinsights.core.tasks.TaskDraft
@@ -108,6 +111,7 @@ fun TaskSheet(
     openTransaction: (String) -> Unit,
     onDismiss: () -> Unit,
     openItem: ((String) -> Unit)? = null,
+    openPerson: ((String) -> Unit)? = null,
 ) {
     val state by model.state.collectAsState()
     val snackbar = remember { SnackbarHostState() }
@@ -143,6 +147,7 @@ fun TaskSheet(
                         unlink = { unlinking = it.id },
                         pick = model::openPicker,
                         openItem = openItem,
+                        openPerson = openPerson,
                     )
                     HorizontalDivider()
                     CompletionsBlock(item)
@@ -244,6 +249,25 @@ fun TaskSheet(
             ) {
                 model.closePicker()
                 model.linkItem(item)
+            }
+        }
+        LinkPicker.Person -> PickerSheet(
+            title = "Link to a person",
+            searchHint = "Search people",
+            candidates = state.personCandidates,
+            empty = { search -> if (search.isBlank()) "No people yet. Add them in People." else "No person matches “${search.trim()}”." },
+            search = model::search,
+            onDismiss = model::closePicker,
+        ) { person: PersonSummary ->
+            val linked = state.people?.valueOrNull.orEmpty().any { it.id == person.id }
+            CandidateRow(
+                person.name,
+                listOf(groupsLine(person), if (linked) "Linked" else "").filter { it.isNotEmpty() }.joinToString(" · "),
+                null,
+                enabled = !linked,
+            ) {
+                model.closePicker()
+                model.linkPerson(person)
             }
         }
         null -> {}
@@ -456,12 +480,14 @@ private fun LinksBlock(
     unlink: (TaskLink) -> Unit,
     pick: (LinkPicker) -> Unit,
     openItem: ((String) -> Unit)? = null,
+    openPerson: ((String) -> Unit)? = null,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text("Links", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
         val known = links.filter { it.kind == TaskLinkKinds.DOCUMENT || it.kind == TaskLinkKinds.TRANSACTION }
         val items = state.items?.takeIf { openItem != null }
-        if (known.isEmpty() && items?.valueOrNull.isNullOrEmpty()) {
+        val people = state.people?.takeIf { openPerson != null }
+        if (known.isEmpty() && items?.valueOrNull.isNullOrEmpty() && people?.valueOrNull.isNullOrEmpty()) {
             Text(
                 if (items == null) "Not linked to a document or a transaction." else "Not linked to a document, a transaction or an item.",
                 style = MaterialTheme.typography.bodyMedium,
@@ -489,6 +515,9 @@ private fun LinksBlock(
         if (items != null && openItem != null) {
             ItemLines(items, links, canWrite, state.busy, openItem, unlink)
         }
+        if (people != null && openPerson != null) {
+            PersonLines(people, links, canWrite, state.busy, openPerson, unlink)
+        }
         if (canWrite) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = { pick(LinkPicker.Document) }, enabled = !state.busy) {
@@ -506,6 +535,13 @@ private fun LinksBlock(
                         Icon(Icons.Outlined.Link, null, Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))
                         Text("Link to an item")
+                    }
+                }
+                if (people != null) {
+                    OutlinedButton(onClick = { pick(LinkPicker.Person) }, enabled = !state.busy) {
+                        Icon(Icons.Outlined.Link, null, Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Link to a person")
                     }
                 }
             }
@@ -541,6 +577,48 @@ private fun ItemLines(
                     Text(item.name, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(
                         listOf("Home", itemSubtitle(item, withRoom = true)).joinToString(" · "),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                if (canWrite && own != null) {
+                    IconButton(onClick = { unlink(own) }, enabled = !busy) { Icon(Icons.Outlined.LinkOff, "Remove the link") }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * The people that the task is about (T93); a tap opens one. Only a link that the task holds can go from here; one that
+ * the person holds goes on the person's page.
+ */
+@Composable
+private fun PersonLines(
+    people: LoadState<List<PersonSummary>>,
+    links: List<TaskLink>,
+    canWrite: Boolean,
+    busy: Boolean,
+    openPerson: (String) -> Unit,
+    unlink: (TaskLink) -> Unit,
+) {
+    when (people) {
+        LoadState.Loading -> Skeleton(lines = 2, lineHeight = 12.dp)
+        is LoadState.Failed -> Text(people.message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+        is LoadState.Loaded -> people.value.forEach { person ->
+            val own = links.firstOrNull { it.kind == TaskLinkKinds.PEOPLE_PERSON && it.targetId == person.id }
+            Row(
+                Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable { openPerson(person.id) }.padding(vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Outlined.Person, null, tint = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.width(16.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(person.name, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        listOf("People", groupsLine(person)).filter { it.isNotEmpty() }.joinToString(" · "),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
