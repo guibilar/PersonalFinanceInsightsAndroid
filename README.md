@@ -222,13 +222,33 @@ CI keeps the uploads small and short:
 | Artifact | When CI uploads it | Kept for |
 | --- | --- | --- |
 | `finance-insights-debug-apk` | Every run that builds the APK | 30 days on `main` and manual runs, 7 days on pull requests |
-| `screenshots` | Pull requests, and runs that fail | 7 days |
+| `screenshots` | Runs that fail | 7 days |
 | `reports` | Runs that fail | 7 days |
 
 A failed upload does not fail the run. The step **Warn about failed uploads** then writes a warning annotation
 (`Artifact upload failed`). The usual cause is a full quota. To free space, delete old artifacts in the
 **Actions** tab, or with `gh api -X DELETE repos/guibilar/PersonalFinanceInsightsAndroid/actions/artifacts/<id>`.
 Each new upload step must set `retention-days` and `continue-on-error: true`, and the warning step must name it.
+
+### Screenshots
+
+The screenshot tests (Robolectric and Roborazzi) write PNG files to `<module>/build/shots/`. The recorded images are in
+git, in `<module>/screenshots/`. CI fails when an image is not the same as its recorded copy, byte for byte (T28).
+
+- The images are the same on each run. Tests pass `ripples = false` to `FinanceTheme`: a ripple is drawn by an
+  Android view on the system clock, not on the Compose test clock, so it was at a different point on each run.
+- After an intended change of a screen, record the images and commit them with the change:
+
+  ```bash
+  ./gradlew :app:testDebugUnitTest :feature:finance:testDebugUnitTest :feature:documents:testDebugUnitTest \
+    :feature:tasks:testDebugUnitTest :feature:home:testDebugUnitTest :feature:people:testDebugUnitTest
+  python3 scripts/screenshots.py record
+  git add app/screenshots feature/*/screenshots
+  ```
+
+  The pull request shows each changed image (before and after) in its file list.
+- A new screenshot test needs its image recorded too; a removed test needs its image removed (`record` does both).
+- `python3 scripts/screenshots.py check` compares locally, as CI does.
 
 ### CI annotations
 
@@ -240,15 +260,16 @@ The steps run also when the tests fail.
 | --- | --- | --- |
 | Notice `Tests :<module>` | Test results as annotations | Totals of one module: tests, passed, failed, skipped, and time |
 | Error `Failed test :<module>` | Test results as annotations | The test name and the first lines of its message (at most 9; then one error with the number of the others) |
-| Notice `Screenshots` | Screenshot summary as an annotation | The number of images, and the short hash (SHA-256, 10 characters) of each new, changed, or removed image, compared with `main` |
+| Error `Compile error` | Compile errors as annotations | A Kotlin compile error, on its file and line (at most 10) |
+| Error `Gradle: what went wrong` | Compile errors as annotations | Gradle's "What went wrong" block of each failed task (at most 10) |
+| Error `Changed screenshot`, `New screenshot`, `Removed screenshot` | Screenshots match the recorded images | One image (module and name) that is not the same as its recorded copy (at most 10) |
+| Notice `Screenshots` | Screenshots match the recorded images | The number of images, and the list of all changed, new, and removed images |
 
-- The scripts are `scripts/test-annotations.py` (JUnit XML in `<module>/build/test-results/`) and
-  `scripts/screenshot-summary.py` (PNG files in `<module>/build/shots/`).
+- The scripts are `scripts/test-annotations.py` (JUnit XML in `<module>/build/test-results/`),
+  `scripts/gradle-annotations.py` (the Gradle output, kept in `gradle-output.log`), and `scripts/screenshots.py`
+  (PNG files in `<module>/build/shots/`, compared with `<module>/screenshots/`).
 - Gradle runs with `--continue`, so a failure in one module does not hide the results of the others.
-- A run on `main` saves its list of screenshot hashes in the Actions cache (`screenshots-<commit>`). A pull request
-  restores the list of its base commit, or else the newest list of `main`. A hash that changes shows a changed
-  image. Download the `screenshots` artifact to look at it.
-- The screenshot tests (`:app`, `:feature:finance`, `:feature:documents`, `:feature:tasks`) are not cacheable, because the images are
+- The screenshot tests (`:app` and the `:feature` modules) are not cacheable, because the images are
   not a declared output. Thus CI always renders them.
 - GitHub shows at most 10 notices and 10 errors per step. Keep this limit in mind when you add a module. With
   `:core:tasks` and `:feature:tasks`, the app has 10 modules with tests: one more puts the totals into one notice.

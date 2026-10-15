@@ -42,7 +42,7 @@ class TagsScreensTest {
     private val vacation = TagReference("01a10460-5d8c-7d55-a0b8-a21750ee834e", "Vacation 2026")
 
     private fun show(content: @Composable () -> Unit) {
-        compose.setContent { FinanceTheme(darkTheme = false, dynamicColor = false) { Surface { content() } } }
+        compose.setContent { FinanceTheme(ripples = false, darkTheme = false, dynamicColor = false) { Surface { content() } } }
         compose.waitForIdle()
     }
 

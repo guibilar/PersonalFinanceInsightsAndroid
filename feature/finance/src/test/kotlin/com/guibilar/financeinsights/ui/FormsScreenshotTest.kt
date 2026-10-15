@@ -45,7 +45,7 @@ class FormsScreenshotTest {
     private val account = AccountInfo("dev", "https://finance.example.ts.net")
 
     private fun show(dark: Boolean = false, content: @Composable () -> Unit) {
-        compose.setContent { FinanceTheme(darkTheme = dark, dynamicColor = false) { Surface { content() } } }
+        compose.setContent { FinanceTheme(ripples = false, darkTheme = dark, dynamicColor = false) { Surface { content() } } }
         compose.waitForIdle()
     }
 

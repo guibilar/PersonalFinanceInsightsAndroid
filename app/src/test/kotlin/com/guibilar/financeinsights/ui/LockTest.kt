@@ -41,7 +41,7 @@ class LockTest {
         runBlocking { session.signIn("https://finance.example.ts.net", "dev", "a password") }
         val preferences = AppPreferences(context).apply { setLock(true) }
         val lock = AppLock(preferences) { now }.apply { unlocked() }
-        compose.setContent { FinanceTheme(dynamicColor = false) { FinanceRoot(session, lock = lock, preferences = preferences, financePreferences = FinancePreferences(context)) } }
+        compose.setContent { FinanceTheme(ripples = false, dynamicColor = false) { FinanceRoot(session, lock = lock, preferences = preferences, financePreferences = FinancePreferences(context)) } }
         compose.onNodeWithText("Modules").performClick()
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("Settings"))
         compose.onNodeWithText("Settings").performClick()

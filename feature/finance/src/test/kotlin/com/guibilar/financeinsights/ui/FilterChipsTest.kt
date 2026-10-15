@@ -27,7 +27,7 @@ class FilterChipsTest {
         val route = TransactionsRoute(categoryId = "c-savings")
         val model = TransactionsViewModel(api, route) { LocalDate.of(2026, 10, 3) }
         model.setAccount("5b0c4b8e-3f5e-4c1a-9d53-0c2f7a1e8a02")
-        compose.setContent { FinanceTheme(dynamicColor = false) { Surface { TransactionsScreen(model, AccountInfo("dev", "s"), {}, PaddingValues()) } } }
+        compose.setContent { FinanceTheme(ripples = false, dynamicColor = false) { Surface { TransactionsScreen(model, AccountInfo("dev", "s"), {}, PaddingValues()) } } }
         compose.waitForIdle()
         compose.onAllNodesWithText("Savings").assertCountEquals(2)
     }

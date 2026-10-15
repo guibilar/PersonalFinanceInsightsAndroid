@@ -31,7 +31,7 @@ class AuditScreenshotTest {
     fun dashboardAtLargestText() {
         RuntimeEnvironment.setFontScale(2.0f)
         val model = DashboardViewModel(FakeFinanceApi(), alerts) { LocalDate.of(2026, 10, 3) }
-        compose.setContent { FinanceTheme(dynamicColor = false) { Surface { DashboardScreen(model, AccountInfo("dev", "s"), {}, PaddingValues(), {}) } } }
+        compose.setContent { FinanceTheme(ripples = false, dynamicColor = false) { Surface { DashboardScreen(model, AccountInfo("dev", "s"), {}, PaddingValues(), {}) } } }
         compose.waitForIdle()
         compose.onRoot().captureRoboImage("build/shots/audit-dashboard-font-2x.png")
     }

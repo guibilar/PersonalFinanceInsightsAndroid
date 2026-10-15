@@ -199,7 +199,8 @@ class CategoriesViewModel(private val api: FinanceApi) : SettingsViewModel() {
 }
 
 /** The bank accounts statements are imported into: add, rename or correct the format, delete the empty ones. */
-class AccountsViewModel(private val api: FinanceApi) : SettingsViewModel() {
+/** [today] gives the day of a new balance and this year's contribution room; tests give a fixed day (T28). */
+class AccountsViewModel(private val api: FinanceApi, val today: () -> java.time.LocalDate = java.time.LocalDate::now) : SettingsViewModel() {
     private val _state = MutableStateFlow<LoadState<List<Account>>>(LoadState.Loading)
     val state: StateFlow<LoadState<List<Account>>> = _state.asStateFlow()
 
