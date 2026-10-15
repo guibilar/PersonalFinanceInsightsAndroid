@@ -1,6 +1,5 @@
 package com.guibilar.financeinsights.ui.today
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -23,22 +22,11 @@ import androidx.compose.material.icons.automirrored.outlined.ShowChart
 import androidx.compose.material.icons.automirrored.outlined.TrendingDown
 import androidx.compose.material.icons.automirrored.outlined.TrendingUp
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
-import androidx.compose.material.icons.outlined.Autorenew
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CheckBox
 import androidx.compose.material.icons.outlined.Dashboard
-import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Savings
-import androidx.compose.material.icons.outlined.Sell
-import androidx.compose.material.icons.outlined.Cake
-import androidx.compose.material.icons.outlined.Group
-import androidx.compose.material.icons.outlined.Handshake
-import androidx.compose.material.icons.outlined.FindInPage
-import androidx.compose.material.icons.outlined.CloudOff
-import androidx.compose.material.icons.outlined.HourglassEmpty
-import androidx.compose.material.icons.outlined.VerifiedUser
-import androidx.compose.material.icons.outlined.UploadFile
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -57,7 +45,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -73,7 +60,9 @@ import com.guibilar.financeinsights.core.today.TodayTrend
 import com.guibilar.financeinsights.core.today.filledText
 import com.guibilar.financeinsights.core.today.todayDestination
 import com.guibilar.financeinsights.core.today.valueText
+import com.guibilar.financeinsights.ui.common.AttentionItem
 import com.guibilar.financeinsights.ui.common.ErrorState
+import com.guibilar.financeinsights.ui.common.NeedsAttentionCard
 import com.guibilar.financeinsights.ui.common.ReadableColumn
 import com.guibilar.financeinsights.ui.common.SectionCard
 import com.guibilar.financeinsights.ui.common.Skeleton
@@ -306,29 +295,6 @@ private fun tileIcon(kind: String): ImageVector? = when (kind) {
     else -> null
 }
 
-/** "Needs attention" icons by card kind, as on the Money dashboard. */
-private fun attentionIcon(kind: String): ImageVector = when (kind) {
-    "budget-over" -> Icons.Outlined.AccountBalanceWallet
-    "statements-not-imported", "statements-behind" -> Icons.Outlined.UploadFile
-    "price-changed" -> Icons.Outlined.Autorenew
-    "unsorted" -> Icons.Outlined.Sell
-    // Documents (T11): a document that expires soon, or that expired.
-    "expiring", "expired" -> Icons.Outlined.Description
-    // Tasks (T19): one overdue task, or many.
-    "overdue", "overdue-many" -> Icons.Outlined.CheckBox
-    // Home (T22): a warranty that ends soon.
-    "warranty-ending" -> Icons.Outlined.VerifiedUser
-    // People (T20): a person to reach out to, a birthday soon, a lent thing not back.
-    "reach-out" -> Icons.Outlined.Group
-    "birthday" -> Icons.Outlined.Cake
-    "loan-overdue" -> Icons.Outlined.Handshake
-    // System (T80): a stuck event outbox, the event broker down, document files missing.
-    "outbox-stuck" -> Icons.Outlined.HourglassEmpty
-    "broker-down" -> Icons.Outlined.CloudOff
-    "files-missing" -> Icons.Outlined.FindInPage
-    else -> Icons.Outlined.ErrorOutline
-}
-
 @Composable
 private fun severityColor(severity: TodaySeverity): Color {
     val colors = LocalChartColors.current
@@ -340,45 +306,15 @@ private fun severityColor(severity: TodaySeverity): Color {
     }
 }
 
-/** What needs a look, from all modules, each opening where it is dealt with. Only shown when something does. */
+/** What needs a look, from all modules, each opening where it is dealt with (the shared card, T77). */
 @Composable
 private fun NeedsAttention(items: List<TodayCard>, open: (TodayDestination) -> Unit) {
-    val onContainer = MaterialTheme.colorScheme.onTertiaryContainer
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(Modifier.padding(vertical = 8.dp)) {
-            Text(
-                "Needs attention",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = onContainer,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp).semantics { heading() },
-            )
-            items.forEach { item ->
-                val destination = todayDestination(item.link)
-                Row(
-                    Modifier.fillMaxWidth()
-                        .then(if (destination != null) Modifier.clickable(role = Role.Button) { open(destination) } else Modifier)
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        attentionIcon(item.kind),
-                        null,
-                        Modifier.size(18.dp),
-                        tint = if (item.severity == TodaySeverity.Bad) LocalChartColors.current.negative else onContainer,
-                    )
-                    Spacer(Modifier.width(12.dp))
-                    Text(item.filledText, style = MaterialTheme.typography.bodyMedium, color = onContainer, modifier = Modifier.weight(1f))
-                    if (destination != null) {
-                        Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, Modifier.size(16.dp), tint = onContainer)
-                    }
-                }
-            }
-        }
-    }
+    NeedsAttentionCard(
+        items.map { item ->
+            val destination = todayDestination(item.link)
+            AttentionItem(item.id, item.kind, item.filledText, item.severity == TodaySeverity.Bad, destination?.let { { open(it) } })
+        },
+    )
 }
 
 /** Four grey tiles while the first answer loads. */

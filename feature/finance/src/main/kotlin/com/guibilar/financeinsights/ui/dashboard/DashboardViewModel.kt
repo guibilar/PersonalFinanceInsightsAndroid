@@ -67,6 +67,11 @@ class DashboardViewModel(
     private val _state = MutableStateFlow(DashboardState(today()))
     val state: StateFlow<DashboardState> = _state.asStateFlow()
 
+    // Before init (T77): a property declared after init is set to its first value after init ran, and so lost the job
+    // of the first load (a refresh then could not cancel it).
+    private var shown = false
+    private var loadJob: Job? = null
+
     init {
         load()
     }
@@ -83,8 +88,6 @@ class DashboardViewModel(
         _state.update { it.copy(today = today()) }
         load(quiet = true)
     }
-    private var shown = false
-    private var loadJob: Job? = null
 
     fun refresh() {
         // After midnight into a new month the reports come back for it: "today" moves on with them.
