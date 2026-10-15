@@ -14,12 +14,16 @@ class FakeTimelineApi(var entries: List<TimelineEntry> = samples) : TimelineApi 
         if (failing) throw IOException("offline")
         val to = before?.let { LocalDate.parse(it).minusDays(1) } ?: TODAY
         val from = to.minusDays(days - 1L)
-        val shown = entries.filter { (module == null || it.module == module) && LocalDate.parse(it.day) in from..to }
+        val ofModule = entries.filter { module == null || it.module == module }
+        val shown = ofModule.filter { LocalDate.parse(it.day) in from..to }
+        // As the host: the next page ends on the latest earlier day with an entry; none: nothing earlier.
+        val latest = ofModule.map { LocalDate.parse(it.day) }.filter { it < from }.maxOrNull()
         return TimelinePage(
             today = TODAY.toString(),
             from = from.toString(),
             to = to.toString(),
-            earlier = from.toString(),
+            earlier = (latest?.plusDays(1) ?: from).toString(),
+            hasEarlier = latest != null,
             days = shown.groupBy { it.day }.toSortedMap(compareByDescending { it }).map { (day, list) -> TimelineDay(day, list) },
             modules = listOf("Documents", "Home", "Journal", "Money", "People", "Tasks")
                 .map { TimelineModule(it, if (it in failedModules) "Failed" else "Complete") },

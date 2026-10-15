@@ -77,8 +77,12 @@ class TimelineTest {
 
         compose.onNodeWithText("Show earlier").performScrollTo().performClick()
         compose.waitForIdle()
-        assertEquals(Triple<String?, Int, String?>("2026-09-27", 14, "Money"), api.sent.last())
+        // The next page ends on Sep 25, the latest earlier day with an entry (the host skips the empty days).
+        assertEquals(Triple<String?, Int, String?>("2026-09-26", 14, "Money"), api.sent.last())
         assertShows("FRI SEP 25", "Payroll", "$2,400.00")
+        // Nothing earlier: no "Show earlier" (it went on through empty weeks for ever).
+        compose.onNodeWithText("Show earlier").assertDoesNotExist()
+        compose.onNodeWithText("That is everything: nothing happened earlier.").performScrollTo().assertExists()
     }
 
     @Test

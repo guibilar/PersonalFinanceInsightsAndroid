@@ -33,7 +33,11 @@ data class TimelineDay(val day: String, val entries: List<TimelineEntry> = empty
 @Serializable
 data class TimelineModule(val module: String, val status: String = "Complete")
 
-/** One page: the days from [from] to [to], newest first (only days with entries). [earlier] is the next page's `before`. */
+/**
+ * One page: the days from [from] to [to], newest first (only days with entries). [earlier] is the next page's `before`:
+ * that page ends on the latest earlier day with an entry. [hasEarlier] is false when no module has anything earlier (an
+ * older host leaves it out: true).
+ */
 @Serializable
 data class TimelinePage(
     val today: String,
@@ -42,6 +46,7 @@ data class TimelinePage(
     val earlier: String,
     val days: List<TimelineDay> = emptyList(),
     val modules: List<TimelineModule> = emptyList(),
+    val hasEarlier: Boolean = true,
 )
 
 /** The Timeline API, under `<server>/api/timeline`. Make it from the signed-in client: `client.api<TimelineApi>()`. */

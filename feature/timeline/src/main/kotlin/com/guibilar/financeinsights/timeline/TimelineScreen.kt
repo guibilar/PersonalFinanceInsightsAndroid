@@ -125,8 +125,16 @@ fun TimelineScreen(
                                 }
                                 item(key = "earlier") {
                                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                        OutlinedButton(onClick = model::showEarlier, enabled = !state.loading) {
-                                            Text(if (state.loading) "Loading…" else "Show earlier")
+                                        if (state.pages.lastOrNull()?.hasEarlier == false) {
+                                            Text(
+                                                "That is everything: nothing happened earlier.",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            )
+                                        } else {
+                                            OutlinedButton(onClick = model::showEarlier, enabled = !state.loading) {
+                                                Text(if (state.loading) "Loading…" else "Show earlier")
+                                            }
                                         }
                                         if (state.moreFailed) {
                                             Text("Could not load more.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
