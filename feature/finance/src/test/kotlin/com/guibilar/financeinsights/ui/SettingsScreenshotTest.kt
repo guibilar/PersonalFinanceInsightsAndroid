@@ -1,5 +1,6 @@
 package com.guibilar.financeinsights.ui
 
+import java.time.LocalDate
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -71,7 +72,7 @@ class SettingsScreenshotTest {
 
     @Test
     fun accounts() {
-        val model = AccountsViewModel(api)
+        val model = AccountsViewModel(api, today = { LocalDate.of(2026, 10, 14) })
         show { AccountsScreen(model, PaddingValues()) {} }
         shoot("accounts")
         compose.onNodeWithText("Neo card").performClick()

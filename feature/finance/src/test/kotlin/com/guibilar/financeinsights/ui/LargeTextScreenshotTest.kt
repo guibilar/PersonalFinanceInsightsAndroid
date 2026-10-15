@@ -80,7 +80,7 @@ class LargeTextScreenshotTest {
     }
 
     @Test fun accounts() {
-        val model = AccountsViewModel(api)
+        val model = AccountsViewModel(api, today = { LocalDate.of(2026, 10, 14) })
         show { AccountsScreen(model, PaddingValues()) {} }
         shoot("accounts")
     }

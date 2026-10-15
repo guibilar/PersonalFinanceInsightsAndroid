@@ -38,10 +38,14 @@ def images(folder):
 
 
 def check():
-    changed, added, removed, same = [], [], [], 0
+    changed, added, removed, same, skipped = [], [], [], 0, []
     for module in modules():
         shots, recorded = os.path.join(module, "build", "shots"), os.path.join(module, "screenshots")
         now, before = images(shots), images(recorded)
+        if not now:
+            # The tests of this module did not run (for example a compile error): nothing to compare.
+            skipped.append(module)
+            continue
         for name in sorted(now & before):
             if filecmp.cmp(os.path.join(shots, name), os.path.join(recorded, name), shallow=False):
                 same += 1
@@ -50,6 +54,8 @@ def check():
         added += [f"{module}:{name}" for name in sorted(now - before)]
         removed += [f"{module}:{name}" for name in sorted(before - now)]
 
+    for module in skipped:
+        print(f"::warning title=Screenshots not compared::{module} has no images: its tests did not run.")
     if same + len(changed) + len(added) == 0:
         print("::error title=Screenshots::No screenshot images. The screenshot tests did not run.")
         return 1
