@@ -3,9 +3,13 @@ package com.guibilar.financeinsights.ui.today
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.Surface
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
@@ -14,6 +18,7 @@ import com.guibilar.financeinsights.FakeTodayApi
 import com.guibilar.financeinsights.TodaySamples
 import com.guibilar.financeinsights.core.logic.Money
 import com.guibilar.financeinsights.core.today.MoneyLink
+import com.guibilar.financeinsights.core.today.TodayCardType
 import com.guibilar.financeinsights.core.today.TodayDestination
 import com.guibilar.financeinsights.core.today.TodayDto
 import com.guibilar.financeinsights.ui.modules.HestiaModule
@@ -166,6 +171,20 @@ class TodayScreenTest {
         shoot("today-tasks")
         compose.onNodeWithText("2 overdue").performClick()
         assertEquals(listOf<TodayDestination>(TodayDestination.Tasks()), opened)
+    }
+
+    @Test
+    fun `the bell counts the items that need attention, and goes to them (T69)`() {
+        show()
+        compose.onNodeWithContentDescription("2 items need attention").assertIsEnabled().performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Needs attention").assertIsDisplayed()
+    }
+
+    @Test
+    fun `without items the bell is off`() {
+        show(TodaySamples.complete.copy(cards = TodaySamples.complete.cards.filter { it.type == TodayCardType.Tile }))
+        compose.onNodeWithContentDescription("Nothing needs attention").assertIsNotEnabled()
     }
 
     @Test
