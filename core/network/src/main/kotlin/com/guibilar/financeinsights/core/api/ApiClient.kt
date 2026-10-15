@@ -1,5 +1,6 @@
 package com.guibilar.financeinsights.core.api
 
+import com.guibilar.financeinsights.core.logic.DataChanges
 import kotlinx.serialization.json.Json
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
@@ -54,6 +55,7 @@ fun createApiClient(
     val client = OkHttpClient.Builder()
         .cookieJar(cookieJar)
         .addInterceptor(sessionEnded)
+        .addInterceptor(DataWrites)
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(60, TimeUnit.SECONDS)
         .apply(configure)
@@ -64,4 +66,31 @@ fun createApiClient(
         .addConverterFactory(ApiJson.asConverterFactory("application/json".toMediaType()))
         .build()
     return ApiClient { type -> retrofit.create(type) as Any }
+}
+
+/**
+ * Says that the data changed ([DataChanges]) after each successful write through the client, so the next Today load
+ * asks the server for fresh cards (T58). One place for all modules: a new write cannot forget it. A write is a call
+ * that is not a GET, except signing in and out and the finance POSTs that only read ([READ_ONLY_POSTS], the same list as
+ * finance's `docs/read-only-queries.txt`). A failed call changes nothing.
+ */
+internal object DataWrites : Interceptor {
+    /** The finance POST endpoints that only read (finance `[ReadOnlyQuery]`, Hestia.Api `FinanceProxy:ReadOnlyQueries`). */
+    val READ_ONLY_POSTS = setOf(
+        "/api/Budget/Filter",
+        "/api/CategoryRules/Preview",
+        "/api/Reports/breakdown",
+        "/api/Reports/merchants",
+        "/api/Transaction/Filter",
+    )
+
+    fun isWrite(method: String, path: String): Boolean =
+        method != "GET" && method != "HEAD" && !path.contains("/api/Auth/") && READ_ONLY_POSTS.none { path.endsWith(it) }
+
+    override fun intercept(chain: Interceptor.Chain): okhttp3.Response {
+        val request = chain.request()
+        val response = chain.proceed(request)
+        if (response.isSuccessful && isWrite(request.method, request.url.encodedPath)) DataChanges.changed()
+        return response
+    }
 }

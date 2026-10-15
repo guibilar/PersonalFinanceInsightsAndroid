@@ -18,6 +18,8 @@ java {
 }
 
 dependencies {
+    // DataChanges: a successful write through the client says that the data changed (T58).
+    implementation(project(":core:common"))
     api(libs.kotlinx.coroutines.core)
     api(libs.kotlinx.serialization.json)
     api(libs.retrofit)

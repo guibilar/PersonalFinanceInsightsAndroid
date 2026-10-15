@@ -287,7 +287,8 @@ How they connect:
   the same cards. A card's link is a web route (for example `/money/budgets`); `todayDestination(...)` in
   `TodayLinks.kt` (in `:core:today`) is the one place that turns it into a page of the app. A link that the app does not know opens the
   Money home. A module with cards gets its own section on Today, with no app change; a registry module with no cards
-  stays under "Coming soon". After an import or a new transaction (`DataChanges.changed()`), the next Today load asks
+  stays under "Coming soon". After any successful write through the signed-in client (the `DataWrites` interceptor in `:core:network`,
+  T58: every call that is not a GET, except sign-in and finance's read-only POST queries), the next Today load asks
   the server for new cards (`refresh=true`), and not its 30-second cache. `todayDestination(...)` gives a
   `TodayDestination`: a Money page, one transaction (`/money/transactions?id=<id>`), the Documents list
   (`/documents`), one document (`/documents/<id>`), the Tasks screen (`/tasks`, or `/tasks?due=overdue` for the
