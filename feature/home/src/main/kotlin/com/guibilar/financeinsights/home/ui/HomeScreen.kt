@@ -58,16 +58,16 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.guibilar.financeinsights.core.home.HomeSummary
 import com.guibilar.financeinsights.core.home.ItemSummary
+import com.guibilar.financeinsights.core.home.Maintenance
 import com.guibilar.financeinsights.core.home.NO_ROOM
 import com.guibilar.financeinsights.core.home.RoomCount
 import com.guibilar.financeinsights.core.home.daysLeftText
 import com.guibilar.financeinsights.core.home.exportFileName
 import com.guibilar.financeinsights.core.home.homeDay
 import com.guibilar.financeinsights.core.home.itemsText
+import com.guibilar.financeinsights.core.home.repeatText
 import com.guibilar.financeinsights.core.home.roomLabel
 import com.guibilar.financeinsights.core.logic.Money
-import com.guibilar.financeinsights.core.tasks.TaskSummary
-import com.guibilar.financeinsights.core.tasks.repeatText
 import com.guibilar.financeinsights.ui.common.EmptyState
 import com.guibilar.financeinsights.ui.common.ErrorState
 import com.guibilar.financeinsights.ui.common.FitText
@@ -156,7 +156,7 @@ fun HomeScreen(
     }
 
     if (addingRoom) {
-        NameDialog("Add a room", "", "Add", save = model::addRoom, onDismiss = { addingRoom = false })
+        NameSheet("Add a room", "", "Add", save = model::addRoom, onDismiss = { addingRoom = false })
     }
 }
 
@@ -259,7 +259,7 @@ private fun SearchField(text: String, search: (String) -> Unit, clear: () -> Uni
 
 /** The repeated tasks of the items, each with its rule and the days left. */
 @Composable
-private fun MaintenanceCard(jobs: LoadState<List<TaskSummary>>, today: LocalDate, open: (String) -> Unit) {
+private fun MaintenanceCard(jobs: LoadState<List<Maintenance>>, today: LocalDate, open: (String) -> Unit) {
     when (jobs) {
         LoadState.Loading -> Skeleton(lines = 2, lineHeight = 28.dp)
         is LoadState.Failed -> Text(jobs.message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
@@ -273,7 +273,7 @@ private fun MaintenanceCard(jobs: LoadState<List<TaskSummary>>, today: LocalDate
             RowsCard {
                 jobs.value.forEachIndexed { index, task ->
                     if (index > 0) HorizontalDivider(Modifier.padding(start = 56.dp))
-                    MaintenanceRow(task, today) { open(task.id) }
+                    MaintenanceRow(task, today) { open(task.taskId) }
                 }
             }
         }
@@ -281,7 +281,7 @@ private fun MaintenanceCard(jobs: LoadState<List<TaskSummary>>, today: LocalDate
 }
 
 @Composable
-private fun MaintenanceRow(task: TaskSummary, today: LocalDate, open: () -> Unit) {
+private fun MaintenanceRow(task: Maintenance, today: LocalDate, open: () -> Unit) {
     val due = homeDay(task.dueOn)
     val soon = due != null && ChronoUnit.DAYS.between(today, due) <= SOON_DAYS
     Row(
@@ -292,9 +292,14 @@ private fun MaintenanceRow(task: TaskSummary, today: LocalDate, open: () -> Unit
         Spacer(Modifier.width(16.dp))
         Column(Modifier.weight(1f)) {
             Text(task.title, style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            task.repeat?.let {
-                Text(repeatText(it), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+            // The item (T89), and the repeat of a repeated task.
+            Text(
+                listOfNotNull(task.itemName, repeatText(task.repeatEvery, task.repeatUnit)).joinToString(" · "),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
         daysLeftText(task.dueOn, today)?.let {
             Spacer(Modifier.width(8.dp))

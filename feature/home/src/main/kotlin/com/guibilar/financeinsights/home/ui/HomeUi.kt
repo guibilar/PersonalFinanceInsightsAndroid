@@ -9,17 +9,20 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -45,6 +48,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -153,17 +157,36 @@ private fun ItemRow(item: ItemSummary, today: LocalDate, withRoom: Boolean, open
     }
 }
 
-/** A dialog for a name (a new room, a new room name). [save] answers why it can't be saved, or null when done. */
+/**
+ * A sheet for a name (a new room, a new room name). [save] answers why it can't be saved, or null when done. A sheet,
+ * not a dialog (T89): a text field in an `AlertDialog` never became idle in the Robolectric tests (T88).
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun NameDialog(title: String, initial: String, confirm: String, save: suspend (String) -> String?, onDismiss: () -> Unit) {
+internal fun NameSheet(title: String, initial: String, confirm: String, save: suspend (String) -> String?, onDismiss: () -> Unit) {
     var name by rememberSaveable { mutableStateOf(initial) }
     var error by remember { mutableStateOf<String?>(null) }
     var saving by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = {
+    fun submit() {
+        val problem = roomNameError(name)
+        if (problem != null) {
+            error = problem
+            return
+        }
+        saving = true
+        scope.launch {
+            error = save(name)
+            saving = false
+            if (error == null) onDismiss()
+        }
+    }
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+        Column(
+            Modifier.padding(horizontal = 20.dp).navigationBarsPadding().imePadding(),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(title, style = MaterialTheme.typography.titleLarge)
             OutlinedTextField(
                 value = name,
                 onValueChange = {
@@ -174,29 +197,17 @@ internal fun NameDialog(title: String, initial: String, confirm: String, save: s
                 singleLine = true,
                 isError = error != null,
                 supportingText = error?.let { { Text(it) } },
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { submit() }),
+                modifier = Modifier.fillMaxWidth(),
             )
-        },
-        confirmButton = {
-            TextButton(
-                enabled = !saving,
-                onClick = {
-                    val problem = roomNameError(name)
-                    if (problem != null) {
-                        error = problem
-                        return@TextButton
-                    }
-                    saving = true
-                    scope.launch {
-                        error = save(name)
-                        saving = false
-                        if (error == null) onDismiss()
-                    }
-                },
-            ) { Text(confirm) }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-    )
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(onClick = onDismiss) { Text("Cancel") }
+                Button(onClick = ::submit, enabled = !saving) { Text(confirm) }
+            }
+            Spacer(Modifier.height(16.dp))
+        }
+    }
 }
 
 /** A day that can also be empty: the calendar field, and a button that clears it. */

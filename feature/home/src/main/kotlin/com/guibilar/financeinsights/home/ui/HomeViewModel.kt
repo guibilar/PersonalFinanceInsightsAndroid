@@ -8,14 +8,11 @@ import com.guibilar.financeinsights.core.api.apiError
 import com.guibilar.financeinsights.core.home.HomeApi
 import com.guibilar.financeinsights.core.home.HomeSummary
 import com.guibilar.financeinsights.core.home.ItemSummary
+import com.guibilar.financeinsights.core.home.Maintenance
 import com.guibilar.financeinsights.core.home.RoomDetails
 import com.guibilar.financeinsights.core.home.WarrantyFilter
 import com.guibilar.financeinsights.core.home.homeDay
 import com.guibilar.financeinsights.core.logic.DataChanges
-import com.guibilar.financeinsights.core.tasks.TaskLinkKinds
-import com.guibilar.financeinsights.core.tasks.TaskStatus
-import com.guibilar.financeinsights.core.tasks.TaskSummary
-import com.guibilar.financeinsights.core.tasks.TasksApi
 import com.guibilar.financeinsights.ui.common.LoadState
 import com.guibilar.financeinsights.ui.common.UiMessage
 import com.guibilar.financeinsights.ui.common.load
@@ -40,8 +37,8 @@ data class ItemQuery(val text: String = "", val endingOnly: Boolean = false) {
 
 data class HomeState(
     val summary: LoadState<HomeSummary> = LoadState.Loading,
-    /** The open repeated tasks of the items, the next due first. */
-    val maintenance: LoadState<List<TaskSummary>> = LoadState.Loading,
+    /** All maintenance from the server (T89): open tasks linked to an item from either side, the next due first. */
+    val maintenance: LoadState<List<Maintenance>> = LoadState.Loading,
     /** Today, as the server counts it (the summary). */
     val today: LocalDate = LocalDate.now(),
     val refreshing: Boolean = false,
@@ -55,12 +52,11 @@ data class HomeState(
 )
 
 /**
- * The Home screen: the summary (count, value, rooms), the maintenance jobs (from Tasks), the search over all items,
+ * The Home screen: the summary (count, value, rooms), the maintenance jobs (`GET /api/home/maintenance`), the search over all items,
  * new rooms, and the export for insurance. After each write, Today loads again from the server ([DataChanges]).
  */
 class HomeViewModel(
     private val api: HomeApi,
-    private val tasks: TasksApi,
     private val today: () -> LocalDate = { LocalDate.now() },
 ) : ViewModel() {
     private val _state = MutableStateFlow(HomeState(today = today()))
@@ -93,7 +89,7 @@ class HomeViewModel(
         viewModelScope.launch {
             coroutineScope {
                 val summary = async { load(LOAD_FAILED) { api.summary() } }
-                val jobs = async { load("Could not load the maintenance jobs.") { maintenanceJobs() } }
+                val jobs = async { load("Could not load the maintenance jobs.") { api.maintenance() } }
                 val loaded = summary.await()
                 val maintenance = jobs.await()
                 _state.update { state ->
@@ -108,18 +104,6 @@ class HomeViewModel(
             }
             if (_state.value.query.isActive) search(_state.value.query, now = true)
         }
-    }
-
-    /** The open repeated tasks that link to an item (a few pages of open tasks at most), the next due first. */
-    private suspend fun maintenanceJobs(): List<TaskSummary> {
-        val open = mutableListOf<TaskSummary>()
-        var page = 1
-        do {
-            val loaded = tasks.tasks(status = TaskStatus.Open, page = page, pageSize = PAGE_SIZE)
-            open += loaded.items
-            page++
-        } while (loaded.hasNextPage && page <= MAX_PAGES)
-        return maintenanceOf(open)
     }
 
     /** A new search text; the list follows once typing pauses. */
@@ -184,10 +168,10 @@ class HomeViewModel(
     }
 
     companion object {
-        /** The most tasks a page has (the server's limit). */
+        /** The most items a page has (the server's limit). */
         const val PAGE_SIZE = 100
 
-        /** The open tasks load at most this many pages. */
+        /** A room loads at most this many pages of items. */
         const val MAX_PAGES = 5
 
         /** How many items a search shows. */
@@ -198,11 +182,6 @@ class HomeViewModel(
         private const val LOAD_FAILED = "Could not load the home."
     }
 }
-
-/** The maintenance jobs among open tasks: repeated, linked to an item, the next due first. */
-fun maintenanceOf(tasks: List<TaskSummary>): List<TaskSummary> =
-    tasks.filter { task -> !task.isDone && task.repeat != null && task.links.any { it.kind == TaskLinkKinds.HOME_ITEM } }
-        .sortedBy { homeDay(it.dueOn) ?: LocalDate.MAX }
 
 /** What to tell the person when a write failed: a read-only user, the server's reasons, or [failure]. */
 internal fun writeError(error: ApiError, failure: String): String = when {

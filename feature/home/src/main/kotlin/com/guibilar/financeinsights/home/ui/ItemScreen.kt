@@ -38,6 +38,7 @@ import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -60,6 +61,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -69,6 +71,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -205,7 +209,15 @@ fun ItemScreen(
                                 unlink = { unlinking = it.id },
                                 link = { model.openPicker(ItemPicker.Transaction) },
                             )
-                            MaintenanceSection(loaded.value.maintenance, today, canWrite, open = host::openTask, add = { addingTask = true })
+                            MaintenanceSection(
+                                loaded.value.maintenance,
+                                today,
+                                canWrite,
+                                open = host::openTask,
+                                add = { addingTask = true },
+                                busy = state.busy,
+                                toggle = model::toggleDone,
+                            )
                             Spacer(Modifier.height(24.dp))
                         }
                     }
@@ -216,7 +228,8 @@ fun ItemScreen(
     }
 
     if (editing && item != null) {
-        EditSheet(item, state.rooms, onSave = model::save, onDismiss = { editing = false })
+        val categories by produceState(emptyList<String>(), item.id) { value = model.categories() }
+        EditSheet(item, state.rooms, categories, onSave = model::save, onDismiss = { editing = false })
     }
     if (deleting && item != null) {
         AlertDialog(
@@ -482,7 +495,15 @@ private fun TransactionLine(found: Linked<Transaction>?) {
 
 /** The maintenance tasks: each with its repeat and its next date; a tap opens it in Tasks. "Add maintenance". */
 @Composable
-private fun MaintenanceSection(tasks: List<ItemTask>, today: LocalDate, canWrite: Boolean, open: (String) -> Unit, add: () -> Unit) {
+private fun MaintenanceSection(
+    tasks: List<ItemTask>,
+    today: LocalDate,
+    canWrite: Boolean,
+    open: (String) -> Unit,
+    add: () -> Unit,
+    busy: Boolean = false,
+    toggle: (ItemTask) -> Unit = {},
+) {
     SectionCard("Maintenance", subtitle = "Jobs that keep it working") {
         if (tasks.isEmpty()) {
             Text("No maintenance tasks.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -493,8 +514,14 @@ private fun MaintenanceSection(tasks: List<ItemTask>, today: LocalDate, canWrite
                 Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { open(task.id) }.padding(vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(Icons.Outlined.Autorenew, null, tint = MaterialTheme.colorScheme.primary)
-                Spacer(Modifier.width(12.dp))
+                // T89: done (or undo) here, as on the Tasks screen.
+                Checkbox(
+                    checked = task.isDone,
+                    onCheckedChange = { toggle(task) },
+                    enabled = canWrite && !busy,
+                    modifier = Modifier.semantics { contentDescription = if (task.isDone) "Undo done: ${task.title}" else "Mark done: ${task.title}" },
+                )
+                Spacer(Modifier.width(4.dp))
                 Column(Modifier.weight(1f)) {
                     Text(task.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     val details = listOfNotNull(
@@ -587,7 +614,13 @@ private fun MaintenanceSheet(
 /** The item's details in a sheet: the form, and Save. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun EditSheet(item: Item, rooms: List<com.guibilar.financeinsights.core.home.Room>, onSave: suspend (ItemDraft) -> String?, onDismiss: () -> Unit) {
+private fun EditSheet(
+    item: Item,
+    rooms: List<com.guibilar.financeinsights.core.home.Room>,
+    categories: List<String>,
+    onSave: suspend (ItemDraft) -> String?,
+    onDismiss: () -> Unit,
+) {
     var draft by rememberSaveable(item.id, item.updatedAt, stateSaver = ItemDraftSaver) { mutableStateOf(ItemDraft.of(item)) }
     var error by remember { mutableStateOf<String?>(null) }
     var saving by remember { mutableStateOf(false) }
@@ -598,7 +631,7 @@ private fun EditSheet(item: Item, rooms: List<com.guibilar.financeinsights.core.
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text("Edit details", style = MaterialTheme.typography.titleLarge)
-            ItemForm(draft, rooms, onChange = { draft = it })
+            ItemForm(draft, rooms, onChange = { draft = it }, categories = categories)
             error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                 TextButton(onClick = onDismiss) { Text("Cancel") }

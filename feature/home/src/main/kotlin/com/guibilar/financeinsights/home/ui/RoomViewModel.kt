@@ -10,6 +10,8 @@ import com.guibilar.financeinsights.core.home.NO_ROOM
 import com.guibilar.financeinsights.core.home.NO_ROOM_NAME
 import com.guibilar.financeinsights.core.home.Room
 import com.guibilar.financeinsights.core.home.RoomDetails
+import com.guibilar.financeinsights.core.home.RoomOrder
+import com.guibilar.financeinsights.core.home.itemsText
 import com.guibilar.financeinsights.core.logic.DataChanges
 import com.guibilar.financeinsights.ui.common.LoadState
 import com.guibilar.financeinsights.ui.common.UiMessage
@@ -33,7 +35,11 @@ data class RoomState(
     val busy: Boolean = false,
     /** The room was deleted: the page closes. */
     val deleted: Boolean = false,
+    /** All rooms, in list order (T89): the place of this room, and where its items can move. */
+    val rooms: List<Room> = emptyList(),
 ) {
+    /** The place of this room in the list (T89); -1 for the items without a room. */
+    val index: Int get() = rooms.indexOfFirst { it.id == room?.id }
     val name get() = room?.name ?: NO_ROOM_NAME
 }
 
@@ -69,12 +75,14 @@ class RoomViewModel(private val api: HomeApi, val id: String) : ViewModel() {
     fun reload(quiet: Boolean = false) {
         viewModelScope.launch {
             coroutineScope {
-                val room = async { if (isRoom) apiCall { api.rooms().firstOrNull { it.id == id } }.getOrNull() else null }
+                val rooms = async { apiCall { api.rooms() }.getOrNull() }
                 val items = async { load(LOAD_FAILED) { allItems() } }
                 val loaded = items.await()
+                val all = rooms.await()
                 _state.update { state ->
                     state.copy(
-                        room = room.await() ?: state.room,
+                        rooms = all ?: state.rooms,
+                        room = all?.firstOrNull { it.id == id } ?: state.room,
                         items = if (loaded is LoadState.Failed && quiet && state.items is LoadState.Loaded) state.items else loaded,
                     )
                 }
@@ -105,6 +113,54 @@ class RoomViewModel(private val api: HomeApi, val id: String) : ViewModel() {
         _messages.trySend(UiMessage("Renamed"))
         reload(quiet = true)
         return null
+    }
+
+    /** Moves the room one place up ([step] -1) or down (+1) in the list of rooms (T89). */
+    fun move(step: Int) {
+        val rooms = _state.value.rooms
+        val from = _state.value.index
+        val to = from + step
+        if (!isRoom || _state.value.busy || from < 0 || to !in rooms.indices) return
+        val order = rooms.map { it.id }.toMutableList().apply { add(to, removeAt(from)) }
+        _state.update { it.copy(busy = true) }
+        viewModelScope.launch {
+            val result = apiCall { api.orderRooms(RoomOrder(order)) }
+            _state.update { it.copy(busy = false) }
+            result.apiError?.let {
+                _messages.trySend(UiMessage(writeError(it, "Could not move the room.")))
+                return@launch
+            }
+            DataChanges.changed()
+            _messages.trySend(UiMessage(if (step < 0) "Moved up" else "Moved down"))
+            reload(quiet = true)
+        }
+    }
+
+    /**
+     * Moves [itemIds] to the room [roomId] (null: no room) (T89). The update sends all details, so each item is read
+     * first. Stops at the first failure and says which item.
+     */
+    fun moveItems(itemIds: List<String>, roomId: String?) {
+        if (_state.value.busy || itemIds.isEmpty()) return
+        val name = roomId?.let { target -> _state.value.rooms.firstOrNull { it.id == target }?.name } ?: NO_ROOM_NAME
+        _state.update { it.copy(busy = true) }
+        viewModelScope.launch {
+            var moved = 0
+            for (itemId in itemIds) {
+                val result = apiCall { api.update(itemId, api.item(itemId).details.copy(roomId = roomId)) }
+                result.apiError?.let {
+                    _messages.trySend(UiMessage(writeError(it, "Could not move the item.")))
+                    break
+                }
+                moved++
+            }
+            _state.update { it.copy(busy = false) }
+            if (moved > 0) {
+                DataChanges.changed()
+                _messages.trySend(UiMessage("Moved ${itemsText(moved)} to $name"))
+                reload(quiet = true)
+            }
+        }
     }
 
     /** Deletes the room. The server refuses a room with items (409): the message says why. */

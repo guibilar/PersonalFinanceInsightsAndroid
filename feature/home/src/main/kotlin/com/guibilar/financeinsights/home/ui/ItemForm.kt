@@ -2,11 +2,14 @@ package com.guibilar.financeinsights.home.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.saveable.Saver
@@ -28,8 +31,16 @@ private data class RoomChoice(val id: String?, val name: String)
  * The details of an item as a form: the name, the room, what it is (category, brand, model, serial number), how many,
  * the purchase (day, price), the value now, the warranty, the tags and the notes. Each change goes to [onChange].
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun ItemForm(draft: ItemDraft, rooms: List<Room>, onChange: (ItemDraft) -> Unit, modifier: Modifier = Modifier) {
+fun ItemForm(
+    draft: ItemDraft,
+    rooms: List<Room>,
+    onChange: (ItemDraft) -> Unit,
+    modifier: Modifier = Modifier,
+    /** The categories in use (T89): the ones that match the typed text show as suggestions. */
+    categories: List<String> = emptyList(),
+) {
     val choices = listOf(RoomChoice(null, NO_ROOM_NAME)) + rooms.map { RoomChoice(it.id, it.name) }
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         OutlinedTextField(
@@ -51,6 +62,14 @@ fun ItemForm(draft: ItemDraft, rooms: List<Room>, onChange: (ItemDraft) -> Unit,
             modifier = Modifier.fillMaxWidth(),
         )
         TextField("Category", draft.category, Modifier.fillMaxWidth(), "Appliance, Electronics, Furniture") { onChange(draft.copy(category = it)) }
+        val suggestions = categorySuggestions(categories, draft.category)
+        if (suggestions.isNotEmpty()) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                suggestions.forEach { category ->
+                    SuggestionChip(onClick = { onChange(draft.copy(category = category)) }, label = { Text(category) })
+                }
+            }
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             TextField("Brand", draft.brand, Modifier.weight(1f)) { onChange(draft.copy(brand = it)) }
             TextField("Model", draft.model, Modifier.weight(1f)) { onChange(draft.copy(model = it)) }
@@ -155,3 +174,13 @@ val ItemDraftSaver: Saver<ItemDraft, Any> = listSaver(
         )
     },
 )
+
+/** The categories in use that fit the typed text (T89): at most 6, without the one that is typed already. */
+internal fun categorySuggestions(categories: List<String>, typed: String): List<String> {
+    val text = typed.trim()
+    return categories
+        .filter { it.contains(text, ignoreCase = true) && !it.equals(text, ignoreCase = true) }
+        .take(MAX_CATEGORY_SUGGESTIONS)
+}
+
+private const val MAX_CATEGORY_SUGGESTIONS = 6
