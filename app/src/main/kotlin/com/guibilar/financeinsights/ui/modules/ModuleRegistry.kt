@@ -3,6 +3,7 @@ package com.guibilar.financeinsights.ui.modules
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.Book
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CheckBox
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Group
@@ -12,6 +13,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import com.guibilar.financeinsights.documents.DocumentsRoute
 import com.guibilar.financeinsights.home.HomeRoute
 import com.guibilar.financeinsights.inbox.InboxRoute
+import com.guibilar.financeinsights.calendar.CalendarRoute
 import com.guibilar.financeinsights.journal.JournalRoute
 import com.guibilar.financeinsights.people.PeopleRoute
 import com.guibilar.financeinsights.tasks.TasksRoute
@@ -80,6 +82,15 @@ val MODULES = listOf(
         route = InboxRoute,
         status = ModuleStatus.Active,
         todayPreview = "Notes to sort",
+    ),
+    HestiaModule(
+        id = "calendar",
+        name = "Calendar",
+        description = "Events, birthdays and every date at home",
+        icon = Icons.Outlined.CalendarMonth,
+        route = CalendarRoute(),
+        status = ModuleStatus.Active,
+        todayPreview = "Your day and the week ahead",
     ),
     HestiaModule(
         id = "journal",

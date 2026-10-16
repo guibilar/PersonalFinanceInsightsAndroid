@@ -48,7 +48,7 @@ internal fun alertAction(link: String?, open: (Any) -> Unit, openImport: (accoun
         }
         TodayDestination.Documents, is TodayDestination.Document, is TodayDestination.Tasks, is TodayDestination.Task,
         TodayDestination.Home, is TodayDestination.Room, is TodayDestination.Item, TodayDestination.People,
-        is TodayDestination.Person, is TodayDestination.Journal, TodayDestination.Inbox, null -> null
+        is TodayDestination.Person, is TodayDestination.Journal, TodayDestination.Inbox, is TodayDestination.Calendar, null -> null
     }
 
 /** Whether the "Needs attention" card shows: not while it loads, and not when all is well after a complete check. */

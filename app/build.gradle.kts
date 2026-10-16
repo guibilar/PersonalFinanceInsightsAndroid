@@ -85,6 +85,7 @@ dependencies {
     implementation(project(":feature:home"))
     implementation(project(":feature:people"))
     implementation(project(":feature:journal"))
+    implementation(project(":feature:calendar"))
     implementation(project(":feature:timeline"))
     implementation(project(":feature:search"))
     implementation(project(":feature:inbox"))

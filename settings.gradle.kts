@@ -18,6 +18,6 @@ dependencyResolutionManagement {
 
 rootProject.name = "PersonalFinanceInsights"
 include(
-    ":core:common", ":core:network", ":core:finance", ":core:today", ":core:documents", ":core:tasks", ":core:home", ":core:people", ":core:journal", ":core:ui",
-    ":feature:finance", ":feature:documents", ":feature:tasks", ":feature:home", ":feature:people", ":feature:journal", ":feature:timeline", ":feature:search", ":feature:inbox", ":app",
+    ":core:common", ":core:network", ":core:finance", ":core:today", ":core:documents", ":core:tasks", ":core:home", ":core:people", ":core:journal", ":core:calendar", ":core:ui",
+    ":feature:finance", ":feature:documents", ":feature:tasks", ":feature:home", ":feature:people", ":feature:journal", ":feature:timeline", ":feature:search", ":feature:inbox", ":feature:calendar", ":app",
 )
