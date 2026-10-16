@@ -6,7 +6,13 @@ import com.guibilar.financeinsights.core.api.apiCall
 import com.guibilar.financeinsights.core.api.apiError
 import com.guibilar.financeinsights.core.logic.DataChanges
 import com.guibilar.financeinsights.core.today.TodayApi
+import com.guibilar.financeinsights.core.today.TodayAgendaItem
 import com.guibilar.financeinsights.core.today.TodayDto
+import com.guibilar.financeinsights.core.today.taskIdOf
+import com.guibilar.financeinsights.ui.common.UiMessage
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,6 +30,12 @@ data class TodayState(
     val refreshing: Boolean = false,
     /** Why the last load that the person asked for failed; null when it did not. */
     val error: String? = null,
+    /** T106: the tasks ticked here, done before the next answer comes. */
+    val doneHere: Set<String> = emptySet(),
+    /** T106: the task being marked done. */
+    val busyTask: String? = null,
+    /** T106: a note being saved to the Inbox. */
+    val jotting: Boolean = false,
 ) {
     /** The day the cards are for: the server's day, or the phone's until the first answer. */
     fun day(phoneDay: LocalDate): LocalDate = today?.date?.let { runCatching { LocalDate.parse(it.take(10)) }.getOrNull() } ?: phoneDay
@@ -34,9 +46,59 @@ data class TodayState(
  * can use the server's short cache. Pull to refresh, a retry, and the first load after the data changed in this app
  * (a statement imported, a transaction added) ask for a new answer (`refresh=true`), as on the web.
  */
-class TodayViewModel(private val api: TodayApi, val phoneDay: () -> LocalDate = LocalDate::now) : ViewModel() {
+class TodayViewModel(
+    private val api: TodayApi,
+    val phoneDay: () -> LocalDate = LocalDate::now,
+    /** T106: saves a note to the Inbox (the app gives the Inbox API). */
+    private val saveNote: (suspend (String) -> Unit)? = null,
+    /** T106: marks a task done by its id (the app gives the Tasks API). */
+    private val completeTask: (suspend (String) -> Unit)? = null,
+) : ViewModel() {
     private val _state = MutableStateFlow(TodayState())
     val state: StateFlow<TodayState> = _state.asStateFlow()
+
+    private val _messages = Channel<UiMessage>(Channel.BUFFERED)
+    val messages: Flow<UiMessage> = _messages.receiveAsFlow()
+
+    /** Jots [text] down for the Inbox (T106); [saved] clears the field. */
+    fun jot(text: String, saved: () -> Unit = {}) {
+        val note = text.trim()
+        val save = saveNote ?: return
+        if (note.isEmpty() || _state.value.jotting) return
+        _state.update { it.copy(jotting = true) }
+        viewModelScope.launch {
+            val result = apiCall { save(note) }
+            _state.update { it.copy(jotting = false) }
+            if (result.isSuccess) {
+                saved()
+                DataChanges.changed()
+                _messages.send(UiMessage("Saved to the Inbox."))
+                load(refresh = true, quiet = true)
+            } else {
+                val error = result.apiError
+                _messages.send(UiMessage(error?.validationOr(error.loadMessage("Could not save the note.")) ?: "Could not save the note."))
+            }
+        }
+    }
+
+    /** Ticks a task due today (T106): done on the server, then Today loads again. */
+    fun complete(item: TodayAgendaItem) {
+        val id = taskIdOf(item) ?: return
+        val done = completeTask ?: return
+        _state.update { it.copy(busyTask = item.id) }
+        viewModelScope.launch {
+            val result = apiCall { done(id) }
+            if (result.isSuccess) {
+                DataChanges.changed()
+                _state.update { it.copy(busyTask = null, doneHere = it.doneHere + item.id) }
+                _messages.send(UiMessage("Done: ${item.title}"))
+                load(refresh = true, quiet = true)
+            } else {
+                _state.update { it.copy(busyTask = null) }
+                _messages.send(UiMessage(result.apiError?.loadMessage("Could not mark the task done.") ?: "Could not mark the task done."))
+            }
+        }
+    }
 
     /** The data version of the last answer: a later version means that the data changed since. */
     private var loadedVersion = DataChanges.version
@@ -79,7 +141,7 @@ class TodayViewModel(private val api: TodayApi, val phoneDay: () -> LocalDate = 
             val today = result.getOrNull()
             if (today != null) {
                 loadedVersion = version
-                _state.update { TodayState(today = today, loading = false) }
+                _state.update { TodayState(today = today, loading = false, doneHere = it.doneHere) }
             } else {
                 val message = result.apiError?.loadMessage(FAILED) ?: FAILED
                 _state.update {

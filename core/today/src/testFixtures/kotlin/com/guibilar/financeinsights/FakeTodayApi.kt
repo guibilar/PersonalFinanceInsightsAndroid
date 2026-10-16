@@ -1,6 +1,9 @@
 package com.guibilar.financeinsights
 
+import com.guibilar.financeinsights.core.today.TodayAgenda
+import com.guibilar.financeinsights.core.today.TodayAgendaItem
 import com.guibilar.financeinsights.core.today.TodayApi
+import com.guibilar.financeinsights.core.today.TodayMemory
 import com.guibilar.financeinsights.core.today.TodayCard
 import com.guibilar.financeinsights.core.today.TodayCardType
 import com.guibilar.financeinsights.core.today.TodayDto
@@ -91,11 +94,27 @@ object TodaySamples {
     )
 
     /** All finance reports loaded. */
+    /** "Your day" (T106): a task due today, an event this evening, and a birthday and the dentist this week. */
+    val waterPlants = TodayAgendaItem("tasks.task-due.t1", "Tasks", "task-due", "Water the plants", startDate = DATE, link = "/tasks/t1", done = false)
+    val dinner = TodayAgendaItem(
+        "calendar.event.e1", "Calendar", "event", "Dinner with Ana", "Luigi's", allDay = false, startDate = DATE,
+        startsAt = "2026-10-03T18:30:00Z", endsAt = "2026-10-03T20:30:00Z", link = "/calendar?event=e1", eventId = "e1",
+    )
+    val agenda = TodayAgenda(
+        today = listOf(waterPlants, dinner),
+        upcoming = listOf(
+            TodayAgendaItem("people.birthday.p1.2026", "People", "birthday", "Ana's birthday", "Turns 36", startDate = "2026-10-05", link = "/people/p1"),
+            TodayAgendaItem("calendar.event.e2", "Calendar", "event", "Dentist", allDay = false, startDate = "2026-10-06", startsAt = "2026-10-06T15:00:00Z", link = "/calendar?event=e2", eventId = "e2"),
+        ),
+    )
+
     val complete = TodayDto(
         date = DATE,
         generatedAt = "2026-10-03T15:00:00Z",
         modules = listOf(TodayModule("Money", TodayModuleStatus.Complete)),
         cards = listOf(spent, leftOver, netWorth, budgets, priceChanged, unsorted),
+        agenda = agenda,
+        memories = listOf(TodayMemory("Journal", "journal-entry", 1, "2025-10-03", "First night in the new place. Pizza on the floor, and it already feels like home.", "/journal?day=2025-10-03")),
     )
 
     /** The net worth report did not load: its tile has no value, and the module is Partial. */

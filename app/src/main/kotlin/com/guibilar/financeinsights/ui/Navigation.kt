@@ -84,6 +84,8 @@ import com.guibilar.financeinsights.calendar.CalendarRoute
 import com.guibilar.financeinsights.calendar.calendarGraph
 import com.guibilar.financeinsights.calendar.isCalendarPage
 import com.guibilar.financeinsights.calendar.openCalendar
+import com.guibilar.financeinsights.inbox.InboxApi
+import com.guibilar.financeinsights.inbox.InboxText
 import com.guibilar.financeinsights.journal.JournalRoute
 import com.guibilar.financeinsights.journal.isJournalPage
 import com.guibilar.financeinsights.journal.journalGraph
@@ -372,7 +374,15 @@ fun MainScreen(
                 NavHost(nav, startDestination = TodayRoute, modifier = Modifier.weight(1f)) {
                     composable<TodayRoute> {
                         TodayScreen(
-                            model = viewModel { TodayViewModel(todayApi) },
+                            model = viewModel {
+                                TodayViewModel(
+                                    todayApi,
+                                    // T106: a note jotted on Today goes to the Inbox; a task ticked there is done.
+                                    saveNote = { text -> client.api<InboxApi>().add(InboxText(text)) },
+                                    completeTask = { id -> client.api<TasksApi>().done(id) },
+                                )
+                            },
+                            canWrite = canWrite,
                             modules = MODULES,
                             contentPadding = padding,
                             open = { openDestination(it) },

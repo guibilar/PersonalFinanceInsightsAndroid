@@ -64,7 +64,37 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import com.guibilar.financeinsights.core.today.TodayAgendaItem
 import com.guibilar.financeinsights.core.today.TodayCard
+import com.guibilar.financeinsights.core.today.TodayMemory
+import com.guibilar.financeinsights.core.today.agendaMeta
+import com.guibilar.financeinsights.core.today.agendaTime
+import com.guibilar.financeinsights.core.today.daySummary
+import com.guibilar.financeinsights.core.today.memoryWhen
+import com.guibilar.financeinsights.core.today.upcomingDay
+import com.guibilar.financeinsights.ui.common.ShowMessages
+import androidx.compose.material.icons.automirrored.outlined.Notes
+import androidx.compose.material.icons.outlined.Cake
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Event
+import androidx.compose.material.icons.outlined.Handshake
+import androidx.compose.material.icons.outlined.House
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.TaskAlt
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
+import java.time.LocalDate
 import com.guibilar.financeinsights.core.today.TodayCardType
 import com.guibilar.financeinsights.core.today.TodayDestination
 import com.guibilar.financeinsights.core.today.TodayDto
@@ -154,8 +184,12 @@ fun TodayScreen(
     onRefresh: () -> Unit = {},
     /** The signed-in user's name, for the greeting; null for none (the read-only token). */
     userName: String? = null,
+    /** False for a read-only user: no note field, no box to tick. */
+    canWrite: Boolean = true,
 ) {
     val state by model.state.collectAsState()
+    val snackbar = remember { SnackbarHostState() }
+    ShowMessages(model.messages, snackbar)
     // Back from another tab or the background: the cards reload (new ones when the data changed in the app).
     LifecycleResumeEffect(model) {
         model.resumed()
@@ -165,7 +199,8 @@ fun TodayScreen(
     // T69: the bell goes to the "Needs attention" card.
     val attentionView = remember { BringIntoViewRequester() }
     val scope = rememberCoroutineScope()
-    Column(Modifier.fillMaxSize().padding(bottom = contentPadding.calculateBottomPadding())) {
+    Box(Modifier.fillMaxSize().padding(bottom = contentPadding.calculateBottomPadding())) {
+    Column(Modifier.fillMaxSize()) {
         TopAppBar(
             title = { Text("Today", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold) },
             actions = { AttentionBell(state.today?.attention?.size ?: 0) { scope.launch { attentionView.bringIntoView() } } },
@@ -193,19 +228,23 @@ fun TodayScreen(
                             modifier = Modifier.semantics { heading() },
                         )
                         Text(
-                            "Here is how things are at home today.",
+                            daySummary(state.today?.agenda),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
+                    // T106: jot a thought down without leaving Today: it goes to the Inbox.
+                    if (canWrite) JotField(state.jotting, model::jot)
                     val today = state.today
                     val sections = today?.sections(modules).orEmpty()
                     when {
                         today != null -> {
                             state.error?.let { Note(it) }
-                            sections.shown().forEach { section -> Section(section, open, openModule, model::retry) }
+                            YourDay(today, state, canWrite, open, model::complete)
                             val items = today.attention
                             if (items.isNotEmpty()) NeedsAttention(items, open, Modifier.bringIntoViewRequester(attentionView))
+                            Glance(sections.shown(), open, model::retry)
+                            if (today.memories.isNotEmpty()) Memories(today.memories, open)
                         }
                         state.error != null && !state.loading -> ErrorState(state.error!!, onRetry = model::retry)
                         else -> LoadingTiles()
@@ -227,47 +266,7 @@ fun TodayScreen(
             }
         }
     }
-}
-
-/** A module's heading, its status, and its tiles. */
-@Composable
-private fun Section(section: TodaySection, open: (TodayDestination) -> Unit, openModule: (HestiaModule) -> Unit, retry: () -> Unit) {
-    // Each module in its own warm colour: the icon here and the tiles' icons (LocalModuleAccent).
-    val accent = accentOf(section.module?.id)
-    CompositionLocalProvider(LocalModuleAccent provides accent) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            section.module?.let { module ->
-                Box(
-                    Modifier.size(28.dp).clip(CircleShape).background(accent?.container ?: MaterialTheme.colorScheme.primaryContainer),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(module.icon, null, Modifier.size(16.dp), tint = accent?.color ?: MaterialTheme.colorScheme.onPrimaryContainer)
-                }
-                Spacer(Modifier.width(10.dp))
-            }
-            Text(
-                section.name,
-                style = MaterialTheme.typography.titleLarge.copy(fontSize = 18.sp),
-                modifier = Modifier.weight(1f).semantics { heading() },
-            )
-            val module = section.module
-            if (module != null && module.status == ModuleStatus.Active && module.route != null) {
-                TextButton(onClick = { openModule(module) }) {
-                    Text("Open ${module.name}")
-                    Spacer(Modifier.width(4.dp))
-                    Icon(Icons.AutoMirrored.Outlined.ArrowForward, null)
-                }
-            }
-        }
-        when (section.status) {
-            TodayModuleStatus.Failed -> ErrorState("${section.name} could not load.", onRetry = retry)
-            else -> {
-                if (section.status == TodayModuleStatus.Partial) Note("Some ${section.name} figures could not load.")
-                Tiles(section.tiles.map<TodayCard, @Composable (Modifier) -> Unit> { card -> { m -> Tile(card, section.module, open, m) } })
-            }
-        }
-    }
+    SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
     }
 }
 
@@ -421,3 +420,192 @@ fun greeting(hour: Int?, userName: String?): String {
 /** A user name as a first name: "alex.smith" or "alex" → "Alex". */
 fun firstName(userName: String): String =
     userName.trim().split(Regex("[\\s._@-]+")).firstOrNull().orEmpty().replaceFirstChar { it.uppercase() }
+
+// ---- T106: your day, jot, at a glance, on this day ----
+
+/** One line for a note to the Inbox, with Save. */
+@Composable
+private fun JotField(busy: Boolean, jot: (String, () -> Unit) -> Unit) {
+    var text by rememberSaveable { mutableStateOf("") }
+    OutlinedTextField(
+        value = text,
+        onValueChange = { text = it.take(4000) },
+        placeholder = { Text("Jot something down for later…") },
+        leadingIcon = { Icon(Icons.AutoMirrored.Outlined.Notes, null) },
+        trailingIcon = {
+            TextButton(onClick = { jot(text) { text = "" } }, enabled = text.isNotBlank() && !busy) { Text(if (busy) "Saving…" else "Save") }
+        },
+        singleLine = true,
+        shape = RoundedCornerShape(28.dp),
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
+/** The icon of an agenda item, by its kind (as on the Calendar). */
+private fun agendaIcon(kind: String): ImageVector = when (kind) {
+    "task-due" -> Icons.Outlined.TaskAlt
+    "birthday" -> Icons.Outlined.Cake
+    "reach-out" -> Icons.Outlined.Person
+    "loan-due" -> Icons.Outlined.Handshake
+    "document-expires" -> Icons.Outlined.Description
+    "warranty-ends" -> Icons.Outlined.House
+    else -> Icons.Outlined.Event
+}
+
+/**
+ * "Your day" (T106): today's Calendar items (a box to tick a task due today), then what comes up this week. Each item
+ * opens its page through the link map.
+ */
+@Composable
+private fun YourDay(
+    today: TodayDto,
+    state: TodayState,
+    canWrite: Boolean,
+    open: (TodayDestination) -> Unit,
+    complete: (TodayAgendaItem) -> Unit,
+) {
+    val accent = accentOf("calendar")
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    Modifier.size(28.dp).clip(CircleShape).background(accent?.container ?: MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center,
+                ) { Icon(Icons.Outlined.CalendarMonth, null, Modifier.size(16.dp), tint = accent?.color ?: MaterialTheme.colorScheme.primary) }
+                Spacer(Modifier.width(10.dp))
+                Text("Your day", style = MaterialTheme.typography.titleLarge.copy(fontSize = 18.sp), modifier = Modifier.weight(1f).semantics { heading() })
+                TextButton(onClick = { open(TodayDestination.Calendar()) }) { Text("Calendar") }
+            }
+            val agenda = today.agenda
+            when {
+                agenda == null -> Text("The calendar could not load.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                else -> {
+                    if (!agenda.complete) Note("Some dates could not load.")
+                    if (agenda.today.isEmpty()) {
+                        Text("Nothing planned today. Enjoy the quiet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    agenda.today.forEach { item ->
+                        AgendaRow(item, done = item.done == true || item.id in state.doneHere, busy = state.busyTask == item.id, canWrite = canWrite, open = open, complete = complete)
+                    }
+                    if (agenda.upcoming.isNotEmpty()) {
+                        Text(
+                            "COMING UP",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 8.dp),
+                        )
+                        val day = state.day(LocalDate.now())
+                        agenda.upcoming.forEach { item ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                                    .clickable(enabled = item.link != null) { todayDestination(item.link)?.let(open) }
+                                    .padding(vertical = 4.dp),
+                            ) {
+                                Text(upcomingDay(item, day), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(112.dp))
+                                Box(Modifier.size(8.dp).clip(CircleShape).background(accentOf(item.module.lowercase(Locale.ROOT))?.color ?: MaterialTheme.colorScheme.primary))
+                                Spacer(Modifier.width(8.dp))
+                                Text(item.title, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AgendaRow(
+    item: TodayAgendaItem,
+    done: Boolean,
+    busy: Boolean,
+    canWrite: Boolean,
+    open: (TodayDestination) -> Unit,
+    complete: (TodayAgendaItem) -> Unit,
+) {
+    val accent = accentOf(item.module.lowercase(Locale.ROOT))
+    val color = accent?.color ?: MaterialTheme.colorScheme.primary
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .clickable(enabled = item.link != null) { todayDestination(item.link)?.let(open) }
+            .padding(end = 12.dp),
+    ) {
+        Box(Modifier.width(4.dp).height(52.dp).background(color))
+        if (item.kind == "task-due" && canWrite) {
+            Checkbox(checked = done, onCheckedChange = { if (!done) complete(item) }, enabled = !done && !busy, modifier = Modifier.semantics { contentDescription = "Done: ${item.title}" })
+        } else {
+            Spacer(Modifier.width(12.dp))
+            Box(
+                Modifier.size(32.dp).clip(CircleShape).background(accent?.container ?: MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center,
+            ) { Icon(agendaIcon(item.kind), null, Modifier.size(16.dp), tint = color) }
+            Spacer(Modifier.width(12.dp))
+        }
+        Column(Modifier.weight(1f).padding(vertical = 6.dp)) {
+            Text(
+                item.title,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textDecoration = if (done) TextDecoration.LineThrough else null,
+                color = if (done) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+            )
+            val meta = agendaMeta(item)
+            if (meta.isNotEmpty()) Text(meta, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if (!item.allDay) agendaTime(item.startsAt)?.let { Text(it, fontWeight = FontWeight.SemiBold, color = color) }
+    }
+}
+
+/** "At a glance" (T106): the tiles of every module, two a row, each in its module's colour. */
+@Composable
+private fun Glance(sections: List<TodaySection>, open: (TodayDestination) -> Unit, retry: () -> Unit) {
+    if (sections.isEmpty()) return
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("At a glance", style = MaterialTheme.typography.titleLarge.copy(fontSize = 18.sp), modifier = Modifier.padding(top = 4.dp).semantics { heading() })
+        sections.forEach { section ->
+            when (section.status) {
+                TodayModuleStatus.Failed -> ErrorState("${section.name} could not load.", onRetry = retry)
+                TodayModuleStatus.Partial -> Note("Some ${section.name} figures could not load.")
+                TodayModuleStatus.Complete -> Unit
+            }
+        }
+        val tiles = sections.flatMap { section ->
+            section.tiles.map<TodayCard, @Composable (Modifier) -> Unit> { card ->
+                { m -> CompositionLocalProvider(LocalModuleAccent provides accentOf(section.module?.id)) { Tile(card, section.module, open, m) } }
+            }
+        }
+        Tiles(tiles)
+    }
+}
+
+/** "On this day" (T106): this day in earlier years. */
+@Composable
+private fun Memories(memories: List<TodayMemory>, open: (TodayDestination) -> Unit) {
+    val accent = accentOf("journal")
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("On this day", style = MaterialTheme.typography.titleLarge.copy(fontSize = 18.sp), modifier = Modifier.padding(top = 4.dp).semantics { heading() })
+        memories.forEach { memory ->
+            Column(
+                Modifier.fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(accent?.container ?: MaterialTheme.colorScheme.secondaryContainer)
+                    .clickable(enabled = memory.link != null) { todayDestination(memory.link)?.let(open) }
+                    .padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(memoryWhen(memory).uppercase(), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = accent?.color ?: MaterialTheme.colorScheme.secondary)
+                Text(memory.text, style = MaterialTheme.typography.bodyLarge, fontFamily = FontFamily.Serif)
+            }
+        }
+    }
+}
