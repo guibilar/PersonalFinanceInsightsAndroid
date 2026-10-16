@@ -8,6 +8,9 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
+import com.guibilar.financeinsights.core.documents.UploadFile
+import kotlinx.coroutines.flow.MutableStateFlow
+import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.toRoute
 import com.guibilar.financeinsights.core.api.ApiClient
 import com.guibilar.financeinsights.documents.ui.DocumentScreen
@@ -89,6 +92,8 @@ fun NavGraphBuilder.documentsGraph(
     people: DocumentPeople? = null,
     /** T100: the add sheet filled in from a receipt (documentId, store, total, day), and the receipt linked to it. */
     addTransaction: ((documentId: String, description: String, amount: Double?, date: String?) -> Unit)? = null,
+    /** T101: files shared to the app, for a new document (the add page takes them once). */
+    sharedFiles: MutableStateFlow<List<UploadFile>?> = MutableStateFlow(null),
 ) {
     composable<DocumentsRoute> {
         DocumentsListScreen(
@@ -119,6 +124,13 @@ fun NavGraphBuilder.documentsGraph(
     composable<AddDocumentRoute> { backStack ->
         val route = backStack.toRoute<AddDocumentRoute>()
         val model = viewModel { UploadViewModel(client.api(), linkTo = route.transactionId) }
+        // T101: the files shared to the app.
+        LaunchedEffect(Unit) {
+            sharedFiles.value?.let { files ->
+                sharedFiles.value = null
+                model.add(files)
+            }
+        }
         UploadScreen(
             model = model,
             contentPadding = contentPadding,

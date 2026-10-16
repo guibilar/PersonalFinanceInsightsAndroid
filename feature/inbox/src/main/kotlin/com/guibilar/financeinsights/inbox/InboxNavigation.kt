@@ -8,6 +8,7 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
+import kotlinx.coroutines.flow.MutableStateFlow
 import com.guibilar.financeinsights.core.api.ApiClient
 import kotlinx.serialization.Serializable
 
@@ -36,6 +37,8 @@ fun NavGraphBuilder.inboxGraph(
     canWrite: Boolean = true,
     /** T102: opens a document made from an email's attachment. */
     openDocument: (String) -> Unit = {},
+    /** T101: text or a link shared to the app: the note field starts with it. */
+    sharedNote: MutableStateFlow<String?> = MutableStateFlow(null),
 ) {
     composable<InboxRoute> {
         InboxScreen(
@@ -44,6 +47,7 @@ fun NavGraphBuilder.inboxGraph(
             canWrite = canWrite,
             onBack = { nav.popBackStack() },
             openDocument = openDocument,
+            sharedNote = sharedNote,
         )
     }
 }

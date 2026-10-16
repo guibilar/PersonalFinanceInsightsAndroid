@@ -90,6 +90,14 @@ import com.guibilar.financeinsights.ui.transactions.TransactionPrefill
 import com.guibilar.financeinsights.ui.transactions.TransactionPrefills
 import com.guibilar.financeinsights.core.documents.DocumentsApi
 import com.guibilar.financeinsights.core.documents.NewDocumentLink
+import com.guibilar.financeinsights.Share
+import com.guibilar.financeinsights.Shares
+import com.guibilar.financeinsights.core.documents.UploadFile
+import com.guibilar.financeinsights.people.importPeople
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import com.guibilar.financeinsights.journal.JournalRoute
 import com.guibilar.financeinsights.journal.isJournalPage
 import com.guibilar.financeinsights.journal.journalGraph
@@ -306,6 +314,57 @@ fun MainScreen(
             is TodayDestination.Calendar -> nav.openCalendar(destination.day, destination.event)
         }
     }
+    // T101, "Share to Hestia": each kind of share goes to its screen, which takes it from its flow once.
+    val sharedNote = remember { MutableStateFlow<String?>(null) }
+    val sharedFiles = remember { MutableStateFlow<List<UploadFile>?>(null) }
+    val sharedIcs = remember { MutableStateFlow<String?>(null) }
+    val sharedVCard = remember { MutableStateFlow<String?>(null) }
+    var choosingPdf by remember { mutableStateOf<Share.Pdfs?>(null) }
+    val share by Shares.pending.collectAsState()
+    LaunchedEffect(share) {
+        when (val shared = share) {
+            null -> return@LaunchedEffect
+            is Share.Text -> {
+                sharedNote.value = shared.text
+                nav.openInbox()
+            }
+            is Share.Files -> {
+                sharedFiles.value = shared.files
+                nav.addDocument()
+            }
+            is Share.Pdfs -> choosingPdf = shared
+            is Share.Calendar -> {
+                sharedIcs.value = shared.ics
+                nav.openCalendar()
+            }
+            is Share.Contacts -> {
+                sharedVCard.value = shared.vCard
+                nav.importPeople()
+            }
+        }
+        Shares.pending.value = null
+    }
+    choosingPdf?.let { pdfs ->
+        val count = pdfs.documents.size
+        AlertDialog(
+            onDismissRequest = { choosingPdf = null },
+            title = { Text(if (count == 1) "Keep or import this PDF?" else "Keep or import these $count PDFs?") },
+            text = { Text("Keep it as a document (a receipt, a warranty, a bill), or import it as a bank statement.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    choosingPdf = null
+                    sharedFiles.value = pdfs.documents
+                    nav.addDocument()
+                }) { Text("Keep as a document") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    choosingPdf = null
+                    sharedStatement.value = pdfs.statements
+                }) { Text("Import as a statement") }
+            },
+        )
+    }
     // A tapped alert notification (T68): its page, or Today for an alert with no link (and for the summary).
     val pendingAlert by alertLink.collectAsState()
     LaunchedEffect(pendingAlert) {
@@ -490,6 +549,7 @@ fun MainScreen(
                             )
                             quickAction.value = QuickAction.AddTransaction
                         },
+                        sharedFiles = sharedFiles,
                     )
                     tasksGraph(
                         nav = nav,
@@ -515,8 +575,9 @@ fun MainScreen(
                         contentPadding = padding,
                         host = peopleHost,
                         canWrite = canWrite,
+                        sharedVCard = sharedVCard,
                     )
-                    inboxGraph(nav = nav, client = client, contentPadding = padding, canWrite = canWrite, openDocument = { nav.openDocument(it) })
+                    inboxGraph(nav = nav, client = client, contentPadding = padding, canWrite = canWrite, openDocument = { nav.openDocument(it) }, sharedNote = sharedNote)
                     journalGraph(
                         nav = nav,
                         client = client,
@@ -530,6 +591,7 @@ fun MainScreen(
                         canWrite = canWrite,
                         // Another module's item opens its page through the one link map, as a Today item does.
                         onOpenLink = { link -> todayDestination(link)?.let { openDestination(it) } },
+                        sharedIcs = sharedIcs,
                     )
                     composable<AppSettingsRoute> {
                         if (preferences != null && financePreferences != null) {

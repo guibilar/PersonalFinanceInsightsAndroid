@@ -36,6 +36,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.flow.MutableStateFlow
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -77,8 +79,17 @@ fun InboxScreen(
     onBack: (() -> Unit)? = null,
     /** T102: opens a document made from an email's attachment. */
     openDocument: (String) -> Unit = {},
+    sharedNote: MutableStateFlow<String?> = remember { MutableStateFlow(null) },
 ) {
     val state by model.state.collectAsState()
+    // T101: shared text starts the note; the person saves it (or changes it first).
+    val shared by sharedNote.collectAsState()
+    LaunchedEffect(shared) {
+        shared?.let {
+            sharedNote.value = null
+            model.type(it)
+        }
+    }
     val snackbar = remember { SnackbarHostState() }
     ShowMessages(model.messages, snackbar)
     LifecycleResumeEffect(model) {
