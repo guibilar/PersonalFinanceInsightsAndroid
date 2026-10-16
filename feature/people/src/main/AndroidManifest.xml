@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- T105: "Import contacts" reads the phone's contacts once, when the person asks for it. -->
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+
     <!-- The theme is the app's: the module's own tests then render the screens in the same window as the app. -->
     <application android:theme="@style/Theme.Finance" />
 </manifest>

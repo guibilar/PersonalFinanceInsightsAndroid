@@ -14,6 +14,9 @@ import com.guibilar.financeinsights.core.people.PeopleApi
 import com.guibilar.financeinsights.core.people.PeopleSummary
 import com.guibilar.financeinsights.core.people.Person
 import com.guibilar.financeinsights.core.people.PersonDetails
+import com.guibilar.financeinsights.core.people.PeopleImportItem
+import com.guibilar.financeinsights.core.people.PeopleImportRequest
+import com.guibilar.financeinsights.core.people.PeopleImportResult
 import com.guibilar.financeinsights.core.people.PersonLink
 import com.guibilar.financeinsights.core.people.PersonPage
 import com.guibilar.financeinsights.core.people.PersonSummary
@@ -226,5 +229,42 @@ class FakePeopleApi(
 
     override suspend fun byLink(kind: String, id: String): List<PersonSummary> = call("byLink", kind to id) {
         people.filter { p -> p.links.any { it.kind == kind && it.targetId == id } }.map { computed(it).person }
+    }
+
+    /**
+     * The import (T105): a contact with the name of a person is "Same", else "Add". A vCard text gives one contact per
+     * "FN:" line. Without dryRun, the chosen new people are added.
+     */
+    override suspend fun importPeople(request: PeopleImportRequest): PeopleImportResult = call("importPeople", request) {
+        val contacts = request.people ?: request.vCard.orEmpty().lines().filter { it.startsWith("FN:") }.map { PersonDetails(it.removePrefix("FN:")) }
+        val names = people.map { computed(it).person }.associateBy { it.name.lowercase() }
+        val items = contacts.mapIndexed { index, contact ->
+            val match = names[contact.name.lowercase()]
+            when {
+                contact.name.isBlank() -> PeopleImportItem(index, "Skip", contact, reason = "Enter a name.")
+                request.only != null && index !in request.only!! -> PeopleImportItem(index, "Skip", contact, match?.id, match?.name, reason = "Not chosen.")
+                match != null -> PeopleImportItem(index, "Same", contact, match.id, match.name, "name")
+                else -> PeopleImportItem(index, "Add", contact)
+            }
+        }
+        if (!request.dryRun) {
+            items.filter { it.action == "Add" }.forEach { item ->
+                val person = item.person
+                val created = Person(
+                    PersonSummary(id("p"), person.name, person.nickname, person.relationship, person.groups, person.birthday,
+                        email = person.email, phone = person.phone, createdAt = "${today}T12:00:00Z"),
+                    notes = person.notes,
+                )
+                people += created
+                save(created)
+            }
+        }
+        PeopleImportResult(
+            request.dryRun,
+            added = items.count { it.action == "Add" },
+            unchanged = items.count { it.action == "Same" },
+            skipped = items.count { it.action == "Skip" },
+            people = items,
+        )
     }
 }

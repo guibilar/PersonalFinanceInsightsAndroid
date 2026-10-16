@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Contacts
 import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -66,6 +67,8 @@ fun PeopleScreen(
     contentPadding: PaddingValues,
     openPerson: (String) -> Unit,
     addPerson: () -> Unit,
+    /** Import contacts (T105). */
+    importPeople: () -> Unit = {},
     canWrite: Boolean = true,
     /** Back to where the screen was opened from; none in previews and tests. */
     onBack: (() -> Unit)? = null,
@@ -82,7 +85,12 @@ fun PeopleScreen(
             TopAppBar(
                 title = { FitText("People", fontWeight = FontWeight.SemiBold, minFontSize = 14.sp) },
                 navigationIcon = { if (onBack != null) IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back") } },
-                actions = { if (canWrite) IconButton(onClick = addPerson) { Icon(Icons.Outlined.PersonAdd, "Add person") } },
+                actions = {
+                    if (canWrite) {
+                        IconButton(onClick = importPeople) { Icon(Icons.Outlined.Contacts, "Import contacts") }
+                        IconButton(onClick = addPerson) { Icon(Icons.Outlined.PersonAdd, "Add person") }
+                    }
+                },
             )
             ReadableColumn {
                 PullToRefreshBox(isRefreshing = state.refreshing, onRefresh = model::refresh, modifier = Modifier.fillMaxSize()) {
