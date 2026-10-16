@@ -10,6 +10,7 @@ import com.guibilar.financeinsights.core.documents.DocumentLinkCounts
 import com.guibilar.financeinsights.core.documents.DocumentLinkKinds
 import com.guibilar.financeinsights.core.documents.DocumentPage
 import com.guibilar.financeinsights.core.documents.DocumentSummary
+import com.guibilar.financeinsights.core.documents.DocumentSuggestions
 import com.guibilar.financeinsights.core.documents.DocumentsApi
 import com.guibilar.financeinsights.core.documents.FileType
 import com.guibilar.financeinsights.core.documents.NewDocumentLink
@@ -184,6 +185,13 @@ class FakeDocumentsApi(documents: List<Document> = DocumentsSamples.all) : Docum
         }
     }
 
+    /** The suggestions of each document (T100); none: nothing read. */
+    val suggestions = mutableMapOf<String, DocumentSuggestions>()
+
+    override suspend fun suggestions(id: String): DocumentSuggestions = call("suggestions", id) {
+        suggestions[id] ?: DocumentSuggestions(id, OcrStatus.Done)
+    }
+
     companion object {
         /** A refusal of a write by the server, for a read-only user. */
         val readOnly = ApiError.Http(403, "Forbidden", null, null, emptyMap())
@@ -202,4 +210,5 @@ fun MultipartBody.fields(): List<Pair<String, String>> = parts.map { part ->
     val disposition = part.headers?.get("Content-Disposition").orEmpty()
     val name = Regex("name=\"([^\"]*)\"").find(disposition)?.groupValues?.get(1).orEmpty()
     name to (part.fileName() ?: Buffer().also { part.body.writeTo(it) }.readUtf8())
+
 }

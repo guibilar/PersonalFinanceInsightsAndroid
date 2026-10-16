@@ -21,6 +21,12 @@ data class InboxNote(
     val doneAt: String? = null,
     /** Where it went when it was sorted, for example "Task". */
     val sortedTo: String? = null,
+    /** "Note" (written) or "Email" (to the Inbox mailbox, T102). */
+    val source: String = "Note",
+    /** The sender of an email note. */
+    val from: String? = null,
+    /** The documents made from the attachments of an email. */
+    val documentIds: List<String>? = null,
 )
 
 @Serializable

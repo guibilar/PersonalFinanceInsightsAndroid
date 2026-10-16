@@ -309,7 +309,7 @@ class TransactionsViewModel(
             _state.update { it.copy(lastAdded = LocalDate.parse(input.date) to input.accountId) }
             // "View" shows it in the list (on its day and account, highlighted), as the web's toast does.
             changed("Added “${added.description}” to ${added.accountName}", "View") { showTransaction(added.id) }
-            return AddOutcome.Added
+            return AddOutcome.Added(added.id)
         }
         val duplicate = error.conflictOr("")
         return if (duplicate.isNotEmpty()) AddOutcome.Duplicate(duplicate)

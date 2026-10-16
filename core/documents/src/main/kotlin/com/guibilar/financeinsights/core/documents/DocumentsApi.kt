@@ -83,4 +83,8 @@ interface DocumentsApi {
      */
     @POST("documents/by-link/counts")
     suspend fun countByLink(@Body request: DocumentLinkCounts): Map<String, Int>
+
+    /** What the text of a document says, and the transactions that can be its purchase (T100). */
+    @GET("documents/{id}/suggestions")
+    suspend fun suggestions(@Path("id") id: String): DocumentSuggestions
 }
