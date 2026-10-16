@@ -131,6 +131,8 @@ fun DocumentScreen(
     tasks: DocumentTasks? = null,
     items: DocumentItems? = null,
     people: DocumentPeople? = null,
+    /** T100: opens the add sheet filled in from the receipt (documentId, store, total, day); null hides the button. */
+    addTransaction: ((documentId: String, description: String, amount: Double?, date: String?) -> Unit)? = null,
 ) {
     val state by model.state.collectAsState()
     val snackbar = remember { SnackbarHostState() }
@@ -194,6 +196,19 @@ fun DocumentScreen(
                             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
+                            state.suggestions?.let { suggestions ->
+                                SuggestionsCard(
+                                    document = loaded.value,
+                                    suggestions = suggestions,
+                                    canWrite = canWrite,
+                                    busy = state.busy,
+                                    link = model::linkMatch,
+                                    apply = { kind, expiresOn -> model.applySuggestion(kind, expiresOn) },
+                                    addTransaction = addTransaction?.let { add ->
+                                        { add(loaded.value.id, suggestions.merchant ?: loaded.value.title, suggestions.total, suggestions.date) }
+                                    },
+                                )
+                            }
                             DetailsCard(loaded.value, today)
                             FilesCard(loaded.value.files, ::show)
                             TextCard(loaded.value, state.ocrSlow, canWrite, state.busy, model::retryOcr)

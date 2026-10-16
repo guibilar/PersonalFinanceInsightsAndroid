@@ -120,4 +120,20 @@ class InboxTest {
         assertEquals("Old\n\nNew", journalWithNote("Old", " New "))
         assertEquals("New", journalWithNote(null, "New"))
     }
+
+    @Test
+    fun `an email note shows its sender, and opens its attached document (T102)`() {
+        val email = InboxNote("n9", "Your October bill\n\nAmount due: $84.12", "2026-10-09T18:00:00Z", source = "Email", from = "Hydro <bills@hydro.example>", documentIds = listOf("d1"))
+        val opened = mutableListOf<String>()
+        val model = InboxViewModel(FakeInboxApi(listOf(email)), NoteSender(tasks, journal))
+        compose.setContent {
+            com.guibilar.financeinsights.ui.theme.FinanceTheme(ripples = false, dynamicColor = false) {
+                Surface { InboxScreen(model, PaddingValues(), zone = ZoneId.of("America/Toronto"), openDocument = { opened += it }) }
+            }
+        }
+        compose.waitForIdle()
+        compose.onNodeWithText("Email from Hydro <bills@hydro.example>").assertExists()
+        compose.onNodeWithText("Attached document").performClick()
+        assertEquals(listOf("d1"), opened)
+    }
 }

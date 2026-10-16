@@ -81,7 +81,8 @@ data class TransactionsState(
 
 /** How adding a transaction went: an identical one exists (it can still be added on purpose), or another failure. */
 sealed interface AddOutcome {
-    data object Added : AddOutcome
+    /** Added; [id] is the new transaction. */
+    data class Added(val id: String) : AddOutcome
     data class Duplicate(val message: String) : AddOutcome
     data class Failed(val message: String) : AddOutcome
 }

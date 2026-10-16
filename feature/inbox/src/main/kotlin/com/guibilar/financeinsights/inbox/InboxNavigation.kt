@@ -29,13 +29,21 @@ fun NavHostController.openInbox() {
 }
 
 /** The Inbox page, for the app's navigation host. */
-fun NavGraphBuilder.inboxGraph(nav: NavHostController, client: ApiClient, contentPadding: PaddingValues, canWrite: Boolean = true) {
+fun NavGraphBuilder.inboxGraph(
+    nav: NavHostController,
+    client: ApiClient,
+    contentPadding: PaddingValues,
+    canWrite: Boolean = true,
+    /** T102: opens a document made from an email's attachment. */
+    openDocument: (String) -> Unit = {},
+) {
     composable<InboxRoute> {
         InboxScreen(
             model = viewModel { InboxViewModel(client.api(), NoteSender(client.api(), client.api())) },
             contentPadding = contentPadding,
             canWrite = canWrite,
             onBack = { nav.popBackStack() },
+            openDocument = openDocument,
         )
     }
 }

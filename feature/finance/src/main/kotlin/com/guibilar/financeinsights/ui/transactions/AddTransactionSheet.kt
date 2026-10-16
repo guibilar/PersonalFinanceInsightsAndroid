@@ -70,6 +70,8 @@ fun AddTransactionSheet(state: TransactionsState, model: TransactionsViewModel, 
     val scope = rememberCoroutineScope()
     val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val previous = state.lastAdded
+    // T100: the values of a receipt, taken once.
+    val prefill = remember { TransactionPrefills.pending.value }
     var accountId by rememberSaveable {
         mutableStateOf(previous?.second ?: state.accounts.firstOrNull { it.format == StatementFormat.Manual }?.id)
     }
@@ -77,9 +79,9 @@ fun AddTransactionSheet(state: TransactionsState, model: TransactionsViewModel, 
     LaunchedEffect(state.accounts) {
         if (accountId == null) accountId = state.accounts.firstOrNull { it.format == StatementFormat.Manual }?.id
     }
-    var date by rememberSaveable { mutableStateOf(previous?.first ?: state.today) }
-    var description by rememberSaveable { mutableStateOf("") }
-    var amount by rememberSaveable { mutableStateOf("") }
+    var date by rememberSaveable { mutableStateOf(prefill?.date ?: previous?.first ?: state.today) }
+    var description by rememberSaveable { mutableStateOf(prefill?.description?.take(TextLimits.TRANSACTION_DESCRIPTION) ?: "") }
+    var amount by rememberSaveable { mutableStateOf(prefill?.amount?.let { "%.2f".format(java.util.Locale.US, it) } ?: "") }
     var direction by rememberSaveable { mutableStateOf(TransactionType.Debit) }
     var categoryId by rememberSaveable { mutableStateOf<String?>(null) }
     var flow by rememberSaveable { mutableStateOf<Flow?>(null) }
@@ -116,7 +118,10 @@ fun AddTransactionSheet(state: TransactionsState, model: TransactionsViewModel, 
                 allowDuplicate = allowDuplicate,
             )
             when (val outcome = model.add(input)) {
-                AddOutcome.Added -> {
+                is AddOutcome.Added -> {
+                    // T100: the receipt links to the new transaction.
+                    prefill?.onAdded?.invoke(outcome.id)
+                    TransactionPrefills.pending.value = null
                     // Closed even if the sheet leaves the screen while it slides away.
                     try {
                         sheet.hide()
@@ -131,7 +136,10 @@ fun AddTransactionSheet(state: TransactionsState, model: TransactionsViewModel, 
         }
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheet) {
+    ModalBottomSheet(onDismissRequest = {
+        TransactionPrefills.pending.value = null
+        onDismiss()
+    }, sheetState = sheet) {
         Column(
             Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).navigationBarsPadding().imePadding(),
             verticalArrangement = Arrangement.spacedBy(12.dp),

@@ -10,7 +10,10 @@ import com.guibilar.financeinsights.core.api.apiError
 import com.guibilar.financeinsights.core.documents.Document
 import com.guibilar.financeinsights.core.documents.DocumentDetails
 import com.guibilar.financeinsights.core.documents.DocumentFile
+import com.guibilar.financeinsights.core.documents.DocumentKind
 import com.guibilar.financeinsights.core.documents.DocumentLink
+import com.guibilar.financeinsights.core.documents.DocumentSuggestions
+import com.guibilar.financeinsights.core.documents.TransactionMatch
 import com.guibilar.financeinsights.core.documents.DocumentsApi
 import com.guibilar.financeinsights.core.documents.NewDocumentLink
 import com.guibilar.financeinsights.core.documents.OcrStatus
@@ -62,6 +65,8 @@ data class DocumentState(
     val busy: Boolean = false,
     /** The transactions to pick a link from; null until the picker asks. */
     val candidates: LoadState<List<Transaction>>? = null,
+    /** T100: what Hestia read in the text (a receipt), after the OCR; null before, or when it failed to load. */
+    val suggestions: DocumentSuggestions? = null,
 )
 
 /**
@@ -109,6 +114,7 @@ class DocumentViewModel(
         _state.update { it.copy(document = loaded) }
         val document = loaded.valueOrNull ?: return
         loadTransactions(document)
+        loadSuggestions(document)
         if (document.ocrStatus == OcrStatus.Pending) poll() else pollJob?.cancel()
     }
 
@@ -124,11 +130,46 @@ class DocumentViewModel(
                 val read = apiCall { api.document(id) }.getOrNull() ?: continue
                 if (read.ocrStatus != OcrStatus.Pending) {
                     _state.update { it.copy(document = LoadState.Loaded(read)) }
+                    loadSuggestions(read)
                     return@launch
                 }
             }
             _state.update { it.copy(ocrSlow = true) }
         }
+    }
+
+    /** T100: what the text of a receipt says, once the OCR is done. A failure shows nothing (it is only a help). */
+    private fun loadSuggestions(document: Document) {
+        if (document.ocrStatus != OcrStatus.Done) {
+            _state.update { it.copy(suggestions = null) }
+            return
+        }
+        viewModelScope.launch {
+            val read = apiCall { api.suggestions(id) }.getOrNull()
+            _state.update { it.copy(suggestions = read?.takeIf { s -> s.any }) }
+        }
+    }
+
+    /** T100: links a transaction that the receipt matches. */
+    fun linkMatch(match: TransactionMatch) = write("Could not link the transaction.") {
+        val link = api.addLink(id, NewDocumentLink.transaction(match.id))
+        _state.update { state ->
+            val document = state.document.valueOrNull ?: return@update state
+            state.copy(document = LoadState.Loaded(document.copy(links = document.links + link)))
+        }
+        document?.let { loadTransactions(it); loadSuggestions(it) }
+        DataChanges.changed()
+        "Linked to ${match.description}"
+    }
+
+    /** T100: the kind that the text suggests, or the end of a warranty as the expiry. The other details stay. */
+    fun applySuggestion(kind: DocumentKind? = null, expiresOn: String? = null) = write("Could not change the document.") {
+        val current = document ?: return@write null
+        val details = current.details.let { it.copy(kind = kind ?: it.kind, expiresOn = expiresOn ?: it.expiresOn) }
+        val saved = api.update(id, details)
+        show(LoadState.Loaded(saved))
+        DataChanges.changed()
+        if (kind != null) "Marked as ${kind.label}" else "The expiry is set"
     }
 
     /** Asks finance for each linked transaction that is not known yet. */

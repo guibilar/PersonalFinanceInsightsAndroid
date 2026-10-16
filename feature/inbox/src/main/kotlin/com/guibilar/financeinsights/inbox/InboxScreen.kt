@@ -21,6 +21,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.AssistChip
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -73,6 +75,8 @@ fun InboxScreen(
     /** The time zone of the times of the notes (the phone's). */
     zone: ZoneId = ZoneId.systemDefault(),
     onBack: (() -> Unit)? = null,
+    /** T102: opens a document made from an email's attachment. */
+    openDocument: (String) -> Unit = {},
 ) {
     val state by model.state.collectAsState()
     val snackbar = remember { SnackbarHostState() }
@@ -123,7 +127,7 @@ fun InboxScreen(
                             } else {
                                 item(key = "count") { Note(if (state.total == 1) "1 note" else "${state.total} notes") }
                                 items(notes.value, key = { it.id }) { note ->
-                                    NoteCard(note, canWrite, state.busy == note.id, zone, model, { editing = it }, { deleting = it })
+                                    NoteCard(note, canWrite, state.busy == note.id, zone, model, { editing = it }, { deleting = it }, openDocument)
                                 }
                             }
                         }
@@ -202,10 +206,26 @@ private fun NoteCard(
     model: InboxViewModel,
     edit: (InboxNote) -> Unit,
     delete: (InboxNote) -> Unit,
+    openDocument: (String) -> Unit,
 ) {
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            if (note.source == "Email") {
+                Text("Email from ${note.from.orEmpty()}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
             Text(note.text, style = MaterialTheme.typography.bodyLarge)
+            val documents = note.documentIds.orEmpty()
+            if (documents.isNotEmpty()) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    documents.forEachIndexed { index, id ->
+                        AssistChip(
+                            onClick = { openDocument(id) },
+                            label = { Text(if (documents.size == 1) "Attached document" else "Attachment ${index + 1}") },
+                            leadingIcon = { Icon(Icons.Outlined.Description, null) },
+                        )
+                    }
+                }
+            }
             val time = listOfNotNull(
                 noteTime(note.createdAt, zone),
                 note.doneAt?.let { "sorted ${note.sortedTo?.let { to -> "to $to " } ?: ""}${noteTime(it, zone) ?: ""}".trim() },

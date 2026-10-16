@@ -62,7 +62,7 @@ class TransactionActionsTest {
         val outcome = model.add(input)
         advanceUntilIdle()
 
-        assertEquals(AddOutcome.Added, outcome)
+        assertTrue(outcome is AddOutcome.Added)
         assertEquals(LocalDate.of(2026, 10, 2) to "a1", model.state.value.lastAdded)
         assertEquals(before + 1, reloads())
         assertTrue(messages.single().text.startsWith("Added “COFFEE”"))

@@ -171,3 +171,41 @@ data class NewDocumentLink(val kind: String, val targetId: String) {
         fun person(id: String) = NewDocumentLink(DocumentLinkKinds.PEOPLE_PERSON, id)
     }
 }
+
+/** A finance transaction that can be the purchase of a receipt (T100). */
+@Serializable
+data class TransactionMatch(
+    val id: String,
+    val date: String,
+    val description: String = "",
+    val amount: Double = 0.0,
+    val accountName: String = "",
+    /** Days from the day of the receipt. */
+    val daysOff: Int = 0,
+    /** True when the document links to it already. */
+    val linked: Boolean = false,
+)
+
+/**
+ * What Hestia read in the text of a document (`GET /api/documents/{id}/suggestions`, T100): the store, the day, and the
+ * total of a receipt, the transactions of that amount near that day, and the end of a warranty. Null when the text does
+ * not say it clearly.
+ */
+@Serializable
+data class DocumentSuggestions(
+    val documentId: String,
+    val ocrStatus: OcrStatus = OcrStatus.Pending,
+    val merchant: String? = null,
+    val date: String? = null,
+    val total: Double? = null,
+    /** The kind that the document seems to be, when its kind is Other. */
+    val kind: DocumentKind? = null,
+    val warrantyMonths: Int? = null,
+    val warrantyUntil: String? = null,
+    val transactions: List<TransactionMatch> = emptyList(),
+    /** False when finance did not answer. */
+    val transactionsComplete: Boolean = true,
+) {
+    /** True when there is something to show. */
+    val any: Boolean get() = total != null || merchant != null || warrantyUntil != null || kind != null
+}

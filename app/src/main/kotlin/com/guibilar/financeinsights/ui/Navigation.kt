@@ -86,6 +86,10 @@ import com.guibilar.financeinsights.calendar.isCalendarPage
 import com.guibilar.financeinsights.calendar.openCalendar
 import com.guibilar.financeinsights.inbox.InboxApi
 import com.guibilar.financeinsights.inbox.InboxText
+import com.guibilar.financeinsights.ui.transactions.TransactionPrefill
+import com.guibilar.financeinsights.ui.transactions.TransactionPrefills
+import com.guibilar.financeinsights.core.documents.DocumentsApi
+import com.guibilar.financeinsights.core.documents.NewDocumentLink
 import com.guibilar.financeinsights.journal.JournalRoute
 import com.guibilar.financeinsights.journal.isJournalPage
 import com.guibilar.financeinsights.journal.journalGraph
@@ -472,6 +476,20 @@ fun MainScreen(
                         tasks = documentTasks,
                         items = documentItems,
                         people = documentPeople,
+                        // T100: "Add as a transaction" on a receipt: the add sheet filled in, then the receipt links to it.
+                        addTransaction = { documentId, description, amount, date ->
+                            TransactionPrefills.pending.value = TransactionPrefill(
+                                description = description,
+                                amount = amount,
+                                date = date?.let { runCatching { java.time.LocalDate.parse(it) }.getOrNull() },
+                                onAdded = { transactionId ->
+                                    runCatching {
+                                        client.api<DocumentsApi>().addLink(documentId, NewDocumentLink.transaction(transactionId))
+                                    }
+                                },
+                            )
+                            quickAction.value = QuickAction.AddTransaction
+                        },
                     )
                     tasksGraph(
                         nav = nav,
@@ -498,7 +516,7 @@ fun MainScreen(
                         host = peopleHost,
                         canWrite = canWrite,
                     )
-                    inboxGraph(nav = nav, client = client, contentPadding = padding, canWrite = canWrite)
+                    inboxGraph(nav = nav, client = client, contentPadding = padding, canWrite = canWrite, openDocument = { nav.openDocument(it) })
                     journalGraph(
                         nav = nav,
                         client = client,

@@ -87,6 +87,8 @@ fun NavGraphBuilder.documentsGraph(
     tasks: DocumentTasks? = null,
     items: DocumentItems? = null,
     people: DocumentPeople? = null,
+    /** T100: the add sheet filled in from a receipt (documentId, store, total, day), and the receipt linked to it. */
+    addTransaction: ((documentId: String, description: String, amount: Double?, date: String?) -> Unit)? = null,
 ) {
     composable<DocumentsRoute> {
         DocumentsListScreen(
@@ -111,6 +113,7 @@ fun NavGraphBuilder.documentsGraph(
             tasks = tasks,
             items = items,
             people = people,
+            addTransaction = if (canWrite) addTransaction else null,
         )
     }
     composable<AddDocumentRoute> { backStack ->
