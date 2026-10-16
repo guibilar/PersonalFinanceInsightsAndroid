@@ -92,4 +92,8 @@ interface PeopleApi {
     /** The people linked to one thing, for example a home item. */
     @GET("people/by-link")
     suspend fun byLink(@Query("kind") kind: String, @Query("id") id: String): List<PersonSummary>
+
+    /** Imports contacts (T105); with dryRun only the preview. A contact that matches a person only fills its empty details. */
+    @POST("people/import")
+    suspend fun importPeople(@Body request: PeopleImportRequest): PeopleImportResult
 }

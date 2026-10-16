@@ -216,3 +216,45 @@ sealed interface HistoryEntry {
 fun historyOf(person: Person): List<HistoryEntry> =
     (person.interactions.map { HistoryEntry.Contact(it) } + person.loans.map { HistoryEntry.Lending(it) })
         .sortedWith(compareByDescending<HistoryEntry> { it.day }.thenBy { it.key })
+
+// ---- The import of contacts (T105) ----
+
+/** What the import does with one contact, as the person reads it: "New person", "Adds birthday, email to Ana S.", … */
+fun importActionText(item: PeopleImportItem): String = when (item.action) {
+    "Add" -> "New person"
+    "Merge" -> "Adds ${item.newFields.joinToString(", ")} to ${item.existingName}"
+    "Same" -> "Already here as ${item.existingName}"
+    else -> item.reason ?: "Skipped"
+}
+
+/** "12 new, 3 to update, 40 already here". */
+fun importCounts(result: PeopleImportResult): String = buildList {
+    add("${result.added} new")
+    add("${result.merged} to update")
+    add("${result.unchanged} already here")
+    if (result.skipped > 0) add("${result.skipped} skipped")
+}.joinToString(", ")
+
+/**
+ * A birthday as the phone keeps it (ContactsContract.CommonDataKinds.Event): "1990-10-20", "--10-20", "19901020", or
+ * "1990-10-20T00:00:00Z". Null when it does not read. A year before 1900 ("1604") means no year.
+ */
+fun phoneBirthday(text: String?): Birthday? {
+    val value = text?.trim()?.substringBefore('T') ?: return null
+    if (value.startsWith("--")) {
+        val digits = value.drop(2).replace("-", "")
+        val month = digits.take(2).toIntOrNull() ?: return null
+        val day = digits.drop(2).take(2).toIntOrNull() ?: return null
+        return Birthday(month, day).takeIf { validBirthday(month, day, null) && digits.length == 4 }
+    }
+    val digits = value.replace("-", "")
+    if (digits.length != 8) return null
+    val year = digits.take(4).toIntOrNull() ?: return null
+    val month = digits.substring(4, 6).toIntOrNull() ?: return null
+    val day = digits.substring(6, 8).toIntOrNull() ?: return null
+    if (!validBirthday(month, day, year)) return null
+    return if (year < 1900) Birthday(month, day) else Birthday(month, day, year)
+}
+
+private fun validBirthday(month: Int, day: Int, year: Int?): Boolean =
+    month in 1..12 && day >= 1 && day <= java.time.YearMonth.of(year?.takeIf { it in 1..9999 } ?: 2000, month).lengthOfMonth()

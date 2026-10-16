@@ -202,3 +202,41 @@ data class LoanDetails(
 
 @Serializable
 data class NewPersonLink(val kind: String, val targetId: String)
+
+/**
+ * Contacts to import (`POST /api/people/import`, T105): the text of a vCard file, or the phone's contacts. [dryRun] gives
+ * the preview; [only] imports the chosen indexes.
+ */
+@Serializable
+data class PeopleImportRequest(
+    val vCard: String? = null,
+    val people: List<PersonDetails>? = null,
+    val dryRun: Boolean = true,
+    val only: List<Int>? = null,
+)
+
+/** One contact of an import. [action]: "Add", "Merge", "Same", or "Skip". */
+@Serializable
+data class PeopleImportItem(
+    val index: Int,
+    val action: String,
+    val person: PersonDetails,
+    val existingId: String? = null,
+    val existingName: String? = null,
+    val matchedBy: String? = null,
+    val newFields: List<String> = emptyList(),
+    val reason: String? = null,
+) {
+    /** A new person or a merge: the import can change something. */
+    val choosable: Boolean get() = action == "Add" || action == "Merge"
+}
+
+@Serializable
+data class PeopleImportResult(
+    val dryRun: Boolean = true,
+    val added: Int = 0,
+    val merged: Int = 0,
+    val unchanged: Int = 0,
+    val skipped: Int = 0,
+    val people: List<PeopleImportItem> = emptyList(),
+)

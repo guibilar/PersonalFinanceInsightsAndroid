@@ -10,12 +10,15 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import com.guibilar.financeinsights.core.api.ApiClient
+import com.guibilar.financeinsights.people.ui.PeopleImportScreen
+import com.guibilar.financeinsights.people.ui.PeopleImportViewModel
 import com.guibilar.financeinsights.people.ui.PeopleScreen
 import com.guibilar.financeinsights.people.ui.PeopleViewModel
 import com.guibilar.financeinsights.people.ui.PersonFormScreen
 import com.guibilar.financeinsights.people.ui.PersonFormViewModel
 import com.guibilar.financeinsights.people.ui.PersonScreen
 import com.guibilar.financeinsights.people.ui.PersonViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.serialization.Serializable
 import java.time.LocalDate
 
@@ -35,7 +38,17 @@ data class PersonRoute(val id: String)
 data class PersonFormRoute(val id: String? = null)
 
 /** Whether a page is one of the People module's: the app's bar shows them under Modules. */
-fun NavDestination.isPeoplePage(): Boolean = hasRoute<PeopleRoute>() || hasRoute<PersonRoute>() || hasRoute<PersonFormRoute>()
+/** Import contacts (T105): from the phone or a vCard file. */
+@Serializable
+data object PeopleImportRoute
+
+fun NavDestination.isPeoplePage(): Boolean =
+    hasRoute<PeopleRoute>() || hasRoute<PersonRoute>() || hasRoute<PersonFormRoute>() || hasRoute<PeopleImportRoute>()
+
+/** Opens the import (a .vcf shared to the app, T101, waits in the graph's sharedVCard). */
+fun NavHostController.importPeople() {
+    navigate(PeopleImportRoute) { launchSingleTop = true }
+}
 
 /** Opens the People screen from outside its pages (Today, Modules), as a tab opens: Back returns to the first page. */
 fun NavHostController.openPeople() {
@@ -67,13 +80,31 @@ fun NavGraphBuilder.peopleGraph(
     host: PeopleHost,
     canWrite: Boolean = true,
     today: () -> LocalDate = { LocalDate.now() },
+    /** The text of a .vcf shared to the app (T101), for the import screen. */
+    sharedVCard: MutableStateFlow<String?> = MutableStateFlow(null),
+    /** Says something after the import (the app's snackbar). */
+    onMessage: (String) -> Unit = {},
 ) {
+    composable<PeopleImportRoute> {
+        PeopleImportScreen(
+            model = viewModel { PeopleImportViewModel(client.api()) },
+            contentPadding = contentPadding,
+            canWrite = canWrite,
+            onDone = { message ->
+                onMessage(message)
+                nav.popBackStack()
+            },
+            onBack = { nav.popBackStack() },
+            sharedVCard = sharedVCard,
+        )
+    }
     composable<PeopleRoute> {
         PeopleScreen(
             model = viewModel { PeopleViewModel(client.api(), today) },
             contentPadding = contentPadding,
             openPerson = { id -> nav.navigate(PersonRoute(id)) },
             addPerson = { nav.navigate(PersonFormRoute()) },
+            importPeople = { nav.navigate(PeopleImportRoute) },
             canWrite = canWrite,
             onBack = { nav.popBackStack() },
         )
