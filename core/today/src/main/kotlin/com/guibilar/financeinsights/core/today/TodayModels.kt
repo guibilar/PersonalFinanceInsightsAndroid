@@ -16,6 +16,53 @@ data class TodayDto(
     /** Each module that gives cards, with its status. A failed module gives no cards. */
     val modules: List<TodayModule> = emptyList(),
     val cards: List<TodayCard> = emptyList(),
+    /** "Your day" (T106): the Calendar of today and of the next days; null when the Calendar did not answer. */
+    val agenda: TodayAgenda? = null,
+    /** "On this day" (T106): this day in earlier years, newest first. */
+    val memories: List<TodayMemory> = emptyList(),
+)
+
+/** "Your day" (T106). */
+@Serializable
+data class TodayAgenda(
+    /** The items that touch today: whole days first, then by time. */
+    val today: List<TodayAgendaItem> = emptyList(),
+    /** The items that start in the next 7 days, soonest first (at most 8). */
+    val upcoming: List<TodayAgendaItem> = emptyList(),
+    /** False when a module's items did not load. */
+    val complete: Boolean = true,
+)
+
+/** One thing of "Your day": the fields of a Calendar item. */
+@Serializable
+data class TodayAgendaItem(
+    val id: String,
+    val module: String,
+    /** "event", "task-due", "birthday", "reach-out", "loan-due", "document-expires", "warranty-ends". */
+    val kind: String,
+    val title: String,
+    val text: String? = null,
+    val allDay: Boolean = true,
+    val startDate: String,
+    val endDate: String = startDate,
+    val startsAt: String? = null,
+    val endsAt: String? = null,
+    /** The web route of the thing; the app maps it (todayDestination). */
+    val link: String? = null,
+    val eventId: String? = null,
+    /** For a task: false while it is open. */
+    val done: Boolean? = null,
+)
+
+/** Something from this day in an earlier year, for example a journal entry. */
+@Serializable
+data class TodayMemory(
+    val module: String,
+    val kind: String,
+    val yearsAgo: Int,
+    val day: String,
+    val text: String,
+    val link: String? = null,
 )
 
 /** One module on Today, and whether all its cards are there. */

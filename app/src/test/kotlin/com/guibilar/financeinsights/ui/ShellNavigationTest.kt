@@ -107,7 +107,7 @@ class ShellNavigationTest {
     }
 
     // What shows only on these pages.
-    private val today = "Open Money"
+    private val today = "Your day"
     private val moneyHome = "Overview"
     private val modules = "Spending, budgets and net worth"
 
@@ -142,7 +142,8 @@ class ShellNavigationTest {
     @Test
     fun `a Today tile opens its Money page, and Back returns to the Money home, then Today`() {
         show()
-        compose.onAllNodesWithText("Net worth").onFirst().performClick()
+        // T106: the tiles are below "Your day": scroll to the tile first.
+        compose.onAllNodesWithText("Net worth").onFirst().performScrollTo().performClick()
         compose.waitForIdle()
         assertShows("net worth", "Net worth")
         assertTrue("not Today", !shows(today))

@@ -76,7 +76,10 @@ class TodayScreenTest {
     private fun complete(dark: Boolean) {
         show(dark = dark)
         // The server's day, not the phone's.
-        assertShows("Saturday, October 3", "Money", "Open Money", "Needs attention")
+        assertShows("Saturday, October 3", "Your day", "At a glance", "Needs attention")
+        // T106: your day first, what comes up, and on this day.
+        assertShows("2 things today, and a birthday this week.", "Water the plants", "Dinner with Ana", "Luigi's · until 8:30 PM", "COMING UP", "Ana's birthday")
+        assertShows("On this day", "1 YEAR AGO · OCT 3, 2025")
         // Hearth: a greeting by the hour the cards were made (15:00 UTC; the tests run in UTC).
         assertShows("Good afternoon, Alex")
         // Every module is active since T21: no "Coming soon" section.
@@ -132,7 +135,7 @@ class TodayScreenTest {
     @Test
     fun `System and People alerts show in Needs attention, with no empty section, System without a link (T81)`() {
         show(TodaySamples.withSystem)
-        assertShows("Money", "Needs attention", "No event broker since Oct 2, 2026", "Reach out to Marco Silva: last contact on Aug 15, 2026")
+        assertShows("At a glance", "Needs attention", "No event broker since Oct 2, 2026", "Reach out to Marco Silva: last contact on Aug 15, 2026")
         compose.onAllNodesWithText("System").assertCountEquals(0)
         compose.onAllNodesWithText("Open People").assertCountEquals(0)
         shoot("today-system")
@@ -154,15 +157,13 @@ class TodayScreenTest {
     }
 
     @Test
-    fun `a module with cards gets its own section`() {
+    fun `the tiles of every module are at a glance`() {
         show(TodaySamples.twoModules)
-        assertShows("Documents", "Expiring soon", "Next on Oct 20, 2026", "Groceries is over its limit (112% used)")
+        assertShows("Expiring soon", "Next on Oct 20, 2026", "Groceries is over its limit (112% used)")
         compose.onAllNodesWithText("Documents that expire soon").assertCountEquals(0)
         shoot("today-modules")
-        // Documents is active (T12): its section opens its list, and its tile its page.
-        compose.onNodeWithText("Open Documents").performClick()
+        // Documents is active (T12): its tile opens its page.
         compose.onNodeWithText("Expiring soon").performClick()
-        assertEquals(listOf("documents"), openedModules.map { it.id })
         assertEquals(listOf<TodayDestination>(TodayDestination.Documents), opened)
     }
 
@@ -207,13 +208,15 @@ class TodayScreenTest {
         compose.onNodeWithText("Spent this month").performClick()
         compose.onNodeWithText("NETFLIX went up from $16.49 to $18.99").performClick()
         compose.onNodeWithText("4 transactions are in Other because no rule names their merchants").performClick()
-        compose.onNodeWithText("Open Money").performClick()
+        // T106: an item of your day opens its page; Calendar opens the calendar.
+        compose.onNodeWithText("Water the plants").performClick()
+        compose.onNodeWithText("Calendar").performClick()
 
         assertEquals(
-            listOf(MoneyLink.NetWorth, MoneyLink.Budgets, MoneyLink.Subscriptions, MoneyLink.Rules).map { TodayDestination.Money(it) },
+            listOf(MoneyLink.NetWorth, MoneyLink.Budgets, MoneyLink.Subscriptions, MoneyLink.Rules).map { TodayDestination.Money(it) } +
+                listOf(TodayDestination.Task("t1"), TodayDestination.Calendar()),
             opened,
         )
-        assertEquals(listOf("money"), openedModules.map { it.id })
     }
 
     @Test

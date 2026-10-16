@@ -103,4 +103,33 @@ class TodayViewModelTest {
         assertEquals(phone, TodayState().day(phone))
         assertEquals(LocalDate.of(2026, 10, 3), TodayState(today = TodaySamples.complete).day(phone))
     }
+
+    @Test
+    fun `a note jotted on Today is saved, and Today loads again (T106)`() = runTest(dispatcher) {
+        val notes = mutableListOf<String>()
+        val model = TodayViewModel(api, saveNote = { notes += it })
+        advanceUntilIdle()
+        var cleared = false
+
+        model.jot("  Buy furnace filters ") { cleared = true }
+        advanceUntilIdle()
+
+        assertEquals(listOf("Buy furnace filters"), notes)
+        assertTrue(cleared)
+        assertEquals(true, api.calls.last())
+    }
+
+    @Test
+    fun `a task ticked on Today is done, and stays ticked (T106)`() = runTest(dispatcher) {
+        val done = mutableListOf<String>()
+        val model = TodayViewModel(api, completeTask = { done += it })
+        advanceUntilIdle()
+
+        model.complete(com.guibilar.financeinsights.TodaySamples.waterPlants)
+        advanceUntilIdle()
+
+        assertEquals(listOf("t1"), done)
+        assertTrue("tasks.task-due.t1" in model.state.value.doneHere)
+        assertEquals(true, api.calls.last())
+    }
 }
