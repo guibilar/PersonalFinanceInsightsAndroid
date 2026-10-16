@@ -77,13 +77,23 @@ class ShellNavigationTest {
         }
     }
 
+    /** The Inbox (T101): empty; a shared text starts a note. */
+    private val inboxApi = object : com.guibilar.financeinsights.inbox.InboxApi {
+        override suspend fun notes(done: Boolean, pageSize: Int) = com.guibilar.financeinsights.inbox.InboxPage()
+        override suspend fun add(text: com.guibilar.financeinsights.inbox.InboxText) = com.guibilar.financeinsights.inbox.InboxNote("n1", text.text)
+        override suspend fun update(id: String, text: com.guibilar.financeinsights.inbox.InboxText) = com.guibilar.financeinsights.inbox.InboxNote(id, text.text)
+        override suspend fun done(id: String, done: com.guibilar.financeinsights.inbox.InboxDone) = com.guibilar.financeinsights.inbox.InboxNote(id)
+        override suspend fun reopen(id: String) = com.guibilar.financeinsights.inbox.InboxNote(id)
+        override suspend fun delete(id: String) {}
+    }
+
     /** Search (T17): nothing is searched in these tests. */
     private val searchApi = object : SearchApi {
         override suspend fun search(q: String, module: String?) = SearchResult(q)
     }
 
     private fun show(canWrite: Boolean = true) {
-        val client = fakeApiClient(FakeFinanceApi(), todayApi, FakeDocumentsApi(), FakeAlertsApi(), tasksApi, homeApi, FakePeopleApi(), timelineApi, searchApi)
+        val client = fakeApiClient(FakeFinanceApi(), todayApi, FakeDocumentsApi(), FakeAlertsApi(), tasksApi, homeApi, FakePeopleApi(), timelineApi, searchApi, inboxApi, com.guibilar.financeinsights.FakeJournalApi())
         compose.setContent {
             FinanceTheme(ripples = false, dynamicColor = false) { Surface { MainScreen(client, account, {}, quickAction = quickAction, canWrite = canWrite) } }
         }
@@ -457,5 +467,39 @@ class ShellNavigationTest {
         tab("Modules").assertIsSelected()
         back()
         assertShows("Home", "Inventory · 7 items")
+    }
+
+    // ---- T101: Share to Hestia ----
+
+    private fun share(share: com.guibilar.financeinsights.Share) {
+        com.guibilar.financeinsights.Shares.pending.value = share
+        compose.waitForIdle()
+    }
+
+    @Test
+    fun `shared text starts a note in the Inbox`() {
+        show()
+        share(com.guibilar.financeinsights.Share.Text("Recipe: https://example.com/soup"))
+        assertShows("the Inbox", "Recipe: https://example.com/soup")
+        assertTrue(com.guibilar.financeinsights.Shares.pending.value == null)
+    }
+
+    @Test
+    fun `a shared vcf opens the import of contacts with its preview`() {
+        show()
+        share(com.guibilar.financeinsights.Share.Contacts("BEGIN:VCARD\nFN:Dan Wu\nEND:VCARD"))
+        assertShows("the import", "Import contacts")
+        assertShows("the preview", "Dan Wu")
+    }
+
+    @Test
+    fun `a shared PDF asks if it is a document or a statement`() {
+        show()
+        val pdf = com.guibilar.financeinsights.core.documents.UploadFile("bill.pdf", "%PDF-1.4".toByteArray())
+        share(com.guibilar.financeinsights.Share.Pdfs(listOf(pdf), listOf(com.guibilar.financeinsights.ui.transactions.PickedFile("bill.pdf", pdf.bytes))))
+        assertShows("the question", "Keep or import this PDF?")
+        compose.onNodeWithText("Keep as a document").performClick()
+        compose.waitForIdle()
+        assertShows("the new document", "bill.pdf")
     }
 }

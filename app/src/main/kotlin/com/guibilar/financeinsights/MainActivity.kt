@@ -22,6 +22,8 @@ import com.guibilar.financeinsights.notifications.AlertNotifications
 import com.guibilar.financeinsights.ui.FinanceRoot
 import com.guibilar.financeinsights.ui.theme.FinanceTheme
 import com.guibilar.financeinsights.ui.transactions.readFile
+import com.guibilar.financeinsights.core.documents.UploadFile
+import com.guibilar.financeinsights.documents.ui.preparePhoto
 import com.guibilar.financeinsights.widget.SpendingWidget
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -105,7 +107,10 @@ class MainActivity : FragmentActivity() {
         }
     }
 
-    /** Statements shared to the app (one or several), or one opened with it, wait for the import sheet. */
+    /**
+     * What another app shares to Hestia, or a file opened with it (T101): statements (CSV) wait for the import sheet as
+     * before; text and links, photos, PDFs, .ics, and .vcf files wait in [Shares] for their screens.
+     */
     private fun takeStatement(intent: Intent) {
         val uris: List<Uri> = when (intent.action) {
             Intent.ACTION_SEND -> listOfNotNull(IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java))
@@ -113,15 +118,46 @@ class MainActivity : FragmentActivity() {
             Intent.ACTION_VIEW -> listOfNotNull(intent.data)
             else -> emptyList()
         }
-        if (uris.isEmpty()) return
+        if (uris.isEmpty()) {
+            // Text or a link shared from another app: a note for the Inbox.
+            val text = intent.takeIf { it.action == Intent.ACTION_SEND }?.let {
+                listOfNotNull(it.getStringExtra(Intent.EXTRA_SUBJECT), it.getCharSequenceExtra(Intent.EXTRA_TEXT)?.toString())
+                    .map(String::trim).filter(String::isNotEmpty).distinct().joinToString("\n")
+            }
+            if (!text.isNullOrBlank()) Shares.pending.value = Share.Text(text)
+            return
+        }
         lifecycleScope.launch {
-            val files = withContext(Dispatchers.IO) { uris.mapNotNull { readFile(this@MainActivity, it) } }
-            // Unreadable, they used to vanish without a word.
-            if (files.isNotEmpty()) app.sharedStatement.value = files
-            val unreadable = uris.size - files.size
+            val read = withContext(Dispatchers.IO) {
+                uris.mapNotNull { uri ->
+                    val file = readFile(this@MainActivity, uri) ?: return@mapNotNull null
+                    Triple(sharedKind(contentResolver.getType(uri), file.name), file, uri)
+                }
+            }
+            val unreadable = uris.size - read.size
             if (unreadable > 0) {
                 val text = if (uris.size == 1) "Could not read that file." else "Could not read $unreadable of the ${uris.size} files."
                 Toast.makeText(this@MainActivity, text, Toast.LENGTH_LONG).show()
+            }
+            if (read.isEmpty()) return@launch
+            val kinds = read.map { it.first }.toSet()
+            val files = read.map { it.second }
+            when {
+                kinds == setOf(SharedKind.Statement) -> app.sharedStatement.value = files
+                kinds == setOf(SharedKind.Calendar) -> Shares.pending.value = Share.Calendar(files.first().bytes.decodeToString())
+                kinds == setOf(SharedKind.Contacts) -> Shares.pending.value = Share.Contacts(files.joinToString("\n") { it.bytes.decodeToString() })
+                kinds == setOf(SharedKind.Pdf) ->
+                    Shares.pending.value = Share.Pdfs(files.map { UploadFile(it.name, it.bytes) }, files)
+                else -> {
+                    // Photos (with PDFs or others): a document of these files. Photos get the upload's size limit.
+                    val uploads = withContext(Dispatchers.Default) {
+                        read.map { (kind, file, _) ->
+                            val upload = UploadFile(file.name, file.bytes)
+                            if (kind == SharedKind.Image) preparePhoto(upload) else upload
+                        }
+                    }
+                    Shares.pending.value = Share.Files(uploads)
+                }
             }
         }
     }
