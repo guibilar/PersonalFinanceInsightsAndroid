@@ -5,6 +5,8 @@ import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
@@ -17,6 +19,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -29,6 +33,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import java.time.ZoneOffset
 import com.guibilar.financeinsights.core.logic.formatDay
 
@@ -143,5 +150,42 @@ fun DateField(label: String, value: LocalDate?, onChange: (LocalDate) -> Unit, m
             },
             dismissButton = { TextButton(onClick = { picking = false }) { Text("Cancel") } },
         ) { DatePicker(state) }
+    }
+}
+
+private val TIME_TEXT = DateTimeFormatter.ofPattern("h:mm a", Locale.US)
+
+/** A time of day, picked on a clock (T104): no typing. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TimeField(label: String, value: LocalTime, onChange: (LocalTime) -> Unit, modifier: Modifier = Modifier) {
+    var picking by remember { mutableStateOf(false) }
+    val interaction = remember { MutableInteractionSource() }
+    LaunchedEffect(interaction) {
+        interaction.interactions.collect { if (it is PressInteraction.Release) picking = true }
+    }
+    OutlinedTextField(
+        interactionSource = interaction,
+        value = value.format(TIME_TEXT),
+        onValueChange = {},
+        readOnly = true,
+        singleLine = true,
+        label = { Text(label) },
+        trailingIcon = { IconButton(onClick = { picking = true }) { Icon(Icons.Outlined.Schedule, "Pick $label") } },
+        modifier = modifier,
+    )
+    if (picking) {
+        val state = rememberTimePickerState(initialHour = value.hour, initialMinute = value.minute, is24Hour = false)
+        AlertDialog(
+            onDismissRequest = { picking = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    onChange(LocalTime.of(state.hour, state.minute))
+                    picking = false
+                }) { Text("OK") }
+            },
+            dismissButton = { TextButton(onClick = { picking = false }) { Text("Cancel") } },
+            text = { TimePicker(state) },
+        )
     }
 }

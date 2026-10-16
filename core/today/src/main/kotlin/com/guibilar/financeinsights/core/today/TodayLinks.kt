@@ -53,6 +53,9 @@ sealed interface TodayDestination {
 
     /** The Inbox ("/inbox", T18): the notes to sort. */
     data object Inbox : TodayDestination
+
+    /** The Calendar ("/calendar", T104), on [day] ("?day=yyyy-MM-dd"), or with the event [event] open ("?event=<id>"). */
+    data class Calendar(val day: String? = null, val event: String? = null) : TodayDestination
 }
 
 /** The finance pages by their web path (under "/money"), as the web app names them (`money.routes.ts`). */
@@ -95,6 +98,7 @@ fun todayDestination(link: String?): TodayDestination? {
         path == "/home" || path.startsWith("/home/") -> homePage(path.removePrefix("/home").removePrefix("/"))
         path == "/people" || path.startsWith("/people/") -> peoplePage(path.removePrefix("/people").removePrefix("/"))
         path == "/journal" -> TodayDestination.Journal(queryValue(query, "day"))
+        path == "/calendar" -> TodayDestination.Calendar(queryValue(query, "day"), queryValue(query, "event"))
         path == "/inbox" -> TodayDestination.Inbox
         else -> fallback
     }

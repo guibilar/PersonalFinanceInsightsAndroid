@@ -80,6 +80,10 @@ import com.guibilar.financeinsights.inbox.InboxRoute
 import com.guibilar.financeinsights.inbox.inboxGraph
 import com.guibilar.financeinsights.inbox.isInboxPage
 import com.guibilar.financeinsights.inbox.openInbox
+import com.guibilar.financeinsights.calendar.CalendarRoute
+import com.guibilar.financeinsights.calendar.calendarGraph
+import com.guibilar.financeinsights.calendar.isCalendarPage
+import com.guibilar.financeinsights.calendar.openCalendar
 import com.guibilar.financeinsights.journal.JournalRoute
 import com.guibilar.financeinsights.journal.isJournalPage
 import com.guibilar.financeinsights.journal.journalGraph
@@ -238,7 +242,7 @@ private val topLevel = listOf(
     TopLevel("Capture", Icons.Outlined.Add, CaptureRoute, { it.hasRoute<CaptureRoute>() }, action = true),
     TopLevel("Modules", Icons.Outlined.GridView, ModulesRoute, {
         it.hasRoute<ModulesRoute>() || it.isFinancePage() || it.isDocumentsPage() || it.isTasksPage() ||
-            it.isHomePage() || it.isPeoplePage() || it.isJournalPage() || it.isInboxPage() || it.hasRoute<AppSettingsRoute>() ||
+            it.isHomePage() || it.isPeoplePage() || it.isJournalPage() || it.isInboxPage() || it.isCalendarPage() || it.hasRoute<AppSettingsRoute>() ||
             it.hasRoute<AccountSettingsRoute>()
     }),
     TopLevel("Search", Icons.Outlined.Search, SearchRoute, { it.hasRoute<SearchRoute>() }),
@@ -293,6 +297,7 @@ fun MainScreen(
             is TodayDestination.Person -> nav.openPerson(destination.id)
             is TodayDestination.Journal -> nav.openJournal(destination.day)
             TodayDestination.Inbox -> nav.openInbox()
+            is TodayDestination.Calendar -> nav.openCalendar(destination.day, destination.event)
         }
     }
     // A tapped alert notification (T68): its page, or Today for an alert with no link (and for the summary).
@@ -382,6 +387,7 @@ fun MainScreen(
                                     PeopleRoute -> nav.openPeople()
                                     is JournalRoute -> nav.openJournal()
                                     InboxRoute -> nav.openInbox()
+                                    is CalendarRoute -> nav.openCalendar()
                                     else -> module.route?.let { nav.navigate(it) }
                                 }
                             },
@@ -488,6 +494,14 @@ fun MainScreen(
                         client = client,
                         contentPadding = padding,
                         canWrite = canWrite,
+                    )
+                    calendarGraph(
+                        nav = nav,
+                        client = client,
+                        contentPadding = padding,
+                        canWrite = canWrite,
+                        // Another module's item opens its page through the one link map, as a Today item does.
+                        onOpenLink = { link -> todayDestination(link)?.let { openDestination(it) } },
                     )
                     composable<AppSettingsRoute> {
                         if (preferences != null && financePreferences != null) {

@@ -181,6 +181,7 @@ private val LightAccents = mapOf(
     "documents" to ModuleAccent(Color(0xFF3C6886), Color(0xFFDFEAF2)),
     "home" to ModuleAccent(Color(0xFF8F5A3A), Color(0xFFF2E3D8)),
     "people" to ModuleAccent(Color(0xFFA44457), Color(0xFFF6DFE3)),
+    "calendar" to ModuleAccent(Color(0xFF5B5A8C), Color(0xFFE6E5F1)),
 )
 
 private val DarkAccents = mapOf(
@@ -191,6 +192,7 @@ private val DarkAccents = mapOf(
     "documents" to ModuleAccent(Color(0xFF93BCD8), Color(0xFF1F2D38)),
     "home" to ModuleAccent(Color(0xFFD7A888), Color(0xFF362619)),
     "people" to ModuleAccent(Color(0xFFE39AA8), Color(0xFF3B2027)),
+    "calendar" to ModuleAccent(Color(0xFFAEACD9), Color(0xFF26253A)),
 )
 
 /** True in the dark theme (for colours the scheme does not have, such as [accentOf]). */
