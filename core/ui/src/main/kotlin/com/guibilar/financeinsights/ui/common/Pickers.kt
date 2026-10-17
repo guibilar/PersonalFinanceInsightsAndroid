@@ -158,9 +158,9 @@ fun DateField(label: String, value: LocalDate?, onChange: (LocalDate) -> Unit, m
 
 /** A day that can also be empty: the calendar field, and a button that clears it. */
 @Composable
-fun OptionalDateField(label: String, value: LocalDate?, onChange: (LocalDate?) -> Unit, modifier: Modifier = Modifier) {
+fun OptionalDateField(label: String, value: LocalDate?, onChange: (LocalDate?) -> Unit, modifier: Modifier = Modifier, isError: Boolean = false) {
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        DateField(label, value, onChange = { onChange(it) }, modifier = Modifier.weight(1f))
+        DateField(label, value, onChange = { onChange(it) }, modifier = Modifier.weight(1f), isError = isError)
         if (value != null) IconButton(onClick = { onChange(null) }) { Icon(Icons.Outlined.Close, "Clear $label") }
     }
 }
