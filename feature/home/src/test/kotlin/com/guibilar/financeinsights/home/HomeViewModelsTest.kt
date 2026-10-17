@@ -7,8 +7,10 @@ import com.guibilar.financeinsights.HomeSamples
 import com.guibilar.financeinsights.core.api.ApiError
 import com.guibilar.financeinsights.core.documents.DocumentKind
 import com.guibilar.financeinsights.core.documents.UploadFile
+import com.guibilar.financeinsights.core.home.HomeApi
 import com.guibilar.financeinsights.core.home.ItemDraft
 import com.guibilar.financeinsights.core.home.ItemLinkKinds
+import com.guibilar.financeinsights.core.home.ItemPage
 import com.guibilar.financeinsights.core.home.NO_ROOM
 import com.guibilar.financeinsights.core.home.NewItem
 import com.guibilar.financeinsights.core.home.WarrantyFilter
@@ -28,9 +30,11 @@ import com.guibilar.financeinsights.home.ui.categorySuggestions
 import com.guibilar.financeinsights.ui.common.LoadState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -117,6 +121,29 @@ class HomeViewModelsTest {
         model.clearSearch()
         advanceUntilIdle()
         assertFalse(model.state.value.query.isActive)
+    }
+
+    @Test
+    fun `a quiet reload searches again without a skeleton, and keeps the results when that fails`() = runTest(dispatcher) {
+        val slow = object : HomeApi by api {
+            override suspend fun items(room: String?, category: String?, tag: String?, q: String?, warranty: String?, page: Int, pageSize: Int): ItemPage {
+                delay(1_000)
+                return api.items(room, category, tag, q, warranty, page, pageSize)
+            }
+        }
+        val model = HomeViewModel(slow, phoneDay)
+        advanceUntilIdle()
+        model.search("bosch")
+        advanceUntilIdle()
+
+        model.resumed()
+        model.resumed()
+        runCurrent()
+        assertEquals(listOf("Dishwasher"), model.state.value.results.valueOrNull?.map { it.name })
+
+        api.failing += "items"
+        advanceUntilIdle()
+        assertEquals(listOf("Dishwasher"), model.state.value.results.valueOrNull?.map { it.name })
     }
 
     @Test
