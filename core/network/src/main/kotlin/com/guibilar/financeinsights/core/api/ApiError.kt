@@ -33,7 +33,7 @@ sealed class ApiError(message: String) : Exception(message) {
         val code: String?,
         /** For a 400: the reasons per field. */
         val fieldErrors: Map<String, List<String>>,
-    ) : ApiError(detail ?: title ?: defaultMessage(status))
+    ) : ApiError(detail?.takeIf { it.isNotBlank() } ?: title?.takeIf { it.isNotBlank() } ?: defaultMessage(status))
 
     /** Anything else (a response the app couldn't read). */
     class Unexpected(cause: Throwable) : ApiError("Something went wrong. Please try again.") {

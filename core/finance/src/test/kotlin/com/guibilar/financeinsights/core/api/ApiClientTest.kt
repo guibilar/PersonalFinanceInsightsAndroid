@@ -88,4 +88,10 @@ class ApiClientTest {
         assertTrue(gateway.message!!.startsWith("The server isn't answering right now (502)"))
         assertEquals("The server answered 418.", ApiError.fromResponse(418, null).message)
     }
+
+    @Test
+    fun `a blank detail says the title, and a blank title the status`() {
+        assertEquals("Conflict", ApiError.fromResponse(409, """{"title":"Conflict","detail":" "}""").message)
+        assertEquals("The server answered 418.", ApiError.fromResponse(418, """{"title":"","detail":""}""").message)
+    }
 }
