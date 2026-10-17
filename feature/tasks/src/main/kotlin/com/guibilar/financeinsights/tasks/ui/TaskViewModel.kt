@@ -200,9 +200,15 @@ class TaskViewModel(
         }
     }
 
-    /** Saves new details; null when done, or why not. */
+    /** Saves new details; null when done, or why not. While a write is under way (a double tap), it does nothing. */
     suspend fun save(draft: TaskDraft): String? {
-        val result = apiCall { api.update(id, draft.toDetails()) }
+        if (_state.value.busy) return null
+        _state.update { it.copy(busy = true) }
+        val result = try {
+            apiCall { api.update(id, draft.toDetails()) }
+        } finally {
+            _state.update { it.copy(busy = false) }
+        }
         result.apiError?.let { error -> return writeError(error, "Could not save the task.") }
         show(LoadState.Loaded(result.getOrThrow()))
         changed()

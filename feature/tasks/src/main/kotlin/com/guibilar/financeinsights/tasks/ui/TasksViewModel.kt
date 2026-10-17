@@ -177,6 +177,7 @@ class TasksViewModel(
         }
         val created = result.getOrThrow()
         _state.update { it.copy(open = inListOrder(it.open + created.summary)) }
+        reloadIfLoading()
         DataChanges.changed()
         _messages.trySend(UiMessage("Added “${created.title}”"))
         return true
@@ -212,7 +213,13 @@ class TasksViewModel(
                 state.copy(open = inListOrder(open + summary), done = done)
             }
         }
+        reloadIfLoading()
         DataChanges.changed()
+    }
+
+    /** A load under way may have read the lists before this write: it starts again, so it does not undo the write. */
+    private fun reloadIfLoading() {
+        if (loadJob?.isActive == true) reload(quiet = true)
     }
 
     /** Runs a write on one task; [action] answers what to tell the person (null for nothing). */
