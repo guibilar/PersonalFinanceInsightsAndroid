@@ -41,14 +41,11 @@ fun previousMonthToDateLabel(today: LocalDate): String {
 /** The "Spent this month" comparison: "12% more than Aug 1–5". Null when there is nothing to compare with. */
 data class SpentHint(val text: String, val up: Boolean, val worse: Boolean)
 
+/** In the words of [Change]: within 1% reads "about the same as Aug 1–5", not "0% more". */
 fun spentHint(currentMonth: CategorizedReport, today: LocalDate): SpentHint? {
-    val change = percentChange(spentThisMonth(currentMonth), currentMonth.previousMonthToDateTotal) ?: return null
-    val more = change >= 0
-    return SpentHint(
-        "${Money.percent(kotlin.math.abs(change))} ${if (more) "more" else "less"} than ${previousMonthToDateLabel(today)}",
-        up = more,
-        worse = change > 0,
-    )
+    val previous = currentMonth.previousMonthToDateTotal ?: return null
+    val change = Change.of(spentThisMonth(currentMonth), previous) ?: return null
+    return SpentHint(change.than(previousMonthToDateLabel(today)), up = change.up, worse = change.up)
 }
 
 /**
