@@ -1,6 +1,8 @@
 package com.guibilar.financeinsights.core.tasks
 
+import java.time.Instant
 import java.time.LocalDate
+import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.Locale
@@ -63,9 +65,11 @@ fun taskSections(tasks: List<TaskSummary>, today: LocalDate): TaskSections {
 fun overdueTasks(tasks: List<TaskSummary>, today: LocalDate): List<TaskSummary> =
     tasks.filter { task -> !task.isDone && parseDay(task.dueOn)?.let { it < today } == true }
 
-/** The last [max] done tasks, the latest first. */
+/** The last [max] done tasks, the latest first. By the moment, not the text: "10:00:00.5Z" is after "10:00:00Z". */
 fun latestDone(tasks: List<TaskSummary>, max: Int = DONE_SHOWN): List<TaskSummary> =
-    tasks.filter { it.isDone }.sortedByDescending { it.doneAt ?: it.updatedAt ?: "" }.take(max)
+    tasks.filter { it.isDone }.sortedByDescending { task ->
+        (task.doneAt ?: task.updatedAt)?.let { runCatching { OffsetDateTime.parse(it).toInstant() }.getOrNull() } ?: Instant.MIN
+    }.take(max)
 
 private val weekday = DateTimeFormatter.ofPattern("EEE", Locale.US)
 private val monthDay = DateTimeFormatter.ofPattern("MMM d", Locale.US)

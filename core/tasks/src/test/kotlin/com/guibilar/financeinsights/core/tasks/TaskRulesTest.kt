@@ -66,6 +66,16 @@ class TaskRulesTest {
     }
 
     @Test
+    fun `the done section orders by the moment, not the text`() {
+        val whole = TasksSamples.handouts.copy(id = "whole", doneAt = "2026-10-01T10:00:00Z").summary
+        val half = TasksSamples.handouts.copy(id = "half", doneAt = "2026-10-01T10:00:00.5Z").summary
+        // 09:00 in UTC-3 is 12:00Z, the latest.
+        val offset = TasksSamples.handouts.copy(id = "offset", doneAt = "2026-10-01T09:00:00-03:00").summary
+
+        assertEquals(listOf("offset", "half", "whole"), latestDone(listOf(whole, half, offset)).map { it.id })
+    }
+
+    @Test
     fun `due dates read as short words`() {
         assertEquals("Today", dueText("2026-10-03", today))
         assertEquals("Tomorrow", dueText("2026-10-04", today))
