@@ -2,6 +2,7 @@ package com.guibilar.financeinsights.core.today
 
 import com.guibilar.financeinsights.core.logic.Money
 import com.guibilar.financeinsights.core.logic.formatDay
+import java.math.RoundingMode
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.util.Locale
@@ -9,8 +10,12 @@ import java.util.Locale
 // The server sends raw values (Hestia T08), so the app keeps its own formats and its privacy mode. The rules are the
 // same as the web (features/today/today-text.ts).
 
-private val counts = ThreadLocal.withInitial { DecimalFormat("#,##0", DecimalFormatSymbols(Locale.US)) }
-private val percents = ThreadLocal.withInitial { DecimalFormat("#,##0.#", DecimalFormatSymbols(Locale.US)) }
+// Halves round away from zero, as Intl.NumberFormat does on the web: DecimalFormat's own half-even reads 2.5 as "2".
+private val counts = ThreadLocal.withInitial { decimalFormat("#,##0") }
+private val percents = ThreadLocal.withInitial { decimalFormat("#,##0.#") }
+
+private fun decimalFormat(pattern: String) =
+    DecimalFormat(pattern, DecimalFormatSymbols(Locale.US)).apply { roundingMode = RoundingMode.HALF_UP }
 
 /**
  * One Today value as the app shows it: amounts as "$1,234.56" ("$•••••" when amounts are hidden), days as
