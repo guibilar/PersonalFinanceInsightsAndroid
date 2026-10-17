@@ -131,10 +131,15 @@ fun repeatText(every: Int?, unit: String?): String? {
  * Null for an empty field. [AmountError] when it is not an amount the server takes.
  */
 fun parseAmount(text: String): Double? {
-    var clean = text.trim().removePrefix("$").replace(" ", "").replace(" ", "")
+    var clean = text.trim().removePrefix("$").replace(Regex("[\\s\u00A0\u202F]"), "")
     if (clean.isEmpty()) return null
-    // "12,50" (a comma for the cents) and "1,299.99" (a comma for the thousands) both read as people mean them.
-    clean = if (clean.contains('.') || !Regex(",\\d{1,2}$").containsMatchIn(clean)) clean.replace(",", "") else clean.replace(",", ".")
+    // "12,50" (a comma for the cents) and "1,299.99" (a comma for the thousands) both read as people mean them, and so
+    // does "1.299,99": a comma after the last point is the decimal one, and the points group the thousands.
+    clean = when {
+        clean.contains('.') && clean.lastIndexOf(',') > clean.lastIndexOf('.') -> clean.replace(".", "").replace(",", ".")
+        clean.contains('.') || !Regex(",\\d{1,2}$").containsMatchIn(clean) -> clean.replace(",", "")
+        else -> clean.replace(",", ".")
+    }
     val amount = clean.toBigDecimalOrNull() ?: throw AmountError("Enter an amount, for example 899.99.")
     if (amount.signum() < 0) throw AmountError("Enter 0 or more.")
     val cents = amount.setScale(2, RoundingMode.HALF_UP)
