@@ -8,6 +8,8 @@ import com.guibilar.financeinsights.ui.budgets.BudgetsViewModel
 import com.guibilar.financeinsights.ui.budgets.budgetErrors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -116,5 +118,21 @@ class BudgetsTest {
         assertEquals("Groceries is already counted by the budget \"Groceries\".", error)
         assertNull(saved)
         assertEquals("updateBudget", api.sent.last().first)
+    }
+
+    @Test
+    fun `closing the form while it saves still adds the budget, and says so`() = runTest(dispatcher) {
+        val model = BudgetsViewModel(api)
+        advanceUntilIdle()
+        api.slow["addBudget"] = 100
+        val input = BudgetInput("Trip", "d", Status.Active, 900.0, BudgetPeriod.Total)
+
+        val form = launch { model.save(null, input) }
+        advanceTimeBy(50)
+        form.cancel()
+        advanceUntilIdle()
+
+        assertEquals("addBudget" to input, api.sent.last())
+        assertEquals("Added “Trip”", model.messages.first().text)
     }
 }

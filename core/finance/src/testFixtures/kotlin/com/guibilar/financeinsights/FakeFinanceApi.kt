@@ -205,7 +205,10 @@ class FakeFinanceApi : FinanceApi {
         CategoryRulePreview(4, listOf("NO FRILLS #3121", "NO FRILLS 12 CALGARY"))
     }
 
-    override suspend fun addBudget(budget: BudgetInput) = write("addBudget", budget) { fixture<Page<Budget>>("budgets").items.first() }
+    override suspend fun addBudget(budget: BudgetInput): Budget {
+        slow["addBudget"]?.let { kotlinx.coroutines.delay(it) }
+        return write("addBudget", budget) { fixture<Page<Budget>>("budgets").items.first() }
+    }
     override suspend fun updateBudget(id: String, budget: BudgetInput) = write("updateBudget", id to budget) { fixture<Page<Budget>>("budgets").items.first() }
     override suspend fun deleteBudget(id: String) = write("deleteBudget", id) {}
 
