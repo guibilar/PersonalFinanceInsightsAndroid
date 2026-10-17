@@ -101,7 +101,7 @@ class FeaturesScreenshotTest {
         show { MainScreen(fakeApiClient(FakeFinanceApi(), FakeTodayApi(), FakeDocumentsApi(), FakeAlertsApi(), FakeTasksApi()), account, {}) }
         compose.onNode(hasText("Modules") and isSelectable()).performClick()
         compose.waitForIdle()
-        listOf("Today", "Timeline", "Capture", "Modules", "Search").forEach { compose.onNode(hasText(it) and isSelectable()).assertExists() }
+        listOf("Today", "Calendar", "Add", "Modules", "Search").forEach { compose.onNode(hasText(it) and isSelectable()).assertExists() }
         shoot("tabs-modules")
     }
 }

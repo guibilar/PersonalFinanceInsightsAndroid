@@ -7,6 +7,9 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -93,7 +96,7 @@ class ShellNavigationTest {
     }
 
     private fun show(canWrite: Boolean = true) {
-        val client = fakeApiClient(FakeFinanceApi(), todayApi, FakeDocumentsApi(), FakeAlertsApi(), tasksApi, homeApi, FakePeopleApi(), timelineApi, searchApi, inboxApi, com.guibilar.financeinsights.FakeJournalApi())
+        val client = fakeApiClient(FakeFinanceApi(), todayApi, FakeDocumentsApi(), FakeAlertsApi(), tasksApi, homeApi, FakePeopleApi(), timelineApi, searchApi, inboxApi, com.guibilar.financeinsights.FakeJournalApi(), com.guibilar.financeinsights.FakeCalendarApi())
         compose.setContent {
             FinanceTheme(ripples = false, dynamicColor = false) { Surface { MainScreen(client, account, {}, quickAction = quickAction, canWrite = canWrite) } }
         }
@@ -105,6 +108,19 @@ class ShellNavigationTest {
     private fun assertShows(page: String, text: String) = assertTrue("$page shows \"$text\"", shows(text))
 
     private fun tab(label: String) = compose.onNode(hasText(label) and isSelectable())
+
+    /** A focused page (one item, a form): the bar has stepped aside. */
+    private fun assertNoBar() =
+        assertTrue("no bar", compose.onAllNodes(hasText("Modules") and isSelectable()).fetchSemanticsNodes().isEmpty())
+
+    /** A button of the + sheet (Capture). */
+    private fun add(label: String) =
+        compose.onNode(hasText(label) and SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
+
+    private fun openAddSheet() {
+        tab("Add").performClick()
+        compose.waitForIdle()
+    }
 
     private fun back() {
         compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
@@ -194,24 +210,22 @@ class ShellNavigationTest {
     }
 
     @Test
-    fun `Capture's Expense opens the Add transaction form, and Voice is off`() {
+    fun `the + sheet's Expense opens the Add transaction form, and Voice is off`() {
         show()
-        tab("Capture").performClick()
-        compose.waitForIdle()
-        listOf("Task", "Item", "Photo", "Scan").forEach { compose.onNodeWithText(it).assertIsEnabled() }
-        compose.onNodeWithText("Voice").assertIsNotEnabled()
-        compose.onNodeWithText("Expense").performClick()
+        openAddSheet()
+        listOf("Task", "Item", "Photo", "Scan").forEach { add(it).assertIsEnabled() }
+        add("Voice").assertIsNotEnabled()
+        add("Expense").performClick()
         compose.waitForIdle()
         assertShows("the add form", "Add a transaction")
     }
 
     @Test
-    fun `a read-only user gets Capture disabled, and says why`() {
+    fun `a read-only user gets the + sheet disabled, and says why`() {
         show(canWrite = false)
-        tab("Capture").performClick()
-        compose.waitForIdle()
-        listOf("Task", "Item", "Photo", "Scan", "Voice", "Expense").forEach { compose.onNodeWithText(it).assertIsNotEnabled() }
-        assertShows("Capture", "This account can only read. It cannot add anything.")
+        openAddSheet()
+        listOf("Task", "Item", "Photo", "Scan", "Voice", "Expense").forEach { add(it).assertIsNotEnabled() }
+        assertShows("the sheet", "This account can only read. It cannot add anything.")
     }
 
     @Test
@@ -228,15 +242,14 @@ class ShellNavigationTest {
     }
 
     @Test
-    fun `Capture's Photo opens a new document, and Back returns to Capture`() {
+    fun `the + sheet's Photo opens a new document, and Back returns to the page it was opened on`() {
         show()
-        tab("Capture").performClick()
-        compose.waitForIdle()
-        compose.onNodeWithText("Photo").performClick()
+        openAddSheet()
+        add("Photo").performClick()
         compose.waitForIdle()
         assertShows("the new document", "Add document")
         back()
-        assertShows("Capture", "Expense")
+        assertShows("Today", today)
     }
 
     @Test
@@ -251,7 +264,7 @@ class ShellNavigationTest {
         compose.onNodeWithText("Apartment lease").performClick()
         compose.waitForIdle()
         assertShows("the document", "Run OCR again")
-        tab("Modules").assertIsSelected()
+        assertNoBar()
         back()
         assertShows("the Documents list", "All documents")
         back()
@@ -276,7 +289,7 @@ class ShellNavigationTest {
         compose.onNodeWithText("Car insurance policy expires on Oct 25, 2026").performClick()
         compose.waitForIdle()
         assertShows("the document", "Renew online before the end of the month.")
-        tab("Modules").assertIsSelected()
+        assertNoBar()
         back()
         assertShows("the Documents list", "All documents")
         back()
@@ -293,10 +306,13 @@ class ShellNavigationTest {
     }
 
     @Test
-    fun `Timeline shows the entries, and Search asks for a text`() {
+    fun `Timeline (under Modules) shows the entries, and Search asks for a text`() {
         show()
-        tab("Timeline").performClick()
+        tab("Modules").performClick()
         compose.waitForIdle()
+        compose.onNodeWithText("Timeline").performScrollTo().performClick()
+        compose.waitForIdle()
+        tab("Modules").assertIsSelected()
         assertShows("Timeline", "Long walk by the river.")
         assertTrue(timelineApi.asked == listOf<String?>(null))
         tab("Search").performClick()
@@ -332,7 +348,7 @@ class ShellNavigationTest {
         compose.onNodeWithText("Metro receipt").performScrollTo().performClick()
         compose.waitForIdle()
         assertShows("the document", "Link to a transaction")
-        tab("Modules").assertIsSelected()
+        assertNoBar()
         back()
         assertShows("the transactions", "Transactions")
     }
@@ -364,16 +380,15 @@ class ShellNavigationTest {
     }
 
     @Test
-    fun `Capture's Task opens the quick add, and Back returns to Capture`() {
+    fun `the + sheet's Task opens the quick add, and Back returns to the page it was opened on`() {
         show()
-        tab("Capture").performClick()
-        compose.waitForIdle()
-        compose.onNodeWithText("Task").performClick()
+        openAddSheet()
+        add("Task").performClick()
         compose.waitForIdle()
         assertShows("the quick add", "Add a task")
         assertShows("the quick add", "Due today")
         back()
-        assertShows("Capture", "Expense")
+        assertShows("Today", today)
     }
 
     @Test
@@ -433,16 +448,15 @@ class ShellNavigationTest {
     }
 
     @Test
-    fun `Capture's Item opens the new item, and Back returns to Capture`() {
+    fun `the + sheet's Item opens the new item, and Back returns to the page it was opened on`() {
         show()
-        tab("Capture").performClick()
-        compose.waitForIdle()
-        compose.onNodeWithText("Item").performClick()
+        openAddSheet()
+        add("Item").performClick()
         compose.waitForIdle()
         assertShows("the new item", "Add item")
         assertShows("the new item", "Pick a photo")
         back()
-        assertShows("Capture", "Expense")
+        assertShows("Today", today)
     }
 
     @Test
@@ -464,7 +478,7 @@ class ShellNavigationTest {
         compose.waitForIdle()
         assertShows("the item", "FD 9811 04532")
         assertTrue("the item was read", homeApi.sent.any { it == "item" to "i1" })
-        tab("Modules").assertIsSelected()
+        assertNoBar()
         back()
         assertShows("Home", "Inventory · 7 items")
     }
@@ -501,5 +515,32 @@ class ShellNavigationTest {
         compose.onNodeWithText("Keep as a document").performClick()
         compose.waitForIdle()
         assertShows("the new document", "bill.pdf")
+    }
+
+
+    @Test
+    fun `the bar steps aside on a document, and comes back with the list`() {
+        show()
+        tab("Modules").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Documents").performClick()
+        compose.waitForIdle()
+        tab("Modules").assertExists()
+        compose.onNodeWithText("Apartment lease").performClick()
+        compose.waitForIdle()
+        assertShows("the document", "Run OCR again")
+        assertNoBar()
+        back()
+        tab("Modules").assertIsSelected()
+    }
+
+    @Test
+    fun `Calendar is a tab, and Back from it returns to Today`() {
+        show()
+        tab("Calendar").performClick()
+        compose.waitForIdle()
+        tab("Calendar").assertIsSelected()
+        back()
+        assertShows("Today", today)
     }
 }

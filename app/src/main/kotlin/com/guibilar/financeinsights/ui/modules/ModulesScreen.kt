@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ManageAccounts
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Timeline
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -59,6 +60,8 @@ fun ModulesScreen(
     openAccount: () -> Unit,
     /** A short note on a module's card, by module id, for example "3 overdue" on Tasks (T86). */
     badges: Map<String, String> = emptyMap(),
+    /** The Timeline: what happened in every module, day by day. */
+    openTimeline: () -> Unit = {},
 ) {
     Column(Modifier.fillMaxSize().padding(bottom = contentPadding.calculateBottomPadding())) {
         TopAppBar(title = { FitText("Modules", fontWeight = FontWeight.SemiBold, minFontSize = 14.sp) })
@@ -74,6 +77,18 @@ fun ModulesScreen(
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     Column {
                         HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                        Text(
+                            "Browse",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp).semantics { heading() },
+                        )
+                        ListItem(
+                            headlineContent = { Text("Timeline") },
+                            supportingContent = { Text("What happened in every module, day by day") },
+                            leadingContent = { Icon(Icons.Outlined.Timeline, null, tint = MaterialTheme.colorScheme.primary) },
+                            modifier = Modifier.clickable(onClick = openTimeline),
+                        )
                         Text(
                             "App",
                             style = MaterialTheme.typography.labelLarge,

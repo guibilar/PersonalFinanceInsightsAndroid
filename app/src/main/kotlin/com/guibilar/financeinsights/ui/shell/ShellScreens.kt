@@ -2,15 +2,12 @@ package com.guibilar.financeinsights.ui.shell
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Book
 import androidx.compose.material.icons.outlined.Chair
@@ -27,71 +24,85 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.semantics.heading
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.guibilar.financeinsights.ui.common.FitText
-import com.guibilar.financeinsights.ui.common.ReadableColumn
+
+/** What + adds (Capture): what each button does. */
+class CaptureActions(
+    val onTask: () -> Unit,
+    val onItem: () -> Unit,
+    val onExpense: () -> Unit,
+    val onPhoto: () -> Unit,
+    val onScan: () -> Unit,
+    val onPerson: () -> Unit,
+    val onJournal: () -> Unit,
+    val onNote: () -> Unit,
+)
 
 /**
- * Quick capture: the buttons of the design. "Task" opens the quick add of Tasks; "Item" adds a thing to the home
- * inventory (T88); "Person" adds a person (T92); "Journal" opens today's journal entry (T21); "Note" opens the Inbox (T18); "Photo" and "Scan" add a document
- * (the photo picker, or the document scanner); "Expense" opens the "Add transaction" form. Voice comes with the Inbox
- * module. For a read-only user ([canWrite] false, T60), every button is disabled and the note says why.
+ * Capture, as a sheet over the page the person is on (the + of the bar): add something in a few taps, and come back to
+ * where they were. A read-only user sees the buttons off, and why.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CaptureScreen(
-    contentPadding: PaddingValues,
-    onExpense: () -> Unit,
-    onScan: () -> Unit = {},
-    onPhoto: () -> Unit = {},
-    canWrite: Boolean = true,
-    onTask: () -> Unit = {},
-    onItem: () -> Unit = {},
-    onPerson: () -> Unit = {},
-    onJournal: () -> Unit = {},
-    onNote: () -> Unit = {},
-) {
-    Column(Modifier.fillMaxSize().padding(bottom = contentPadding.calculateBottomPadding())) {
-        TopAppBar(title = { FitText("Capture", fontWeight = FontWeight.SemiBold, minFontSize = 14.sp) })
-        ReadableColumn {
-            Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text("Add something in a few taps.", style = MaterialTheme.typography.bodyMedium)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    CaptureButton(Icons.Outlined.CheckBox, "Task", enabled = canWrite, Modifier.weight(1f), onTask)
-                    CaptureButton(Icons.Outlined.Chair, "Item", enabled = canWrite, Modifier.weight(1f), onItem)
-                    CaptureButton(Icons.Outlined.Payments, "Expense", enabled = canWrite, Modifier.weight(1f), onExpense)
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    CaptureButton(Icons.Outlined.PhotoCamera, "Photo", enabled = canWrite, Modifier.weight(1f), onPhoto)
-                    CaptureButton(Icons.Outlined.DocumentScanner, "Scan", enabled = canWrite, Modifier.weight(1f), onScan)
-                    CaptureButton(Icons.Outlined.Mic, "Voice", enabled = false, Modifier.weight(1f)) {}
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    CaptureButton(Icons.Outlined.PersonAdd, "Person", enabled = canWrite, Modifier.weight(1f), onPerson)
-                    CaptureButton(Icons.Outlined.Book, "Journal", enabled = canWrite, Modifier.weight(1f), onJournal)
-                    CaptureButton(Icons.Outlined.EditNote, "Note", enabled = canWrite, Modifier.weight(1f), onNote)
-                }
-                Text(
-                    if (canWrite) {
-                        "Task adds a to-do. Item adds a thing to the home inventory. Photo and Scan add a document. Person adds someone to remember. Journal opens today's entry. Note keeps a quick note in the Inbox. Voice is coming soon."
-                    } else {
-                        "This account can only read. It cannot add anything."
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+fun CaptureSheet(onDismiss: () -> Unit, actions: CaptureActions, canWrite: Boolean = true) {
+    val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+    // The sheet slides away first, then the action opens its page: no page jumps under a closing sheet.
+    fun then(action: () -> Unit): () -> Unit = {
+        scope.launch { sheet.hide() }.invokeOnCompletion {
+            onDismiss()
+            action()
+        }
+    }
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheet) {
+        CaptureContent(
+            CaptureActions(
+                then(actions.onTask), then(actions.onItem), then(actions.onExpense), then(actions.onPhoto),
+                then(actions.onScan), then(actions.onPerson), then(actions.onJournal), then(actions.onNote),
+            ),
+            canWrite,
+        )
+    }
+}
+
+/** The buttons of Capture (the sheet's content). */
+@Composable
+fun CaptureContent(actions: CaptureActions, canWrite: Boolean = true) {
+    Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text("Add", style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            CaptureButton(Icons.Outlined.CheckBox, "Task", enabled = canWrite, Modifier.weight(1f), actions.onTask)
+            CaptureButton(Icons.Outlined.Chair, "Item", enabled = canWrite, Modifier.weight(1f), actions.onItem)
+            CaptureButton(Icons.Outlined.Payments, "Expense", enabled = canWrite, Modifier.weight(1f), actions.onExpense)
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            CaptureButton(Icons.Outlined.PhotoCamera, "Photo", enabled = canWrite, Modifier.weight(1f), actions.onPhoto)
+            CaptureButton(Icons.Outlined.DocumentScanner, "Scan", enabled = canWrite, Modifier.weight(1f), actions.onScan)
+            CaptureButton(Icons.Outlined.Mic, "Voice", enabled = false, Modifier.weight(1f)) {}
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            CaptureButton(Icons.Outlined.PersonAdd, "Person", enabled = canWrite, Modifier.weight(1f), actions.onPerson)
+            CaptureButton(Icons.Outlined.Book, "Journal", enabled = canWrite, Modifier.weight(1f), actions.onJournal)
+            CaptureButton(Icons.Outlined.EditNote, "Note", enabled = canWrite, Modifier.weight(1f), actions.onNote)
+        }
+        if (!canWrite) {
+            Text(
+                "This account can only read. It cannot add anything.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

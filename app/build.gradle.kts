@@ -119,6 +119,7 @@ dependencies {
     testImplementation(testFixtures(project(":core:home")))
     testImplementation(testFixtures(project(":core:people")))
     testImplementation(testFixtures(project(":core:journal")))
+    testImplementation(testFixtures(project(":core:calendar")))
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
