@@ -33,6 +33,8 @@ data class DocumentsListState(
     val items: List<DocumentSummary> = emptyList(),
     val totalCount: Int = 0,
     val pagesLoaded: Int = 0,
+    /** The server has a page after the last one loaded. */
+    val hasNextPage: Boolean = false,
     val loading: Boolean = true,
     val loadingMore: Boolean = false,
     val error: String? = null,
@@ -42,7 +44,8 @@ data class DocumentsListState(
     /** The documents that expire in the next 30 days, the soonest first. Shown only without a filter. */
     val expiring: List<DocumentSummary> = emptyList(),
 ) {
-    val endReached get() = pagesLoaded > 0 && items.size >= totalCount
+    // By the server's pages, not the count: a document added meanwhile repeats one on the next page, which is dropped.
+    val endReached get() = pagesLoaded > 0 && !hasNextPage
     val hasCriteria get() = query != null || kind != null
 }
 
@@ -122,6 +125,7 @@ class DocumentsListViewModel(
                             items = (state.items + page.items).distinctBy { it.id },
                             totalCount = page.totalCount,
                             pagesLoaded = page.page,
+                            hasNextPage = page.hasNextPage,
                             loadingMore = false,
                         )
                     },
@@ -151,6 +155,7 @@ class DocumentsListViewModel(
                             items = page.items,
                             totalCount = page.totalCount,
                             pagesLoaded = 1,
+                            hasNextPage = page.hasNextPage,
                             loading = false,
                             refreshing = false,
                             // A failed section keeps what it showed: the list is what matters.

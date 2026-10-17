@@ -102,7 +102,7 @@ class HomeViewModel(
                     )
                 }
             }
-            if (_state.value.query.isActive) search(_state.value.query, now = true)
+            if (_state.value.query.isActive) search(_state.value.query, now = true, quiet = quiet)
         }
     }
 
@@ -115,7 +115,8 @@ class HomeViewModel(
     /** Back to the rooms. */
     fun clearSearch() = search(ItemQuery(), now = true)
 
-    private fun search(query: ItemQuery, now: Boolean) {
+    /** [quiet] (a quiet reload) keeps the results showing while it searches, and when it fails. */
+    private fun search(query: ItemQuery, now: Boolean, quiet: Boolean = false) {
         _state.update { it.copy(query = query) }
         searchJob?.cancel()
         if (!query.isActive) {
@@ -124,7 +125,7 @@ class HomeViewModel(
         }
         searchJob = viewModelScope.launch {
             if (!now) delay(SEARCH_DEBOUNCE_MS)
-            _state.update { it.copy(results = LoadState.Loading) }
+            if (!quiet) _state.update { it.copy(results = LoadState.Loading) }
             val loaded = load("Could not search the items.") {
                 api.items(
                     q = query.text.trim().ifEmpty { null },
@@ -132,7 +133,7 @@ class HomeViewModel(
                     pageSize = RESULTS,
                 ).items
             }
-            _state.update { it.copy(results = loaded) }
+            _state.update { it.copy(results = if (loaded is LoadState.Failed && quiet && it.results is LoadState.Loaded) it.results else loaded) }
         }
     }
 

@@ -58,7 +58,7 @@ class TimelineViewModel(private val api: TimelineApi) : ViewModel() {
 
     fun refresh() = reload(refreshing = true)
 
-    /** Back on the screen: the first page again (something can have changed in any module). */
+    /** Back on the screen: the first page again (something can have changed in any module); earlier pages stay. */
     fun resumed() {
         if (!shown) {
             shown = true
@@ -82,7 +82,13 @@ class TimelineViewModel(private val api: TimelineApi) : ViewModel() {
             _state.update { state ->
                 val page = result.getOrNull()
                 when {
-                    page != null -> state.copy(pages = listOf(page), loading = false, refreshing = false)
+                    page != null -> {
+                        // A quiet reload keeps the pages of "Show earlier" while they still follow on from the new first one.
+                        val first = state.pages.firstOrNull()
+                        val follows = quiet && first != null && first.from == page.from && first.earlier == page.earlier
+                        val earlier = if (follows) state.pages.drop(1) else emptyList()
+                        state.copy(pages = listOf(page) + earlier, loading = false, refreshing = false)
+                    }
                     quiet && state.pages.isNotEmpty() -> state.copy(loading = false, refreshing = false)
                     else -> state.copy(
                         pages = emptyList(),

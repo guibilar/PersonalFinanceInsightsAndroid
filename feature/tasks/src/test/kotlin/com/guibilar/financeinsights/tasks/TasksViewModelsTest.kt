@@ -8,10 +8,14 @@ import com.guibilar.financeinsights.TasksSamples
 import com.guibilar.financeinsights.core.logic.DataChanges
 import com.guibilar.financeinsights.core.tasks.RepeatMode
 import com.guibilar.financeinsights.core.tasks.RepeatUnit
+import com.guibilar.financeinsights.core.tasks.TaskDetails
 import com.guibilar.financeinsights.core.tasks.TaskDraft
+import com.guibilar.financeinsights.core.tasks.TaskItem
 import com.guibilar.financeinsights.core.tasks.TaskLinkKinds
+import com.guibilar.financeinsights.core.tasks.TaskPage
 import com.guibilar.financeinsights.core.tasks.TaskRepeat
 import com.guibilar.financeinsights.core.tasks.TaskStatus
+import com.guibilar.financeinsights.core.tasks.TasksApi
 import com.guibilar.financeinsights.tasks.ui.LinkPicker
 import com.guibilar.financeinsights.tasks.ui.Linked
 import com.guibilar.financeinsights.tasks.ui.TaskViewModel
@@ -20,10 +24,13 @@ import com.guibilar.financeinsights.tasks.ui.quickDueLabel
 import com.guibilar.financeinsights.ui.common.LoadState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -207,6 +214,30 @@ class TasksViewModelsTest {
     }
 
     @Test
+    fun `a slow reload read before a done does not bring the task back`() = runTest(dispatcher) {
+        // Once slow, the lists are read at once but answer late.
+        var slow = false
+        val late = object : TasksApi by api {
+            override suspend fun tasks(status: TaskStatus?, tag: String?, due: String?, q: String?, page: Int, pageSize: Int): TaskPage {
+                val answer = api.tasks(status, tag, due, q, page, pageSize)
+                if (slow) delay(1_000)
+                return answer
+            }
+        }
+        val model = TasksViewModel(late, today = phoneDay)
+        advanceUntilIdle()
+
+        slow = true
+        model.changed()
+        runCurrent()
+        model.done(model.state.value.sections.today.first { it.id == "t4" })
+        advanceUntilIdle()
+
+        assertFalse(model.state.value.open.any { it.id == "t4" })
+        assertEquals("t4", model.state.value.done.first().id)
+    }
+
+    @Test
     fun `done on a repeated task moves it to its next date`() = runTest(dispatcher) {
         api.tasks.replaceAll { if (it.id == "t5") it.copy(dueOn = "2026-10-03") else it }
         val model = TasksViewModel(api, today = phoneDay)
@@ -296,6 +327,28 @@ class TasksViewModelsTest {
         assertEquals("2026-10-03", saved.dueOn)
         assertEquals(saved.repeat, model.task!!.repeat)
         assertEquals(1, changes)
+    }
+
+    @Test
+    fun `a double tap on Save sends the details once`() = runTest(dispatcher) {
+        val late = object : TasksApi by api {
+            override suspend fun update(id: String, details: TaskDetails): TaskItem {
+                delay(1_000)
+                return api.update(id, details)
+            }
+        }
+        val model = TaskViewModel(late, documents, finance, "t8")
+        advanceUntilIdle()
+        val draft = TaskDraft.of(model.task!!).copy(title = "Clean the garage")
+
+        val first = async { model.save(draft) }
+        val second = async { model.save(draft) }
+        advanceUntilIdle()
+
+        assertNull(first.await())
+        assertNull(second.await())
+        assertEquals(1, api.sent.count { it.first == "update" })
+        assertFalse(model.state.value.busy)
     }
 
     @Test
