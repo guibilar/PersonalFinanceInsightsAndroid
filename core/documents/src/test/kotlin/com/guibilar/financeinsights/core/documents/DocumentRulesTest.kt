@@ -51,6 +51,10 @@ class DocumentRulesTest {
         assertEquals("820 KB", formatSize(820L * 1024))
         assertEquals("2.3 MB", formatSize(2_400_000))
         assertEquals("25 MB", formatSize(25L * 1024 * 1024))
+        // Just under 1 MB rounds to 1 MB, not "1024 KB".
+        assertEquals("1023 KB", formatSize(1_048_063))
+        assertEquals("1 MB", formatSize(1_048_064))
+        assertEquals("1 MB", formatSize(1_048_575))
     }
 
     @Test

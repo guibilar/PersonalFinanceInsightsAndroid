@@ -105,7 +105,8 @@ fun parseTags(text: String): List<String> =
 /** A file size as people read it: "820 KB", "2.4 MB". */
 fun formatSize(bytes: Long): String = when {
     bytes < 1024 -> "$bytes B"
-    bytes < 1024 * 1024 -> "${(bytes + 512) / 1024} KB"
+    // Up to the size that rounds to 1024 KB, which reads as "1 MB".
+    bytes < 1024 * 1024 - 512 -> "${(bytes + 512) / 1024} KB"
     else -> {
         val tenths = (bytes * 10 + 512 * 1024) / (1024 * 1024)
         if (tenths % 10 == 0L) "${tenths / 10} MB" else "${tenths / 10}.${tenths % 10} MB"
