@@ -132,7 +132,7 @@ fun TaskSheet(
                 is LoadState.Loaded -> {
                     val item = loaded.value
                     if (canWrite) {
-                        TaskForm(item, model::save)
+                        TaskForm(item, state.busy, model::save)
                         DoneRow(item, state.busy, model::done, model::undo)
                     } else {
                         TaskFacts(item, today)
@@ -276,7 +276,7 @@ fun TaskSheet(
 
 /** The details as a form; Save sends all of them. */
 @Composable
-private fun TaskForm(task: TaskItem, save: suspend (TaskDraft) -> String?) {
+private fun TaskForm(task: TaskItem, busy: Boolean, save: suspend (TaskDraft) -> String?) {
     val original = remember(task) { TaskDraft.of(task) }
     var draft by rememberSaveable(task.id, task.updatedAt, stateSaver = TaskDraftSaver) { mutableStateOf(original) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -340,7 +340,7 @@ private fun TaskForm(task: TaskItem, save: suspend (TaskDraft) -> String?) {
                             saving = false
                         }
                     },
-                    enabled = !saving && draft.canSave,
+                    enabled = !saving && !busy && draft.canSave,
                 ) { Text("Save") }
             }
         }
