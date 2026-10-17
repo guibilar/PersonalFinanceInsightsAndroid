@@ -164,6 +164,8 @@ class JournalViewModel(
         val q = _state.value.search.trim().ifEmpty { null }
         val page = load("Could not load the entries.") { api.entries(q = q, pageSize = JOURNAL_LIST_SIZE) }
         _state.update { state ->
+            // A reload's list that lands after a newer search is for the old text: that search sets the list.
+            if (state.search.trim().ifEmpty { null } != q) return@update state
             state.copy(
                 entries = when (page) {
                     is LoadState.Loaded -> LoadState.Loaded(page.value.items)
