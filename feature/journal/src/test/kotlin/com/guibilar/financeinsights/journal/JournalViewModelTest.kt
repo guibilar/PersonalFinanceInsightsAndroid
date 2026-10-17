@@ -3,15 +3,19 @@ package com.guibilar.financeinsights.journal
 import com.guibilar.financeinsights.FakeJournalApi
 import com.guibilar.financeinsights.JournalSamples
 import com.guibilar.financeinsights.core.api.ApiError
+import com.guibilar.financeinsights.core.journal.JournalApi
+import com.guibilar.financeinsights.core.journal.JournalPage
 import com.guibilar.financeinsights.core.logic.DataChanges
 import com.guibilar.financeinsights.journal.ui.JournalViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -124,5 +128,27 @@ class JournalViewModelTest {
         model.save()
         advanceUntilIdle()
         assertEquals("You can only read the journal.", model.messages.first().text)
+    }
+
+    @Test
+    fun `a slow reload's list does not replace the list of a newer search`() = runTest(dispatcher) {
+        // The list without a search answers late; a search answers at once.
+        val slow = object : JournalApi by api {
+            override suspend fun entries(q: String?, from: String?, to: String?, page: Int, pageSize: Int): JournalPage {
+                if (q == null) delay(1_000)
+                return api.entries(q, from, to, page, pageSize)
+            }
+        }
+        val model = JournalViewModel(slow) { today }
+        advanceUntilIdle()
+
+        model.resumed()
+        model.resumed()
+        runCurrent()
+        model.search("marco")
+        advanceUntilIdle()
+
+        assertEquals(1, model.state.value.totalCount)
+        assertEquals(listOf(today.minusDays(1).toString()), model.state.value.entries.valueOrNull?.map { it.day })
     }
 }
