@@ -94,6 +94,19 @@ class CalendarScreenshotTest {
     }
 
     @Test
+    fun `an event opened over the new event's sheet shows its own fields`() {
+        val model = CalendarViewModel(api, "2026-10-20", null) { CalendarSamples.TODAY }
+        show { CalendarScreen(model, PaddingValues()) }
+        compose.onNodeWithText("Add event", useUnmergedTree = true).performClick()
+        compose.waitForIdle()
+
+        // A link's event answering late, while the new event's sheet is open.
+        compose.runOnIdle { model.openEvent("ev1", occurrence = null) }
+        compose.waitForIdle()
+        assertShows("Edit event", "Main St 4")
+    }
+
+    @Test
     fun `a new event starts on the chosen day`() {
         calendar()
         compose.onNodeWithText("Add event", useUnmergedTree = true).performClick()

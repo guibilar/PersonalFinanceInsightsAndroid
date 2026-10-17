@@ -54,6 +54,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -215,16 +216,19 @@ fun CalendarScreen(
     }
 
     state.target?.let { target ->
-        EventSheet(
-            target = target,
-            canWrite = canWrite,
-            busy = state.busy,
-            error = state.sheetError,
-            onSave = model::save,
-            onSkip = model::skip,
-            onDelete = model::delete,
-            onDismiss = model::closeSheet,
-        )
+        // Its fields start from the target: another one opened over it (a link's event answering late) starts afresh.
+        key(target) {
+            EventSheet(
+                target = target,
+                canWrite = canWrite,
+                busy = state.busy,
+                error = state.sheetError,
+                onSave = model::save,
+                onSkip = model::skip,
+                onDelete = model::delete,
+                onDismiss = model::closeSheet,
+            )
+        }
     }
     state.preview?.let { preview ->
         ImportSheet(preview.result, busy = state.busy, onImport = model::confirmImport, onDismiss = model::closePreview)
