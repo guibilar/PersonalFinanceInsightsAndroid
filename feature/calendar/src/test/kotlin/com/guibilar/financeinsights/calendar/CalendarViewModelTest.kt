@@ -11,6 +11,7 @@ import com.guibilar.financeinsights.core.calendar.CalendarImportResult
 import com.guibilar.financeinsights.core.logic.DataChanges
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -127,6 +128,36 @@ class CalendarViewModelTest {
 
         assertNotNull(model.state.value.target)
         assertEquals("Give the event a title.", model.state.value.sheetError)
+    }
+
+    @Test
+    fun `a save refused after the sheet closed says why in a message`() = runTest(dispatcher) {
+        val model = model()
+        advanceUntilIdle()
+        api.refusing["create"] = ApiError.Http(400, "Bad", null, null, mapOf("title" to listOf("Give the event a title.")))
+
+        model.newEvent()
+        model.save(CalendarEventRequest(" ", allDay = true, startDate = "2026-10-22"))
+        model.closeSheet()
+        advanceUntilIdle()
+
+        assertNull(model.state.value.target)
+        assertNull(model.state.value.sheetError)
+        assertEquals("Give the event a title.", model.messages.first().text)
+    }
+
+    @Test
+    fun `a save done after another sheet opened leaves that sheet open`() = runTest(dispatcher) {
+        val model = model()
+        advanceUntilIdle()
+
+        model.newEvent()
+        model.save(CalendarEventRequest("Swim", allDay = true, startDate = "2026-10-22"))
+        model.closeSheet()
+        model.newEvent(LocalDate.of(2026, 10, 23))
+        advanceUntilIdle()
+
+        assertEquals(LocalDate.of(2026, 10, 23), model.state.value.target?.day)
     }
 
     @Test
