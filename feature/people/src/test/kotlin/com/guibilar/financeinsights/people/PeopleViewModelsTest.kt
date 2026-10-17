@@ -7,15 +7,19 @@ import com.guibilar.financeinsights.core.people.GiftDetails
 import com.guibilar.financeinsights.core.people.InteractionDetails
 import com.guibilar.financeinsights.core.people.LoanDetails
 import com.guibilar.financeinsights.core.people.LoanDirection
+import com.guibilar.financeinsights.core.people.PeopleApi
+import com.guibilar.financeinsights.core.people.PersonPage
 import com.guibilar.financeinsights.people.ui.PeopleViewModel
 import com.guibilar.financeinsights.people.ui.PersonFormViewModel
 import com.guibilar.financeinsights.people.ui.PersonViewModel
 import com.guibilar.financeinsights.ui.common.LoadState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -74,6 +78,28 @@ class PeopleViewModelsTest {
         advanceUntilIdle()
         assertEquals(listOf("Marco Silva"), model.state.value.people.valueOrNull?.map { it.name })
         assertEquals(listOf(null, "marco", "name"), api.sent.last { it.first == "people" }.second)
+    }
+
+    @Test
+    fun `a slow reload's list does not replace the list of a group picked since`() = runTest(dispatcher) {
+        // Everybody answers late; a group answers at once.
+        val slow = object : PeopleApi by api {
+            override suspend fun people(group: String?, q: String?, sort: String?, page: Int, pageSize: Int): PersonPage {
+                if (group == null) delay(1_000)
+                return api.people(group, q, sort, page, pageSize)
+            }
+        }
+        val model = PeopleViewModel(slow, today)
+        advanceUntilIdle()
+
+        model.resumed()
+        model.resumed()
+        runCurrent()
+        model.pickGroup("family")
+        advanceUntilIdle()
+
+        assertEquals(listOf("Ana Lima"), model.state.value.people.valueOrNull?.map { it.name })
+        assertEquals(1, model.state.value.totalCount)
     }
 
     @Test

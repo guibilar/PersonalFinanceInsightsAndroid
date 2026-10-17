@@ -119,6 +119,8 @@ class PeopleViewModel(
         val state = _state.value
         val result = apiCall { api.people(group = state.group, q = state.search.trim().ifEmpty { null }, sort = "name", pageSize = PAGE_SIZE) }
         _state.update { current ->
+            // A reload's list that lands after a newer search or group is for the old ones: that load sets the list.
+            if (current.group != state.group || current.search.trim() != state.search.trim()) return@update current
             result.apiError?.let { error ->
                 if (quiet && current.people is LoadState.Loaded) current
                 else current.copy(people = LoadState.Failed(error.loadMessage("Could not load the people.")))
