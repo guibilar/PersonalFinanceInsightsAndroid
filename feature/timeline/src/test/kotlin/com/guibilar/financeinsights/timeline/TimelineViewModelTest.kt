@@ -49,4 +49,20 @@ class TimelineViewModelTest {
         assertEquals("Money", model.state.value.module)
         assertEquals(setOf("Money"), model.state.value.days.flatMap { it.entries }.map { it.module }.toSet())
     }
+
+    @Test
+    fun `a quiet reload keeps the pages of Show earlier`() = runTest(dispatcher) {
+        val model = TimelineViewModel(api)
+        advanceUntilIdle()
+        model.showEarlier()
+        advanceUntilIdle()
+        assertEquals(2, model.state.value.pages.size)
+
+        model.resumed()
+        model.resumed()
+        advanceUntilIdle()
+
+        assertEquals(2, model.state.value.pages.size)
+        assertEquals("2026-09-25", model.state.value.days.last().day)
+    }
 }
