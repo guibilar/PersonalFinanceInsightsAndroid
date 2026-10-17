@@ -43,7 +43,8 @@ class DatePresetsTest {
 
     @Test
     fun `describes a range in as few words as it takes`() {
-        assertEquals("Sep 1 – today", describeRange(DatePreset.ThisMonth.range(today)))
+        assertEquals("Sep 1 – today", describeRange(DatePreset.ThisMonth.range(today), today))
+        assertEquals("Dec 1, 2025 – today", describeRange(DateRange(LocalDate.of(2025, 12, 1)), today))
         assertEquals("Jun 1 – Aug 31, 2026", describeRange(DatePreset.Last3Months.range(today)))
         assertEquals("Sep 1, 2025 – Aug 31, 2026", describeRange(DatePreset.Last12Months.range(today)))
         // One day (T65).

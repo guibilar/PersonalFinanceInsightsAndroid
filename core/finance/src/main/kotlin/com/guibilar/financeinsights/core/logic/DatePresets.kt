@@ -53,9 +53,10 @@ fun matchDatePreset(criteria: TransactionCriteria, today: LocalDate): DateChoice
 }
 
 /** The days a range covers: "Jun 1 – Aug 31, 2026", "Dec 1, 2025 – Feb 28, 2026", "Sep 1 – today". */
-fun describeRange(range: DateRange): String {
+fun describeRange(range: DateRange, today: LocalDate = LocalDate.now()): String {
     val start = range.start ?: return range.end?.let { "Until ${formatDay(it)}" } ?: ""
-    val end = range.end ?: return "${formatDay(start, year = false)} – today"
+    // Open-ended: the year shows only when it isn't this one ("Dec 1, 2025 – today").
+    val end = range.end ?: return "${formatDay(start, year = start.year != today.year)} – today"
     // One day (T65): "Oct 3, 2026", not a range.
     if (start == end) return formatDay(start)
     val startText = formatDay(start, year = start.year != end.year)

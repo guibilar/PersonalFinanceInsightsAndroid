@@ -22,6 +22,7 @@ import com.guibilar.financeinsights.core.home.ItemDraft
 import com.guibilar.financeinsights.core.home.NO_ROOM_NAME
 import com.guibilar.financeinsights.core.home.Room
 import com.guibilar.financeinsights.ui.common.DropdownPicker
+import com.guibilar.financeinsights.ui.common.OptionalDateField
 import java.time.LocalDate
 
 /** A room choice of the form: a room, or none. */

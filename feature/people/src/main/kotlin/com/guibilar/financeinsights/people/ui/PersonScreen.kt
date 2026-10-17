@@ -86,11 +86,11 @@ import com.guibilar.financeinsights.core.people.historyOf
 import com.guibilar.financeinsights.core.people.reminderText
 import com.guibilar.financeinsights.people.LinkCandidate
 import com.guibilar.financeinsights.ui.common.ChoiceRow
-import com.guibilar.financeinsights.ui.common.DateField
 import com.guibilar.financeinsights.ui.common.DropdownPicker
 import com.guibilar.financeinsights.ui.common.ErrorState
 import com.guibilar.financeinsights.ui.common.FitText
 import com.guibilar.financeinsights.ui.common.LoadState
+import com.guibilar.financeinsights.ui.common.OptionalDateField
 import com.guibilar.financeinsights.ui.common.ReadableColumn
 import com.guibilar.financeinsights.ui.common.ShowMessages
 import com.guibilar.financeinsights.ui.common.Skeleton
@@ -578,7 +578,7 @@ private fun ContactDialog(busy: Boolean, save: (String?, String, LocalDate?) -> 
     var day by remember { mutableStateOf<LocalDate?>(null) }
     ActionSheet("Log contact", "Log contact", busy, { save(kind, note, day) }, onDismiss) {
         DropdownPicker("Kind", CONTACT_KINDS, kind, { it.orEmpty() }, { kind = it }, Modifier.fillMaxWidth())
-        DateField("Day (empty: today)", day, { day = it }, Modifier.fillMaxWidth())
+        OptionalDateField("Day (empty: today)", day, { day = it })
         OutlinedTextField(note, { note = it }, label = { Text("Note") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
     }
 }
@@ -610,6 +610,6 @@ private fun LoanDialog(name: String, busy: Boolean, save: (String, Boolean, Loca
     ActionSheet("Lend item", "Add", busy, { save(item, lent, due) }, onDismiss) {
         OutlinedTextField(item, { item = it }, label = { Text("Thing") }, singleLine = true, modifier = Modifier.fillMaxWidth())
         ChoiceRow(listOf(true, false), lent, label = { if (it) "I lent it to $name" else "I borrowed it" }, onSelect = { lent = it })
-        DateField("Due back (optional)", due, { due = it }, Modifier.fillMaxWidth())
+        OptionalDateField("Due back (optional)", due, { due = it })
     }
 }

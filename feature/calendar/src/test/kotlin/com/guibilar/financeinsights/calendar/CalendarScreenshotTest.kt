@@ -10,11 +10,14 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.guibilar.financeinsights.CalendarSamples
 import com.guibilar.financeinsights.FakeCalendarApi
 import com.guibilar.financeinsights.calendar.ui.CalendarScreen
 import com.guibilar.financeinsights.calendar.ui.CalendarViewModel
+import com.guibilar.financeinsights.core.calendar.CalendarEvent
+import com.guibilar.financeinsights.core.calendar.CalendarEventRequest
 import com.guibilar.financeinsights.ui.theme.FinanceTheme
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
@@ -24,6 +27,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import java.time.LocalDate
 
 /** The Calendar screen, to look at (build/shots), and what its controls do. The tests run in UTC. */
 @RunWith(RobolectricTestRunner::class)
@@ -91,6 +95,34 @@ class CalendarScreenshotTest {
         compose.waitForIdle()
         assertShows("Edit event", "Main St 4", "Delete")
         shoot("calendar-event")
+    }
+
+    @Test
+    fun `an event opened over the new event's sheet shows its own fields`() {
+        val model = CalendarViewModel(api, "2026-10-20", null) { CalendarSamples.TODAY }
+        show { CalendarScreen(model, PaddingValues()) }
+        compose.onNodeWithText("Add event", useUnmergedTree = true).performClick()
+        compose.waitForIdle()
+
+        // A link's event answering late, while the new event's sheet is open.
+        compose.runOnIdle { model.openEvent("ev1", occurrence = null) }
+        compose.waitForIdle()
+        assertShows("Edit event", "Main St 4")
+    }
+
+    @Test
+    fun `the end of a repeat can be taken away`() {
+        api.events["ev8"] = CalendarEvent("ev8", "Yoga", allDay = true, startDate = "2026-10-22", endDate = "2026-10-22", repeat = "FREQ=WEEKLY;UNTIL=20261231")
+        val model = CalendarViewModel(api, "2026-10-20", null) { CalendarSamples.TODAY }
+        show { CalendarScreen(model, PaddingValues()) }
+        compose.runOnIdle { model.openEvent("ev8", LocalDate.of(2026, 10, 22)) }
+        compose.waitForIdle()
+
+        compose.onNodeWithContentDescription("Clear Until (optional)").performScrollTo().performClick()
+        compose.onNodeWithText("Save").performScrollTo().performClick()
+        compose.waitForIdle()
+        val (_, request) = api.sent.last { it.first == "update" }.second as Pair<*, *>
+        assertEquals("FREQ=WEEKLY", (request as CalendarEventRequest).repeat)
     }
 
     @Test
