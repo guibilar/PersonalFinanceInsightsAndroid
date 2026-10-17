@@ -1,7 +1,11 @@
 package com.guibilar.financeinsights
 
+import android.content.Context
+import android.net.Uri
+import com.guibilar.financeinsights.core.documents.MAX_FILE_BYTES
 import com.guibilar.financeinsights.core.documents.UploadFile
 import com.guibilar.financeinsights.ui.transactions.PickedFile
+import com.guibilar.financeinsights.ui.transactions.readFile
 import kotlinx.coroutines.flow.MutableStateFlow
 
 /** Something shared to Hestia from another app (T101), until the screens take it (after signing in, if need be). */
@@ -37,6 +41,12 @@ fun sharedKind(mimeType: String?, name: String?): SharedKind {
         else -> SharedKind.Other
     }
 }
+
+/**
+ * A shared file's name and contents; null when it can't be read. Read up to a document file's limit, not a statement's:
+ * a photo or a PDF past 5 MB would go cut short, and broken, to Documents. A statement that large is refused as before.
+ */
+fun readShared(context: Context, uri: Uri): PickedFile? = readFile(context, uri, limit = MAX_FILE_BYTES)
 
 /** The share that waits for the screens. */
 object Shares {
