@@ -101,7 +101,8 @@ class TimelineViewModel(private val api: TimelineApi) : ViewModel() {
         val last = state.pages.lastOrNull() ?: return
         if (!last.hasEarlier) return
         val before = last.earlier
-        if (state.loading) return
+        // A quiet reload runs without [TimelineState.loading]: it replaces the pages, and a chip must still cancel it.
+        if (state.loading || job?.isActive == true) return
         _state.update { it.copy(loading = true, moreFailed = false) }
         job = viewModelScope.launch {
             val result = apiCall { api.page(before = before, days = TIMELINE_PAGE_DAYS, module = state.module) }
