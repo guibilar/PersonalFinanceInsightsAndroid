@@ -206,8 +206,8 @@ private fun FileRow(entry: FileImport, enabled: Boolean, onImportAnyway: () -> U
     }
 }
 
-/** The picked file's name and contents; null when it can't be read. Larger than the limit is read only that far. */
-fun readFile(context: android.content.Context, uri: Uri): PickedFile? = runCatching {
+/** The picked file's name and contents; null when it can't be read. Larger than [limit] is read only that far. */
+fun readFile(context: android.content.Context, uri: Uri, limit: Long = MAX_STATEMENT_BYTES.toLong()): PickedFile? = runCatching {
     val resolver = context.contentResolver
     val name = resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
         if (cursor.moveToFirst()) cursor.getString(0) else null
@@ -215,7 +215,7 @@ fun readFile(context: android.content.Context, uri: Uri): PickedFile? = runCatch
     val bytes = resolver.openInputStream(uri)?.use { input ->
         val out = java.io.ByteArrayOutputStream()
         val buffer = ByteArray(16 * 1024)
-        while (out.size() <= MAX_STATEMENT_BYTES) {
+        while (out.size() <= limit) {
             val read = input.read(buffer)
             if (read < 0) break
             out.write(buffer, 0, read)

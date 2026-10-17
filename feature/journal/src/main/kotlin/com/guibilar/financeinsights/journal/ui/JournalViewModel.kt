@@ -84,6 +84,7 @@ class JournalViewModel(
         reload()
     }
 
+    /** Pull to refresh, or "Try again": everything again, the editor text kept while it has changes. */
     fun refresh() = reload(refreshing = true)
 
     /** Back on the screen: everything again, the editor text kept while it has changes. */
@@ -111,7 +112,8 @@ class JournalViewModel(
                 )
             }
             asked = null
-            loadEntry(keepText = quiet)
+            // Only a write's reload takes the saved text: a pull to refresh must not lose what is being typed.
+            loadEntry(keepText = quiet || refreshing)
             loadEntries()
         }
     }
@@ -128,9 +130,11 @@ class JournalViewModel(
     private fun loadEntry(keepText: Boolean) {
         val state = _state.value
         entryJob?.cancel()
+        // Asked before the entry turns Loading below, which has no changes to keep.
+        val keep = keepText && state.changed
         // Today's entry comes with the summary; another day's is read.
         if (state.isToday && state.summary is LoadState.Loaded) {
-            setEntry(LoadState.Loaded(state.summary.value.today), keepText)
+            setEntry(LoadState.Loaded(state.summary.value.today), keep)
             return
         }
         _state.update { it.copy(entry = LoadState.Loading) }
@@ -142,13 +146,12 @@ class JournalViewModel(
                 (result.apiError as? ApiError.Http)?.status == 404 -> LoadState.Loaded(null)
                 else -> LoadState.Failed(result.apiError?.loadMessage("Could not load the entry.") ?: "Could not load the entry.")
             }
-            if (_state.value.day == day) setEntry(entry, keepText)
+            if (_state.value.day == day) setEntry(entry, keep)
         }
     }
 
     private fun setEntry(entry: LoadState<JournalEntry?>, keepText: Boolean) = _state.update { state ->
-        val keep = keepText && state.changed
-        state.copy(entry = entry, text = if (keep) state.text else entry.valueOrNull?.text.orEmpty())
+        state.copy(entry = entry, text = if (keepText) state.text else entry.valueOrNull?.text.orEmpty())
     }
 
     fun search(text: String) {

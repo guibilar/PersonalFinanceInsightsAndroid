@@ -81,6 +81,19 @@ class JournalViewModelTest {
     }
 
     @Test
+    fun `a pull to refresh keeps the text being typed`() = runTest(dispatcher) {
+        val model = JournalViewModel(api, startDay = today.minusDays(2).toString()) { today }
+        advanceUntilIdle()
+
+        model.edit("Rain all day. Read the whole book.")
+        model.refresh()
+        advanceUntilIdle()
+
+        assertEquals("Rain all day. Read the whole book.", model.state.value.text)
+        assertTrue(model.state.value.changed)
+    }
+
+    @Test
     fun `another day opens its entry, from the start day too, and a day after today opens today`() = runTest(dispatcher) {
         val model = JournalViewModel(api, startDay = today.minusDays(2).toString()) { today }
         advanceUntilIdle()

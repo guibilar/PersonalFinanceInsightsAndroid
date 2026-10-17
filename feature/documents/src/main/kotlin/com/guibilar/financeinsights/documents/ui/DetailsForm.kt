@@ -2,19 +2,13 @@ package com.guibilar.financeinsights.documents.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.listSaver
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.foundation.text.KeyboardOptions
@@ -23,8 +17,8 @@ import com.guibilar.financeinsights.core.documents.Document
 import com.guibilar.financeinsights.core.documents.DocumentDetails
 import com.guibilar.financeinsights.core.documents.DocumentKind
 import com.guibilar.financeinsights.core.documents.parseTags
-import com.guibilar.financeinsights.ui.common.DateField
 import com.guibilar.financeinsights.ui.common.DropdownPicker
+import com.guibilar.financeinsights.ui.common.OptionalDateField
 import java.time.LocalDate
 
 /** The details of a document as typed in a form: for a new document, and for an edit. */
@@ -132,10 +126,7 @@ fun DetailsForm(draft: DetailsDraft, onChange: (DetailsDraft) -> Unit, titleHint
 @Composable
 private fun ClearableDate(label: String, value: LocalDate?, error: String? = null, onChange: (LocalDate?) -> Unit) {
     Column {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            DateField(label, value, onChange = { onChange(it) }, modifier = Modifier.weight(1f), isError = error != null)
-            if (value != null) IconButton(onClick = { onChange(null) }) { Icon(Icons.Outlined.Close, "Clear $label") }
-        }
+        OptionalDateField(label, value, onChange, isError = error != null)
         if (error != null) Text(error, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
     }
 }

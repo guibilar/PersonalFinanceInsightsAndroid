@@ -21,7 +21,6 @@ import com.guibilar.financeinsights.data.ThemeChoice
 import com.guibilar.financeinsights.notifications.AlertNotifications
 import com.guibilar.financeinsights.ui.FinanceRoot
 import com.guibilar.financeinsights.ui.theme.FinanceTheme
-import com.guibilar.financeinsights.ui.transactions.readFile
 import com.guibilar.financeinsights.core.documents.UploadFile
 import com.guibilar.financeinsights.documents.ui.preparePhoto
 import com.guibilar.financeinsights.widget.SpendingWidget
@@ -130,7 +129,7 @@ class MainActivity : FragmentActivity() {
         lifecycleScope.launch {
             val read = withContext(Dispatchers.IO) {
                 uris.mapNotNull { uri ->
-                    val file = readFile(this@MainActivity, uri) ?: return@mapNotNull null
+                    val file = readShared(this@MainActivity, uri) ?: return@mapNotNull null
                     Triple(sharedKind(contentResolver.getType(uri), file.name), file, uri)
                 }
             }
