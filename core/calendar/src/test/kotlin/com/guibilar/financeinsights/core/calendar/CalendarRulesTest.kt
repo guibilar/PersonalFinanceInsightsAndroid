@@ -60,6 +60,16 @@ class CalendarRulesTest {
     }
 
     @Test
+    fun `a repeat cannot end before the event starts`() {
+        val start = LocalDate.of(2026, 10, 20)
+        assertEquals("The repeat cannot end before the event starts.", repeatProblem("FREQ=WEEKLY", LocalDate.of(2026, 10, 19), start))
+        // Its first day only, no end, or no repeat at all.
+        assertNull(repeatProblem("FREQ=WEEKLY", start, start))
+        assertNull(repeatProblem("FREQ=WEEKLY", null, start))
+        assertNull(repeatProblem("", LocalDate.of(2026, 10, 19), start))
+    }
+
+    @Test
     fun `splits and joins a repeat with its end day`() {
         assertEquals("FREQ=WEEKLY;INTERVAL=2" to LocalDate.of(2026, 12, 31), splitRepeat("FREQ=WEEKLY;INTERVAL=2;UNTIL=20261231T235959Z", utc))
         assertEquals("FREQ=WEEKLY;UNTIL=20261231T235959Z", joinRepeat("FREQ=WEEKLY", LocalDate.of(2026, 12, 31), allDay = false, utc))

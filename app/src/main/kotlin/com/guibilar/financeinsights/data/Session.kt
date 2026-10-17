@@ -44,7 +44,11 @@ class Session(
 
     private fun canResume() = store.server != null && !jar.isEmpty
 
-    private fun client(server: String) = createClient(server, jar) { sessionEnded() }
+    private fun client(server: String): ApiClient {
+        lateinit var made: ApiClient
+        made = createClient(server, jar) { sessionEnded(made) }
+        return made
+    }
 
     /**
      * At launch (and on Retry): a stored session that the server still accepts signs in without asking. An unreachable
@@ -113,9 +117,12 @@ class Session(
         }
     }
 
-    /** A call answered 401: the session ended elsewhere (signed out, password changed, expired). */
-    private fun sessionEnded() {
-        if (_state.value is AuthState.SignedIn) {
+    /**
+     * A call of [client] answered 401: the session ended elsewhere (signed out, password changed, expired). Only the
+     * signed-in client's: a slow call of an earlier session (an upload, after signing out and in again) mustn't end this one.
+     */
+    private fun sessionEnded(client: ApiClient) {
+        if ((_state.value as? AuthState.SignedIn)?.client === client) {
             jar.clear()
             _state.value = AuthState.SignedOut("Your session ended. Please sign in again.")
         }

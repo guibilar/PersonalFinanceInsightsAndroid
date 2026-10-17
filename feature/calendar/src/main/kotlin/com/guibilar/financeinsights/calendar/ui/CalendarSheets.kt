@@ -38,6 +38,7 @@ import com.guibilar.financeinsights.core.calendar.importSummary
 import com.guibilar.financeinsights.core.calendar.isoMoment
 import com.guibilar.financeinsights.core.calendar.joinRepeat
 import com.guibilar.financeinsights.core.calendar.moment
+import com.guibilar.financeinsights.core.calendar.repeatProblem
 import com.guibilar.financeinsights.core.calendar.shortDayText
 import com.guibilar.financeinsights.core.calendar.splitRepeat
 import com.guibilar.financeinsights.core.calendar.timeText
@@ -90,6 +91,8 @@ fun EventSheet(
     fun request(): CalendarEventRequest? {
         val name = title.trim()
         if (name.isEmpty()) return null.also { problem = "Give the event a title." }
+        // An end before the first day would leave the event without a day.
+        if (repeat != CUSTOM) repeatProblem(repeat, repeatUntil, startDay)?.let { why -> return null.also { problem = why } }
         val last = if (endDay < startDay) startDay else endDay
         val rrule = if (repeat == CUSTOM) event?.repeat else joinRepeat(repeat, repeatUntil, allDay, zone)
         return if (allDay) {

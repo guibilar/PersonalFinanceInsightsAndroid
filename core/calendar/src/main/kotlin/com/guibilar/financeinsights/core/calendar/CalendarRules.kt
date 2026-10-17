@@ -129,6 +129,10 @@ fun joinRepeat(rule: String, until: LocalDate?, allDay: Boolean, zone: ZoneId = 
     return "$rule;UNTIL=${end.format(UNTIL_MOMENT)}"
 }
 
+/** Why a repeat ([rule], until [until]) cannot go with an event that starts on [start]; null when it can. */
+fun repeatProblem(rule: String, until: LocalDate?, start: LocalDate): String? =
+    if (rule.isNotBlank() && until != null && until < start) "The repeat cannot end before the event starts." else null
+
 /** "Every week", "Every week until Thu, Dec 31", or "Repeats (custom)"; null for no repeat. */
 fun repeatText(repeat: String?, zone: ZoneId = ZoneId.systemDefault()): String? {
     if (repeat.isNullOrBlank()) return null

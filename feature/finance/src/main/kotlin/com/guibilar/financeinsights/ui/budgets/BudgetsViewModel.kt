@@ -14,6 +14,7 @@ import com.guibilar.financeinsights.core.model.Status
 import com.guibilar.financeinsights.ui.common.UiMessage
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -154,8 +155,14 @@ class BudgetsViewModel(private val api: FinanceApi) : ViewModel() {
         }
     }
 
-    /** Adds a budget, or saves [editing]; null when done, or why not (a category another budget counts, say). */
-    suspend fun save(editing: Budget?, input: BudgetInput): String? {
+    /**
+     * Adds a budget, or saves [editing]; null when done, or why not (a category another budget counts, say). In the view
+     * model's scope, not the form's: closing the form while it saves cancels the waiting, not the save, so the list still
+     * reloads and says so.
+     */
+    suspend fun save(editing: Budget?, input: BudgetInput): String? = viewModelScope.async { saveNow(editing, input) }.await()
+
+    private suspend fun saveNow(editing: Budget?, input: BudgetInput): String? {
         val result = apiCall { if (editing == null) api.addBudget(input) else api.updateBudget(editing.id, input) }
         result.apiError?.let { error ->
             val fallback = if (editing == null) "Could not add the budget." else "Could not save the budget."

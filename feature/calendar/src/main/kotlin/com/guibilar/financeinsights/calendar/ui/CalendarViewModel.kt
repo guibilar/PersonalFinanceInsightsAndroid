@@ -209,17 +209,25 @@ class CalendarViewModel(
         change("Event deleted.", "Could not delete the event.") { api.delete(event.id) }
     }
 
+    /**
+     * The sheet can be closed (or another opened) while [call] is on its way: the answer then leaves that sheet alone,
+     * and a failure is said in a message instead of in a sheet that is gone.
+     */
     private fun change(done: String, failure: String, call: suspend () -> Unit) {
+        val target = _state.value.target
         _state.update { it.copy(busy = true, sheetError = null) }
         viewModelScope.launch {
             val result = apiCall { call() }
             if (result.isSuccess) {
                 DataChanges.changed()
-                _state.update { it.copy(busy = false, target = null) }
+                _state.update { it.copy(busy = false, target = if (it.target === target) null else it.target) }
                 _messages.send(UiMessage(done))
                 reload(quiet = true)
             } else {
-                _state.update { it.copy(busy = false, sheetError = calendarError(result.apiError, failure)) }
+                val why = calendarError(result.apiError, failure)
+                val open = _state.value.target === target
+                _state.update { it.copy(busy = false, sheetError = if (open) why else it.sheetError) }
+                if (!open) _messages.send(UiMessage(why))
             }
         }
     }
