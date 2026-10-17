@@ -5,7 +5,9 @@ import com.guibilar.financeinsights.FakeCalendarApi
 import com.guibilar.financeinsights.calendar.ui.CalendarViewModel
 import com.guibilar.financeinsights.core.api.ApiError
 import com.guibilar.financeinsights.core.calendar.CalendarEventRequest
+import com.guibilar.financeinsights.core.calendar.CalendarImportItem
 import com.guibilar.financeinsights.core.calendar.CalendarImportRequest
+import com.guibilar.financeinsights.core.calendar.CalendarImportResult
 import com.guibilar.financeinsights.core.logic.DataChanges
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -141,5 +143,24 @@ class CalendarViewModelTest {
         advanceUntilIdle()
         assertNull(model.state.value.preview)
         assertEquals(CalendarImportRequest("BEGIN:VCALENDAR", dryRun = false), api.sent.first { it.first == "import" && !(it.second as CalendarImportRequest).dryRun }.second)
+    }
+
+    @Test
+    fun `an import into another month keeps the agenda when loading it again fails`() = runTest(dispatcher) {
+        api.importAnswer = CalendarImportResult(
+            dryRun = true, added = 1,
+            events = listOf(CalendarImportItem("Add", "Trip", allDay = true, startDate = "2026-11-20")),
+        )
+        val model = model(agenda = true)
+        advanceUntilIdle()
+        model.preview("BEGIN:VCALENDAR")
+        advanceUntilIdle()
+        api.failing += "range"
+
+        model.confirmImport()
+        advanceUntilIdle()
+
+        assertNotNull(model.state.value.view.valueOrNull)
+        assertEquals(LocalDate.of(2026, 11, 20), model.state.value.selected)
     }
 }
