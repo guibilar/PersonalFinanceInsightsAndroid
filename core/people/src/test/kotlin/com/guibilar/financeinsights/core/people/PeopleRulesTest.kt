@@ -58,6 +58,11 @@ class PeopleRulesTest {
         assertEquals(setOf("birthday"), PersonDraft(name = "A", birthMonth = 12, birthDay = "1", birthYear = "2026").check(today).keys)
         // A year that no date can hold is refused, not a crash.
         assertEquals(setOf("birthday"), PersonDraft(name = "A", birthMonth = 5, birthDay = "1", birthYear = "1000000000").check(today).keys)
+        // A year before 1900 is refused for what it is, not as one in the future (the server's words).
+        assertEquals(
+            mapOf("birthday" to "The year must be from 1900 to 2026."),
+            PersonDraft(name = "A", birthMonth = 5, birthDay = "1", birthYear = "1850").check(today),
+        )
         assertEquals(setOf("email"), PersonDraft(name = "A", email = "not an email").check(today).keys)
         assertEquals(setOf("groups"), PersonDraft(name = "A", groups = "a|b").check(today).keys)
     }
