@@ -101,6 +101,23 @@ class DocumentsViewModelsTest {
     }
 
     @Test
+    fun `the end of the list is the server's last page, even when a document added meanwhile repeats one`() = runTest(dispatcher) {
+        api.documents.clear()
+        repeat(25) { index -> api.documents += DocumentsSamples.receipt.copy(id = "r$index", links = emptyList()) }
+        val model = DocumentsListViewModel(api, today)
+        advanceUntilIdle()
+        api.documents.add(0, DocumentsSamples.receipt.copy(id = "new", links = emptyList()))
+
+        model.loadMore()
+        advanceUntilIdle()
+
+        // Page 2 starts with r19 again: 25 shown of 26, and no page after it.
+        assertEquals(25, model.state.value.items.size)
+        assertEquals(26, model.state.value.totalCount)
+        assertTrue(model.state.value.endReached)
+    }
+
+    @Test
     fun `a failed list says why, and a quiet reload keeps the list`() = runTest(dispatcher) {
         api.failing += "documents"
         val model = DocumentsListViewModel(api, today)
