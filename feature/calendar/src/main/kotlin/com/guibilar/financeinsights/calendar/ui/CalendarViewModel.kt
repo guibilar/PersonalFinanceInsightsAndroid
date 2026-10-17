@@ -162,10 +162,15 @@ class CalendarViewModel(
     }
 
     fun select(day: LocalDate) {
+        if (moveTo(day)) reload()
+    }
+
+    /** Selects [day]; true when what is shown must load again: another month (the agenda does not depend on it). */
+    private fun moveTo(day: LocalDate): Boolean {
         val month = YearMonth.from(day)
-        val moved = month != _state.value.month
+        val moved = month != _state.value.month && !_state.value.agenda
         _state.update { it.copy(selected = day, month = month) }
-        if (moved) reload()
+        return moved
     }
 
     // ---- Events ----
@@ -248,8 +253,9 @@ class CalendarViewModel(
                 // Shows the first new or changed event.
                 val first = done.events.firstOrNull { it.action == "Add" || it.action == "Update" }
                 val day = calendarDay(first?.startDate) ?: first?.startsAt?.let { calendarDay(it.take(10)) }
-                if (day != null) select(day)
-                reload(quiet = true)
+                // One load: a full one for another month, else a quiet one that keeps what is shown when it fails.
+                val moved = day != null && moveTo(day)
+                reload(quiet = !moved)
             }.onFailure {
                 _state.update { it.copy(busy = false) }
                 _messages.send(UiMessage(calendarError(result.apiError, "Could not import the file.")))

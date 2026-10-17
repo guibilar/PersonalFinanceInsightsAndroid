@@ -18,6 +18,9 @@ class TodayTextTest {
         assertEquals("1,234", formatTodayValue(TodayValue.count(1234)))
         assertEquals("120%", formatTodayValue(TodayValue.percent(120.0)))
         assertEquals("12.5%", formatTodayValue(TodayValue.percent(12.5)))
+        // Halves round up, as on the web.
+        assertEquals("3", formatTodayValue(TodayValue(TodayValueType.Count, number = 2.5)))
+        assertEquals("12.3%", formatTodayValue(TodayValue.percent(12.25)))
         assertEquals("Jun 30, 2026", formatTodayValue(TodayValue.day("2026-06-30")))
         assertEquals("Aug 1–5", formatTodayValue(TodayValue.plain("Aug 1–5")))
     }

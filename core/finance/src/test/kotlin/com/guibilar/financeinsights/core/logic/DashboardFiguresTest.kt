@@ -20,6 +20,7 @@ class DashboardFiguresTest {
         // September 5th: a usual $3,000 month has cost 5/30 of it, $500, by now.
         assertEquals(SpentHint("$100.00 under a usual month by now", up = false, worse = false), usualHint(400.0, 3000.0, today))
         assertEquals(SpentHint("$250.00 over a usual month by now", up = true, worse = true), usualHint(750.0, 3000.0, today))
+        assertEquals(SpentHint("about the same as a usual month by now", up = false, worse = false), usualHint(500.0, 3000.0, today))
         assertNull(usualHint(400.0, 0.0, today))
     }
 

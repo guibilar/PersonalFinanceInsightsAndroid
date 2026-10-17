@@ -20,6 +20,8 @@ fun usualHint(spent: Double, monthlyAverage: Double, today: LocalDate): SpentHin
     if (monthlyAverage <= 0) return null
     val expected = monthlyAverage * today.dayOfMonth / YearMonth.from(today).lengthOfMonth()
     val difference = spent - expected
+    // Under a cent either way is neither: not "$0.00 under".
+    if (abs(difference) < 0.005) return SpentHint("about the same as a usual month by now", up = false, worse = false)
     return SpentHint(
         "${Money.format(abs(difference))} ${if (difference > 0) "over" else "under"} a usual month by now",
         up = difference > 0,

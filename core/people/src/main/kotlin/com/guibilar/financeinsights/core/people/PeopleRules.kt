@@ -147,7 +147,8 @@ data class PersonDraft(
         val dayNumber = day.toIntOrNull() ?: return "Enter the day."
         val yearNumber = if (year.isEmpty()) null else year.toIntOrNull() ?: return "The year is a number."
         // Before the dates below: a year past what a date can hold ("1000000000") would throw.
-        if (yearNumber != null && yearNumber !in 1900..today.year) return "The birthday cannot be in the future."
+        if (yearNumber != null && yearNumber < 1900) return "The year must be from 1900 to ${today.year}."
+        if (yearNumber != null && yearNumber > today.year) return "The birthday cannot be in the future."
         val max = YearMonth.of(yearNumber ?: 2000, month).lengthOfMonth()
         if (dayNumber !in 1..max) return "This month has no day $dayNumber."
         if (yearNumber != null && LocalDate.of(yearNumber, month, dayNumber).isAfter(today)) {

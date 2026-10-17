@@ -28,6 +28,11 @@ class DashboardStatsTest {
         val hint = spentHint(report("Sep 2026" to mapOf("Dining" to 120.0), previous = 100.0), LocalDate.of(2026, 9, 5))!!
         assertEquals(SpentHint("20% more than Aug 1–5", up = true, worse = true), hint)
         assertNull(spentHint(report("Sep 2026" to mapOf("Dining" to 120.0)), LocalDate.of(2026, 9, 5)))
+        // Within 1% is about the same, as in the Insights, not "0% more".
+        assertEquals(
+            SpentHint("about the same as Aug 1–5", up = false, worse = false),
+            spentHint(report("Sep 2026" to mapOf("Dining" to 100.4), previous = 100.0), LocalDate.of(2026, 9, 5)),
+        )
     }
 
     @Test
