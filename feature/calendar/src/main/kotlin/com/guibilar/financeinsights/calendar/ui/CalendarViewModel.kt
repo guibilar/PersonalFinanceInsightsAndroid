@@ -96,7 +96,7 @@ class CalendarViewModel(
 
     init {
         reload()
-        startEvent?.let { openEvent(it, occurrence = null) }
+        startEvent?.let { openEvent(it, occurrence = null, showDay = startDay == null) }
     }
 
     /** The days to load: the whole weeks of the month, or the agenda from today. */
@@ -178,10 +178,18 @@ class CalendarViewModel(
     fun newEvent(day: LocalDate = _state.value.selected) = _state.update { it.copy(target = EventTarget(null, day), sheetError = null) }
 
     /** An event of the Calendar opens its sheet; [occurrence] is the day of the occurrence that was tapped. */
-    fun openEvent(id: String, occurrence: LocalDate?) {
+    fun openEvent(id: String, occurrence: LocalDate?) = openEvent(id, occurrence, showDay = false)
+
+    /**
+     * [showDay]: a link's event (Today, Search) moves to its day, unless the link chose one. Not a repeated one: its
+     * first day can be years ago.
+     */
+    private fun openEvent(id: String, occurrence: LocalDate?, showDay: Boolean) {
         viewModelScope.launch {
             val result = apiCall { api.event(id) }
             result.onSuccess { event ->
+                val day = calendarDay(event.startDate) ?: event.startsAt?.let { calendarDay(it.take(10)) }
+                if (showDay && event.repeat == null && day != null && moveTo(day)) reload()
                 _state.update { it.copy(target = EventTarget(event, occurrence ?: it.selected, occurrence), sheetError = null) }
             }.onFailure { _messages.send(UiMessage(calendarError(result.apiError, "Could not open the event."))) }
         }

@@ -4,6 +4,7 @@ import com.guibilar.financeinsights.CalendarSamples
 import com.guibilar.financeinsights.FakeCalendarApi
 import com.guibilar.financeinsights.calendar.ui.CalendarViewModel
 import com.guibilar.financeinsights.core.api.ApiError
+import com.guibilar.financeinsights.core.calendar.CalendarEvent
 import com.guibilar.financeinsights.core.calendar.CalendarEventRequest
 import com.guibilar.financeinsights.core.calendar.CalendarImportItem
 import com.guibilar.financeinsights.core.calendar.CalendarImportRequest
@@ -84,6 +85,18 @@ class CalendarViewModelTest {
         advanceUntilIdle()
 
         assertEquals("Dentist", model.state.value.target?.event?.title)
+    }
+
+    @Test
+    fun `a link's event of another month shows that month`() = runTest(dispatcher) {
+        api.events["ev9"] = CalendarEvent("ev9", "Flight", startsAt = "2026-12-03T10:00:00Z", endsAt = "2026-12-03T14:00:00Z")
+        val model = model(event = "ev9")
+        advanceUntilIdle()
+
+        assertEquals(YearMonth.of(2026, 12), model.state.value.month)
+        assertEquals(LocalDate.of(2026, 12, 3), model.state.value.selected)
+        assertEquals("range" to ("2026-11-29" to "2027-01-02"), api.sent.last { it.first == "range" })
+        assertEquals("Flight", model.state.value.target?.event?.title)
     }
 
     @Test
