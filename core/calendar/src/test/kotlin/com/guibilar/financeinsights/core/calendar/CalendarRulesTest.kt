@@ -48,10 +48,23 @@ class CalendarRulesTest {
     }
 
     @Test
+    fun `a repeat ends at the end of the phone's day`() {
+        val toronto = ZoneId.of("America/Toronto")
+        // 11:59:59 PM in Toronto on Dec 31 is 4:59:59 AM UTC on Jan 1: the 8 PM event of Dec 31 is still in the series.
+        val rule = joinRepeat("FREQ=WEEKLY", LocalDate.of(2026, 12, 31), allDay = false, toronto)
+        assertEquals("FREQ=WEEKLY;UNTIL=20270101T045959Z", rule)
+        assertEquals("FREQ=WEEKLY" to LocalDate.of(2026, 12, 31), splitRepeat(rule, toronto))
+        assertEquals("Every week until Thu, Dec 31", repeatText(rule, toronto))
+        // The end of a UTC day is still that day in Toronto.
+        assertEquals("FREQ=WEEKLY" to LocalDate.of(2026, 12, 31), splitRepeat("FREQ=WEEKLY;UNTIL=20261231T235959Z", toronto))
+    }
+
+    @Test
     fun `splits and joins a repeat with its end day`() {
-        assertEquals("FREQ=WEEKLY;INTERVAL=2" to LocalDate.of(2026, 12, 31), splitRepeat("FREQ=WEEKLY;INTERVAL=2;UNTIL=20261231T235959Z"))
-        assertEquals("FREQ=WEEKLY;UNTIL=20261231T235959Z", joinRepeat("FREQ=WEEKLY", LocalDate.of(2026, 12, 31), allDay = false))
+        assertEquals("FREQ=WEEKLY;INTERVAL=2" to LocalDate.of(2026, 12, 31), splitRepeat("FREQ=WEEKLY;INTERVAL=2;UNTIL=20261231T235959Z", utc))
+        assertEquals("FREQ=WEEKLY;UNTIL=20261231T235959Z", joinRepeat("FREQ=WEEKLY", LocalDate.of(2026, 12, 31), allDay = false, utc))
         assertEquals("FREQ=YEARLY;UNTIL=20300101", joinRepeat("FREQ=YEARLY", LocalDate.of(2030, 1, 1), allDay = true))
+        assertEquals("FREQ=YEARLY" to LocalDate.of(2030, 1, 1), splitRepeat("FREQ=YEARLY;UNTIL=20300101"))
         assertNull(joinRepeat("", LocalDate.of(2030, 1, 1), allDay = true))
         assertEquals("Every month", repeatText("FREQ=MONTHLY"))
         assertEquals("Repeats (custom)", repeatText("FREQ=WEEKLY;BYDAY=TU,TH"))

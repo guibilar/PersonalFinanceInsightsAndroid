@@ -64,6 +64,10 @@ class HomeRulesTest {
         assertEquals(1299.5, parseAmount("1,299.50")!!, 0.0)
         assertEquals(12.5, parseAmount("12,50")!!, 0.0)
         assertEquals(10.01, parseAmount("10.005")!!, 0.0)
+        // A point for the thousands and a comma for the cents, not 1.30.
+        assertEquals(1299.5, parseAmount("1.299,50")!!, 0.0)
+        // The narrow no-break space of a French (Canada) amount groups the thousands too.
+        assertEquals(1299.5, parseAmount("1\u202F299,50")!!, 0.0)
         assertThrows(AmountError::class.java) { parseAmount("-5") }
         assertThrows(AmountError::class.java) { parseAmount("ten") }
         assertThrows(AmountError::class.java) { parseAmount("10000000000") }

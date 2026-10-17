@@ -56,6 +56,8 @@ class PeopleRulesTest {
         assertTrue(PersonDraft(name = "A", birthMonth = 2, birthDay = "29").check(today).isEmpty())
         assertEquals(setOf("birthday"), PersonDraft(name = "A", birthYear = "1990").check(today).keys)
         assertEquals(setOf("birthday"), PersonDraft(name = "A", birthMonth = 12, birthDay = "1", birthYear = "2026").check(today).keys)
+        // A year that no date can hold is refused, not a crash.
+        assertEquals(setOf("birthday"), PersonDraft(name = "A", birthMonth = 5, birthDay = "1", birthYear = "1000000000").check(today).keys)
         assertEquals(setOf("email"), PersonDraft(name = "A", email = "not an email").check(today).keys)
         assertEquals(setOf("groups"), PersonDraft(name = "A", groups = "a|b").check(today).keys)
     }

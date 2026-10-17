@@ -71,7 +71,7 @@ fun EventSheet(
     val event = target.event
     val start = moment(event?.startsAt)?.atZoneSameInstant(zone)
     val end = moment(event?.endsAt)?.atZoneSameInstant(zone)
-    val (rule, until) = splitRepeat(event?.repeat)
+    val (rule, until) = splitRepeat(event?.repeat, zone)
     val isPreset = REPEAT_PRESETS.any { it.rule == rule }
 
     var title by rememberSaveable { mutableStateOf(event?.title ?: "") }
@@ -91,7 +91,7 @@ fun EventSheet(
         val name = title.trim()
         if (name.isEmpty()) return null.also { problem = "Give the event a title." }
         val last = if (endDay < startDay) startDay else endDay
-        val rrule = if (repeat == CUSTOM) event?.repeat else joinRepeat(repeat, repeatUntil, allDay)
+        val rrule = if (repeat == CUSTOM) event?.repeat else joinRepeat(repeat, repeatUntil, allDay, zone)
         return if (allDay) {
             CalendarEventRequest(
                 name, true, startDate = startDay.toString(), endDate = last.toString(), timeZone = zone.id,

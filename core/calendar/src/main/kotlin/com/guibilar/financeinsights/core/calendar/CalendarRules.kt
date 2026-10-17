@@ -2,10 +2,12 @@ package com.guibilar.financeinsights.core.calendar
 
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.OffsetDateTime
 import java.time.YearMonth
 import java.time.ZoneId
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 import java.time.temporal.TemporalAdjusters
@@ -91,15 +93,21 @@ val REPEAT_PRESETS = listOf(
     RepeatPreset("Every year", "FREQ=YEARLY"),
 )
 
-/** The RRULE without its UNTIL, and the UNTIL day, if any. */
-fun splitRepeat(repeat: String?): Pair<String, LocalDate?> {
+private val UNTIL_MOMENT = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'", Locale.US)
+
+/** The day of an UNTIL in [zone]: a day ("20261231") as it is, a UTC moment ("20270101T045959Z") on the phone's day. */
+private fun untilDay(value: String, zone: ZoneId): LocalDate? =
+    runCatching { LocalDateTime.parse(value, UNTIL_MOMENT).atZone(ZoneOffset.UTC).withZoneSameInstant(zone).toLocalDate() }.getOrNull()
+        ?: runCatching { LocalDate.parse(value.take(8), DateTimeFormatter.BASIC_ISO_DATE) }.getOrNull()
+
+/** The RRULE without its UNTIL, and the UNTIL day in [zone], if any. */
+fun splitRepeat(repeat: String?, zone: ZoneId = ZoneId.systemDefault()): Pair<String, LocalDate?> {
     if (repeat.isNullOrBlank()) return "" to null
     var until: LocalDate? = null
     val parts = repeat.split(';').filter { part ->
         val key = part.substringBefore('=').uppercase(Locale.ROOT)
         if (key == "UNTIL") {
-            val value = part.substringAfter('=')
-            until = runCatching { LocalDate.parse(value.take(8), DateTimeFormatter.BASIC_ISO_DATE) }.getOrNull()
+            until = untilDay(part.substringAfter('='), zone)
             false
         } else {
             true
@@ -108,18 +116,23 @@ fun splitRepeat(repeat: String?): Pair<String, LocalDate?> {
     return parts.joinToString(";") to until
 }
 
-/** The RRULE of a preset and an end day: an all-day event ends on the day; one with a time at the end of the day (UTC). */
-fun joinRepeat(rule: String, until: LocalDate?, allDay: Boolean): String? {
+/**
+ * The RRULE of a preset and an end day: an all-day event ends on the day; one with a time at the end of the day in
+ * [zone], written in UTC as RFC 5545 asks. The end of the UTC day would drop the last evening in the Americas (7 PM in
+ * Toronto is after midnight UTC).
+ */
+fun joinRepeat(rule: String, until: LocalDate?, allDay: Boolean, zone: ZoneId = ZoneId.systemDefault()): String? {
     if (rule.isBlank()) return null
     if (until == null) return rule
-    val day = until.format(DateTimeFormatter.BASIC_ISO_DATE)
-    return "$rule;UNTIL=${if (allDay) day else "${day}T235959Z"}"
+    if (allDay) return "$rule;UNTIL=${until.format(DateTimeFormatter.BASIC_ISO_DATE)}"
+    val end = until.atTime(LocalTime.of(23, 59, 59)).atZone(zone).withZoneSameInstant(ZoneOffset.UTC)
+    return "$rule;UNTIL=${end.format(UNTIL_MOMENT)}"
 }
 
 /** "Every week", "Every week until Thu, Dec 31", or "Repeats (custom)"; null for no repeat. */
-fun repeatText(repeat: String?): String? {
+fun repeatText(repeat: String?, zone: ZoneId = ZoneId.systemDefault()): String? {
     if (repeat.isNullOrBlank()) return null
-    val (rule, until) = splitRepeat(repeat)
+    val (rule, until) = splitRepeat(repeat, zone)
     val base = REPEAT_PRESETS.firstOrNull { it.rule == rule && it.rule.isNotEmpty() }?.label ?: "Repeats (custom)"
     return if (until != null) "$base until ${shortDayText(until)}" else base
 }
