@@ -2,9 +2,11 @@ package com.guibilar.financeinsights.ui.common
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
@@ -28,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
@@ -150,6 +153,15 @@ fun DateField(label: String, value: LocalDate?, onChange: (LocalDate) -> Unit, m
             },
             dismissButton = { TextButton(onClick = { picking = false }) { Text("Cancel") } },
         ) { DatePicker(state) }
+    }
+}
+
+/** A day that can also be empty: the calendar field, and a button that clears it. */
+@Composable
+fun OptionalDateField(label: String, value: LocalDate?, onChange: (LocalDate?) -> Unit, modifier: Modifier = Modifier) {
+    Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        DateField(label, value, onChange = { onChange(it) }, modifier = Modifier.weight(1f))
+        if (value != null) IconButton(onClick = { onChange(null) }) { Icon(Icons.Outlined.Close, "Clear $label") }
     }
 }
 

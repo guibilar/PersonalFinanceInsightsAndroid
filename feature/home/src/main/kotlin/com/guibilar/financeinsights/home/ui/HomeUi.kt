@@ -19,7 +19,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -28,7 +27,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -59,7 +57,6 @@ import com.guibilar.financeinsights.core.home.roomNameError
 import com.guibilar.financeinsights.core.home.warrantyBadge
 import com.guibilar.financeinsights.core.home.warrantyOf
 import com.guibilar.financeinsights.core.logic.Money
-import com.guibilar.financeinsights.ui.common.DateField
 import com.guibilar.financeinsights.ui.common.ErrorState
 import com.guibilar.financeinsights.ui.common.LoadState
 import com.guibilar.financeinsights.ui.common.Placeholder
@@ -207,15 +204,6 @@ internal fun NameSheet(title: String, initial: String, confirm: String, save: su
             }
             Spacer(Modifier.height(16.dp))
         }
-    }
-}
-
-/** A day that can also be empty: the calendar field, and a button that clears it. */
-@Composable
-internal fun OptionalDateField(label: String, value: LocalDate?, onChange: (LocalDate?) -> Unit, modifier: Modifier = Modifier) {
-    Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        DateField(label, value, onChange = { onChange(it) }, modifier = Modifier.weight(1f))
-        if (value != null) IconButton(onClick = { onChange(null) }) { Icon(Icons.Outlined.Close, "Clear $label") }
     }
 }
 

@@ -44,6 +44,7 @@ import com.guibilar.financeinsights.core.calendar.splitRepeat
 import com.guibilar.financeinsights.core.calendar.timeText
 import com.guibilar.financeinsights.ui.common.DateField
 import com.guibilar.financeinsights.ui.common.DropdownPicker
+import com.guibilar.financeinsights.ui.common.OptionalDateField
 import com.guibilar.financeinsights.ui.common.TimeField
 import java.time.LocalDate
 import java.time.LocalTime
@@ -155,7 +156,7 @@ fun EventSheet(
                 modifier = Modifier.fillMaxWidth(),
             )
             if (repeat.isNotEmpty() && repeat != CUSTOM) {
-                DateField("Until (optional)", repeatUntil, { repeatUntil = it }, Modifier.fillMaxWidth())
+                OptionalDateField("Until (optional)", repeatUntil, { repeatUntil = it })
             }
             OutlinedTextField(
                 value = location,
