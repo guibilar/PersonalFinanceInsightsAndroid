@@ -138,7 +138,7 @@ fun InboxScreen(
                             } else {
                                 item(key = "count") { Note(if (state.total == 1) "1 note" else "${state.total} notes") }
                                 items(notes.value, key = { it.id }) { note ->
-                                    NoteCard(note, canWrite, state.busy == note.id, zone, model, { editing = it }, { deleting = it }, openDocument)
+                                    NoteCard(note, canWrite, state.busy != null, zone, model, { editing = it }, { deleting = it }, openDocument)
                                 }
                             }
                         }

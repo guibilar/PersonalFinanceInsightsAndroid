@@ -126,7 +126,9 @@ class InboxViewModel(private val api: InboxApi, private val sender: NoteSender) 
 
     fun delete(note: InboxNote) = run(note.id, "Deleted the note", "Could not delete the note.", { api.delete(note.id) })
 
+    /** One change at a time: a second tap while one runs (a task made twice, say) does nothing. */
     private fun run(key: String, success: String, failure: String, work: suspend () -> Any?, after: () -> Unit = {}) {
+        if (_state.value.busy != null) return
         _state.update { it.copy(busy = key) }
         viewModelScope.launch {
             val result = apiCall { work() }
