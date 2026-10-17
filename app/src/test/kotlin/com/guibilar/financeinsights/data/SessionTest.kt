@@ -110,6 +110,26 @@ class SessionTest {
         assertEquals(AuthState.SignedOut(), session.state.value)
     }
 
+    @Test
+    fun `a 401 of an earlier session's client does not sign out the new one`() = runTest {
+        val unauthorized = mutableListOf<() -> Unit>()
+        val session = Session(store) { _, _, onUnauthorized ->
+            unauthorized.add(onUnauthorized)
+            fakeApiClient(auth, finance)
+        }
+        session.signIn(SERVER, "dev", "a password")
+        session.signOut()
+        session.signIn(SERVER, "dev", "a password")
+
+        // A slow call of the first client comes back refused.
+        unauthorized.first().invoke()
+        assertEquals("dev", (session.state.value as AuthState.SignedIn).username)
+
+        // One of the signed-in client still ends the session.
+        unauthorized.last().invoke()
+        assertEquals("Your session ended. Please sign in again.", (session.state.value as AuthState.SignedOut).reason)
+    }
+
     private companion object {
         const val SERVER = "https://finance.example.ts.net"
     }
