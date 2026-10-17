@@ -50,7 +50,7 @@ class TabletShellTest {
     @Test
     fun `the rail holds the five top-level pages`() {
         show { MainScreen(fakeApiClient(FakeFinanceApi(), FakeTodayApi(), FakeDocumentsApi(), FakeAlertsApi(), FakeTasksApi()), account, {}) }
-        listOf("Today", "Timeline", "Capture", "Modules", "Search").forEach { compose.onNode(hasText(it) and isSelectable()).assertExists() }
+        listOf("Today", "Calendar", "Add", "Modules", "Search").forEach { compose.onNode(hasText(it) and isSelectable()).assertExists() }
         shoot("tablet-today")
     }
 

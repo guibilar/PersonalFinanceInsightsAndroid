@@ -12,7 +12,8 @@ import androidx.compose.ui.test.performClick
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.guibilar.financeinsights.ui.modules.MODULES
 import com.guibilar.financeinsights.ui.modules.ModulesScreen
-import com.guibilar.financeinsights.ui.shell.CaptureScreen
+import com.guibilar.financeinsights.ui.shell.CaptureActions
+import com.guibilar.financeinsights.ui.shell.CaptureContent
 import com.guibilar.financeinsights.ui.theme.FinanceTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -54,7 +55,8 @@ class ShellScreenshotTest {
 
     @Test
     fun capture() {
-        show { CaptureScreen(PaddingValues(), onExpense = {}) }
+        // The + sheet's content (the sheet itself is a window of its own).
+        show { CaptureContent(CaptureActions({}, {}, {}, {}, {}, {}, {}, {})) }
         shoot("capture")
     }
 }

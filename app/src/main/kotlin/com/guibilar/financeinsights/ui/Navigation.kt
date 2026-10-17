@@ -98,6 +98,20 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.material.icons.outlined.CalendarMonth
+import com.guibilar.financeinsights.documents.AddDocumentRoute
+import com.guibilar.financeinsights.home.ItemRoute
+import com.guibilar.financeinsights.home.NewItemRoute
+import com.guibilar.financeinsights.people.PersonRoute
+import com.guibilar.financeinsights.people.PersonFormRoute
+import com.guibilar.financeinsights.people.PeopleImportRoute
 import com.guibilar.financeinsights.journal.JournalRoute
 import com.guibilar.financeinsights.journal.isJournalPage
 import com.guibilar.financeinsights.journal.journalGraph
@@ -130,7 +144,8 @@ import com.guibilar.financeinsights.ui.modules.ModulesScreen
 import com.guibilar.financeinsights.ui.settings.AccountSettingsScreen
 import com.guibilar.financeinsights.ui.settings.AccountSettingsViewModel
 import com.guibilar.financeinsights.ui.settings.AppSettingsScreen
-import com.guibilar.financeinsights.ui.shell.CaptureScreen
+import com.guibilar.financeinsights.ui.shell.CaptureActions
+import com.guibilar.financeinsights.ui.shell.CaptureSheet
 import com.guibilar.financeinsights.ui.signin.LockScreen
 import com.guibilar.financeinsights.ui.signin.SignInScreen
 import com.guibilar.financeinsights.ui.signin.UnreachableScreen
@@ -148,9 +163,6 @@ data object TodayRoute
 
 @Serializable
 data object TimelineRoute
-
-@Serializable
-data object CaptureRoute
 
 @Serializable
 data object ModulesRoute
@@ -243,24 +255,38 @@ private const val SIGNED_IN_KEY = "signed-in"
 private data class TopLevel(
     val label: String,
     val icon: ImageVector,
-    val route: Any,
+    /** None for the + (Capture), which opens a sheet over the page instead of a page. */
+    val route: Any?,
     val matches: (NavDestination) -> Boolean,
     /** Capture: the round action in the middle. */
     val action: Boolean = false,
 )
 
-// The Money, Documents, Tasks, Home, People and Journal pages, the app's settings and the account open from Modules, so they show under it.
+// The Money, Documents, Tasks, Home, People, Inbox and Journal pages, the Timeline, the app's settings and the account
+// open from Modules, so they show under it. The Calendar is a tab of its own.
 private val topLevel = listOf(
     TopLevel("Today", Icons.Outlined.WbSunny, TodayRoute, { it.hasRoute<TodayRoute>() }),
-    TopLevel("Timeline", Icons.Outlined.Timeline, TimelineRoute, { it.hasRoute<TimelineRoute>() }),
-    TopLevel("Capture", Icons.Outlined.Add, CaptureRoute, { it.hasRoute<CaptureRoute>() }, action = true),
+    TopLevel("Calendar", Icons.Outlined.CalendarMonth, CalendarRoute(), { it.isCalendarPage() }),
+    TopLevel("Add", Icons.Outlined.Add, null, { false }, action = true),
     TopLevel("Modules", Icons.Outlined.GridView, ModulesRoute, {
         it.hasRoute<ModulesRoute>() || it.isFinancePage() || it.isDocumentsPage() || it.isTasksPage() ||
-            it.isHomePage() || it.isPeoplePage() || it.isJournalPage() || it.isInboxPage() || it.isCalendarPage() || it.hasRoute<AppSettingsRoute>() ||
-            it.hasRoute<AccountSettingsRoute>()
+            it.isHomePage() || it.isPeoplePage() || it.isJournalPage() || it.isInboxPage() || it.hasRoute<TimelineRoute>() ||
+            it.hasRoute<AppSettingsRoute>() || it.hasRoute<AccountSettingsRoute>()
     }),
     TopLevel("Search", Icons.Outlined.Search, SearchRoute, { it.hasRoute<SearchRoute>() }),
 )
+
+/** The tab a page belongs to (its index in [topLevel]); the page transitions fade through between tabs. */
+private fun tabOf(destination: NavDestination): Int = topLevel.indexOfFirst { it.matches(destination) }
+
+/**
+ * The pages that take the whole screen: one item and the forms. The bar slides away on them, so the page has the room
+ * and the person's attention, and slides back on the lists.
+ */
+private fun NavDestination.isFocusedPage(): Boolean =
+    hasRoute<DocumentRoute>() || hasRoute<AddDocumentRoute>() || hasRoute<ItemRoute>() || hasRoute<NewItemRoute>() ||
+        hasRoute<PersonRoute>() || hasRoute<PersonFormRoute>() || hasRoute<PeopleImportRoute>() ||
+        hasRoute<AppSettingsRoute>() || hasRoute<AccountSettingsRoute>()
 
 /** Opens a top-level page as the bar does: each keeps its own back stack, and Back from it returns to Today. */
 private fun NavHostController.openTab(route: Any, restore: Boolean = true) {
@@ -390,18 +416,48 @@ fun MainScreen(
     val peopleHost = remember(nav, client) { AppPeopleHost(nav, client) }
     // A rail at the side on a wide screen (a tablet, an unfolded foldable, landscape); the bar below otherwise.
     val rail = windowWidth() >= MEDIUM_WIDTH
+    var capturing by remember { mutableStateOf(false) }
     fun select(item: TopLevel, selected: Boolean) {
-        if (!selected) {
-            nav.openTab(item.route)
-        } else if (entry?.destination?.hasRoute(item.route::class) == false) {
+        val route = item.route
+        if (route == null) {
+            capturing = true
+        } else if (!selected) {
+            nav.openTab(route)
+        } else if (entry?.destination?.hasRoute(route::class) == false) {
             // The item again, from a page under it: back to its first page. A Money page opened from Today has no
             // Modules page under it; the Modules page then opens fresh.
-            if (!nav.popBackStack(item.route, inclusive = false)) nav.openTab(item.route, restore = false)
+            if (!nav.popBackStack(route, inclusive = false)) nav.openTab(route, restore = false)
         }
     }
+    if (capturing) {
+        CaptureSheet(
+            onDismiss = { capturing = false },
+            canWrite = canWrite,
+            actions = CaptureActions(
+                onTask = { nav.addTask() },
+                onItem = { nav.addItem() },
+                onExpense = { quickAction.value = QuickAction.AddTransaction },
+                onPhoto = { nav.addDocument(DocumentSource.Photos) },
+                onScan = { nav.addDocument(DocumentSource.Scan) },
+                onPerson = { nav.addPerson() },
+                onJournal = { nav.openJournal() },
+                onNote = { nav.openInbox() },
+            ),
+        )
+    }
+    val focused = entry?.destination?.isFocusedPage() == true
+    val density = LocalDensity.current
+    val transitions = remember(density) { PageTransitions(::tabOf, density) }
     Scaffold(
         bottomBar = {
-            if (!rail) {
+            // Slides away on a focused page; its height shrinks with it, so the page below grows smoothly.
+            AnimatedVisibility(
+                visible = !rail && !focused,
+                enter = expandVertically(tween(Motion.AXIS_MS, easing = Motion.EmphasizedDecelerate), expandFrom = Alignment.Top) +
+                    fadeIn(tween(Motion.AXIS_MS)),
+                exit = shrinkVertically(tween(Motion.AXIS_MS, easing = Motion.EmphasizedDecelerate), shrinkTowards = Alignment.Top) +
+                    fadeOut(tween(Motion.OUT_MS)),
+            ) {
                 NavigationBar {
                     topLevel.forEach { item ->
                         val selected = entry?.destination?.let(item.matches) == true
@@ -434,7 +490,15 @@ fun MainScreen(
             }
             // T75: the Money pages hide their write actions for a read-only user.
             CompositionLocalProvider(LocalFinanceCanWrite provides canWrite) {
-                NavHost(nav, startDestination = TodayRoute, modifier = Modifier.weight(1f)) {
+                NavHost(
+                    nav,
+                    startDestination = TodayRoute,
+                    modifier = Modifier.weight(1f),
+                    enterTransition = transitions.enter,
+                    exitTransition = transitions.exit,
+                    popEnterTransition = transitions.popEnter,
+                    popExitTransition = transitions.popExit,
+                ) {
                     composable<TodayRoute> {
                         TodayScreen(
                             model = viewModel {
@@ -474,20 +538,6 @@ fun MainScreen(
                             open = { link -> todayDestination(link)?.let { openDestination(it) } },
                         )
                     }
-                    composable<CaptureRoute> {
-                        CaptureScreen(
-                            padding,
-                            canWrite = canWrite,
-                            onExpense = { quickAction.value = QuickAction.AddTransaction },
-                            onScan = { nav.addDocument(DocumentSource.Scan) },
-                            onPhoto = { nav.addDocument(DocumentSource.Photos) },
-                            onTask = { nav.addTask() },
-                            onItem = { nav.addItem() },
-                            onPerson = { nav.addPerson() },
-                            onJournal = { nav.openJournal() },
-                            onNote = { nav.openInbox() },
-                        )
-                    }
                     composable<ModulesRoute> {
                         // The overdue count on the Tasks card (T86), loaded each time the page opens; none on a failure.
                         val overdue by produceState<Int?>(null, client) {
@@ -500,6 +550,7 @@ fun MainScreen(
                             contentPadding = padding,
                             open = { module -> module.route?.let { nav.navigate(it) } },
                             openSettings = { nav.navigate(AppSettingsRoute) },
+                            openTimeline = { nav.navigate(TimelineRoute) },
                             openAccount = { nav.navigate(AccountSettingsRoute) },
                             badges = overdue?.takeIf { it > 0 }?.let { mapOf("tasks" to "$it overdue") }.orEmpty(),
                         )
